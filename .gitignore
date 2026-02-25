@@ -1,0 +1,21 @@
+# Docker
+*.env
+volumes/
+backups/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyc
+venv/
+cr-env/
+
+# .NET
+bin/
+obj/
+*.user
+*.suo
+
+# Gerais
+*.log
+*.tmp

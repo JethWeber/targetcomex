@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  target_comex_db:
+    build: ./db-service
+    container_name: target_comex_db
+    ports:
+      - "1433:1433"           # Porta padrão do SQL Server
+    volumes:
+      - db-data:/var/opt/mssql  # Persistência dos dados
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=TargetComex2025!
+      - MSSQL_PID=Developer
+
+volumes:
+  db-data:
