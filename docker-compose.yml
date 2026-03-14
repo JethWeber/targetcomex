@@ -1,17 +1,34 @@
-version: '3.8'
-
 services:
   target_comex_db:
     build: ./db-service
     container_name: target_comex_db
     ports:
-      - "1433:1433"           # Porta padrão do SQL Server
+      - "1433:1433"
     volumes:
-      - db-data:/var/opt/mssql  # Persistência dos dados
+      - db-data:/var/opt/mssql
     environment:
       - ACCEPT_EULA=Y
-      - SA_PASSWORD=TargetComex2025!
+      - MSSQL_SA_PASSWORD=TargetComex2025!
       - MSSQL_PID=Developer
+    restart: unless-stopped
+
+  targetcomexcr:  # Nome todo minúsculo para evitar erro de tag
+    build: ./cr-service
+    container_name: targetcomexcr
+    ports:
+      - "8000:8000"
+    depends_on:
+      - target_comex_db
+    volumes:
+      - ./cr-service:/app
+    environment:
+      - DB_SERVER=target_comex_db
+      - DB_PORT=1433
+      - DB_DATABASE=TargetComex
+      - DB_USERNAME=sa
+      - DB_PASSWORD=TargetComex2025!
+      - DB_DRIVER=ODBC Driver 17 for SQL Server
+    restart: unless-stopped
 
 volumes:
   db-data:
