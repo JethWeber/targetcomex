@@ -1,375 +1,374 @@
-from fastapi import FastAPI, HTTPException, UploadFile, File
-from fastapi.responses import JSONResponse
-import pyodbc
+"""
+TARGET COMEX — Canal de Recomendação Multimodal
+================================================
+Carrega embeddings pré-treinados do disco (/app/models).
+NÃO re-treina na inicialização — usa artefactos gerados pelo train.py.
+"""
+
 import os
+import pickle
+import logging
+import threading
+import pyodbc
 import numpy as np
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import JSONResponse
 from sklearn.neighbors import NearestNeighbors
 from sklearn.preprocessing import StandardScaler
-from typing import List, Dict
 from transformers import AutoTokenizer, AutoModel
+from typing import List
 import torch
-from torchvision import models, transforms
-from PIL import Image
-import io
 
-app = FastAPI(
-    title="Canal de Recomendação - Target Comex",
-    description="API Multimodal para Recomendações da Concessionária TARGET",
-    version="0.3.0"
+# ─── Logging ─────────────────────────────────────────────────────────────────
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [API] %(levelname)s — %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S"
 )
+log = logging.getLogger(__name__)
 
-# Configuração do banco (pega das env vars do compose)
-DB_SERVER = os.getenv("DB_SERVER", "target_comex_db")
-DB_PORT = os.getenv("DB_PORT", "1433")
+# ─── Caminhos ─────────────────────────────────────────────────────────────────
+MODELS_DIR      = os.getenv("MODELS_DIR", "/app/models")
+EMBEDDINGS_PATH = os.path.join(MODELS_DIR, "vehicle_embeddings.pkl")
+
+# ─── Conexão BD ───────────────────────────────────────────────────────────────
+DB_SERVER   = os.getenv("DB_SERVER",   "target_comex_db")
+DB_PORT     = os.getenv("DB_PORT",     "1433")
 DB_DATABASE = os.getenv("DB_DATABASE", "TargetComex")
 DB_USERNAME = os.getenv("DB_USERNAME", "sa")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "TargetComex2025!")
 
-connection_string = (
+CONNECTION_STRING = (
     f"DRIVER={{ODBC Driver 18 for SQL Server}};"
     f"SERVER={DB_SERVER},{DB_PORT};"
     f"DATABASE={DB_DATABASE};"
     f"UID={DB_USERNAME};"
     f"PWD={DB_PASSWORD};"
-    "Encrypt=yes;"
-    "TrustServerCertificate=yes;"
+    "Encrypt=yes;TrustServerCertificate=yes;"
 )
 
-# Mapeamentos categóricos (só M/F para Genero, conforme sua DB)
-GENERO_MAP = {'M': 0, 'F': 1}
+# ─── Mapeamentos ──────────────────────────────────────────────────────────────
+GENERO_MAP = {"M": 0, "F": 1}
 ESTADO_CIVIL_MAP = {
-    'Solteiro': 0, 'Casado': 1, 'União de Facto': 2, 'Divorciado': 3, 'Viúvo': 4
+    "Solteiro": 0, "Solteira": 0,
+    "Casado": 1,   "Casada": 1,
+    "União de Facto": 2,
+    "Divorciado": 3, "Divorciada": 3,
+    "Viúvo": 4,    "Viúva": 4
 }
+RENDA_MAP    = {"Baixa": 1, "Média": 2, "Média-Alta": 2.5, "Alta": 3}
+ESTILOS      = ["Pick-up", "Hatchback", "SUV", "Sedan"]
+INTERESSES_TAGS = [
+    "família", "economia", "conforto", "luxo",
+    "design", "tecnologia", "espaço", "robustez", "off-road"
+]
 
-# Tags de interesses (para vetor com peso maior)
-INTERESSES_TAGS = ['família', 'economia', 'conforto', 'luxo', 'design', 'tecnologia', 'espaço', 'robustez', 'off-road']
 
+# ─── Estado global da aplicação ───────────────────────────────────────────────
+class AppState:
+    embeddings: dict = {}          # {veiculo_id: {...}}
+    tokenizer   = None
+    bert_model  = None
+    lock        = threading.Lock()
+
+state = AppState()
+
+
+# ─── FastAPI ──────────────────────────────────────────────────────────────────
+app = FastAPI(
+    title="Canal de Recomendação — Target Comex",
+    description="API Multimodal de Recomendações para a Concessionária TARGET",
+    version="1.0.0"
+)
+
+
+# ─── Inicialização ─────────────────────────────────────────────────────────────
+@app.on_event("startup")
+async def startup():
+    log.info("🚀 Iniciando Canal de Recomendação...")
+    _load_bert()
+    _load_embeddings()
+    log.info("✅ API pronta!")
+
+
+def _load_bert():
+    """Carrega DistilBERT para buscas textuais em tempo real."""
+    log.info("Carregando DistilBERT para buscas...")
+    state.tokenizer  = AutoTokenizer.from_pretrained("distilbert-base-uncased")
+    state.bert_model = AutoModel.from_pretrained("distilbert-base-uncased")
+    state.bert_model.eval()
+    log.info("DistilBERT carregado. ✅")
+
+
+def _load_embeddings():
+    """Carrega embeddings pré-treinados do disco."""
+    if not os.path.exists(EMBEDDINGS_PATH):
+        log.warning(
+            "⚠️  Arquivo de embeddings não encontrado. "
+            "Execute: python train.py  (ou aguarde o watcher)"
+        )
+        state.embeddings = {}
+        return
+
+    with open(EMBEDDINGS_PATH, "rb") as f:
+        state.embeddings = pickle.load(f)
+
+    log.info(f"✅ {len(state.embeddings)} embeddings de veículos carregados de {EMBEDDINGS_PATH}")
+
+
+def reload_embeddings():
+    """Recarrega embeddings sem reiniciar a API (thread-safe)."""
+    with state.lock:
+        _load_embeddings()
+    log.info("🔄 Embeddings recarregados.")
+
+
+# ─── Helpers de BD ────────────────────────────────────────────────────────────
+def get_conn():
+    return pyodbc.connect(CONNECTION_STRING)
+
+
+# ─── Vectorização de usuário ──────────────────────────────────────────────────
 def encode_interesses(interesses_str: str) -> List[float]:
-    """Converte string de interesses em vetor numérico com peso maior (2 para match exato)."""
     if not interesses_str:
         return [0.0] * len(INTERESSES_TAGS)
-    tags = [t.strip().lower() for t in interesses_str.split(',')]
+    tags = [t.strip().lower() for t in interesses_str.split(",")]
     return [2.0 if tag in tags else 0.0 for tag in INTERESSES_TAGS]
 
+
 def get_style_counts(user_id: int, cursor) -> np.ndarray:
-    """Contagem ponderada de estilos (compra = 2× navegação)."""
-    styles = ['Pick-up', 'Hatchback', 'SUV', 'Sedan']  # Expanda conforme sua tabela
     counts = []
-    for style in styles:
-        cursor.execute("""
-            SELECT COUNT(*) FROM HistoricoCompras hc
-            JOIN Veiculos v ON hc.VeiculoId = v.Id
-            WHERE hc.UsuarioId = ? AND v.Estilo = ?
-        """, (user_id, style))
-        buy_count = cursor.fetchone()[0]
+    for estilo in ESTILOS:
+        cursor.execute(
+            "SELECT COUNT(*) FROM HistoricoCompras hc "
+            "JOIN Veiculos v ON hc.VeiculoId = v.Id "
+            "WHERE hc.UsuarioId = ? AND v.Estilo = ?", (user_id, estilo)
+        )
+        buys = cursor.fetchone()[0] or 0
 
-        cursor.execute("""
-            SELECT COUNT(*) FROM HistoricoNavegacao hn
-            JOIN Veiculos v ON hn.VeiculoId = v.Id
-            WHERE hn.UsuarioId = ? AND v.Estilo = ?
-        """, (user_id, style))
-        nav_count = cursor.fetchone()[0]
-
-        total = buy_count * 2 + nav_count
-        counts.append(total)
+        cursor.execute(
+            "SELECT COUNT(*) FROM HistoricoNavegacao hn "
+            "JOIN Veiculos v ON hn.VeiculoId = v.Id "
+            "WHERE hn.UsuarioId = ? AND v.Estilo = ?", (user_id, estilo)
+        )
+        views = cursor.fetchone()[0] or 0
+        counts.append(buys * 2 + views)
     return np.array(counts)
 
-def vectorize_user(user_row, cursor):
-    """Vetor melhorado: filhos, renda, idade, genero, estado_civil, interesses (peso 2), estilos (histórico)"""
-    renda_map = {'Baixa': 1, 'Média': 2, 'Alta': 3, 'Média-Alta': 2.5}
-    idade = (2026 - int(str(user_row[3])[:4])) if user_row[3] else 30
-    genero_code = GENERO_MAP.get(user_row[4], 0)  # Só M/F
-    estado_civil_code = ESTADO_CIVIL_MAP.get(user_row[5], 0)
-    interesses_vec = encode_interesses(user_row[6])
-    style_vec = get_style_counts(user_row[0], cursor)
 
-    return np.concatenate([
-        [user_row[2] or 0],                    # NumeroFilhos
-        [renda_map.get(user_row[7], 2)],       # FaixaRendaMensal
-        [idade],
-        [genero_code],
-        [estado_civil_code],
-        interesses_vec,                        # Peso 2 para match
-        style_vec                              # Histórico de estilos
-    ])
+def vectorize_user(user_row, cursor) -> np.ndarray:
+    try:
+        renda_val          = RENDA_MAP.get(user_row[7], 2)
+        idade              = (2026 - int(str(user_row[3])[:4])) if user_row[3] else 30
+        genero_code        = GENERO_MAP.get(user_row[4], 0)
+        estado_civil_code  = ESTADO_CIVIL_MAP.get(user_row[5], 0)
+        interesses_vec     = encode_interesses(user_row[6] or "")
+        style_vec          = get_style_counts(user_row[0], cursor)
+
+        return np.concatenate([
+            [user_row[2] or 0],   # NumeroFilhos
+            [renda_val],
+            [idade],
+            [genero_code],
+            [estado_civil_code],
+            interesses_vec,       # 9 dims
+            style_vec             # 4 dims  → total: 18 dims
+        ])
+    except Exception as e:
+        log.warning(f"Erro ao vectorizar usuário {user_row[0]}: {e}")
+        return np.zeros(18, dtype=np.float32)
+
+
+# ─── Endpoints ────────────────────────────────────────────────────────────────
 
 @app.get("/health")
-async def health_check():
-    return {"status": "healthy", "message": "Canal de Recomendação rodando!"}
+async def health():
+    return {
+        "status":             "healthy",
+        "embeddings_loaded":  len(state.embeddings),
+        "bert_loaded":        state.bert_model is not None,
+        "message":            "Canal de Recomendação rodando!"
+    }
 
-@app.get("/test-db")
-async def test_db_connection():
-    try:
-        conn = pyodbc.connect(connection_string)
-        cursor = conn.cursor()
-        cursor.execute("SELECT COUNT(*) FROM Usuarios")
-        count = cursor.fetchone()[0]
-        cursor.close()
-        conn.close()
-        return {"status": "success", "message": f"Conexão OK! {count} usuários encontrados no banco."}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao conectar ao DB: {str(e)}")
+
+@app.post("/reload-embeddings")
+async def reload():
+    """Recarrega embeddings do disco sem reiniciar a API."""
+    reload_embeddings()
+    return {"message": f"✅ {len(state.embeddings)} embeddings recarregados."}
+
 
 @app.get("/recommend/{user_id}")
 async def recommend(user_id: int):
+    """Recomendação colaborativa — KNN baseado no perfil do utilizador."""
+    conn = None
     try:
-        conn = pyodbc.connect(connection_string)
+        conn   = get_conn()
         cursor = conn.cursor()
 
-        # Perfil do usuário alvo
-        cursor.execute("""
-            SELECT Id, Nome, NumeroFilhos, DataNascimento, Genero, EstadoCivil, InteressesPrincipais, FaixaRendaMensal
-            FROM Usuarios WHERE Id = ?
-        """, (user_id,))
+        cursor.execute(
+            "SELECT Id, Nome, NumeroFilhos, DataNascimento, Genero, EstadoCivil, "
+            "InteressesPrincipais, FaixaRendaMensal FROM Usuarios WHERE Id = ?",
+            (user_id,)
+        )
         user = cursor.fetchone()
         if not user:
-            raise HTTPException(status_code=404, detail="Usuário não encontrado")
+            raise HTTPException(status_code=404, detail="Utilizador não encontrado")
 
         user_vector = vectorize_user(user, cursor)
 
-        # Todos os outros usuários
-        cursor.execute("""
-            SELECT Id, Nome, NumeroFilhos, DataNascimento, Genero, EstadoCivil, InteressesPrincipais, FaixaRendaMensal
-            FROM Usuarios WHERE Id != ?
-        """, (user_id,))
+        cursor.execute(
+            "SELECT Id, Nome, NumeroFilhos, DataNascimento, Genero, EstadoCivil, "
+            "InteressesPrincipais, FaixaRendaMensal FROM Usuarios WHERE Id != ?",
+            (user_id,)
+        )
         others = cursor.fetchall()
 
-        if len(others) < 2:
-            return {"message": "Não há usuários suficientes para recomendação colaborativa"}
+        if len(others) < 1:
+            return {"message": "Utilizadores insuficientes para comparação."}
 
-        # Vetoriza todos
         X = np.array([vectorize_user(row, cursor) for row in others])
-
-        # Normaliza (média 0, desvio padrão 1)
-        scaler = StandardScaler()
+        scaler   = StandardScaler()
         X_scaled = scaler.fit_transform(X)
-        user_vector_scaled = scaler.transform(user_vector.reshape(1, -1))
+        u_scaled = scaler.transform(user_vector.reshape(1, -1))
 
-        # KNN: até 3 vizinhos mais próximos
-        n_neighbors = min(3, len(others))
-        knn = NearestNeighbors(n_neighbors=n_neighbors, metric='euclidean')
+        knn = NearestNeighbors(n_neighbors=min(3, len(others)), metric="euclidean")
         knn.fit(X_scaled)
-        distances, indices = knn.kneighbors(user_vector_scaled)
+        _, indices      = knn.kneighbors(u_scaled)
+        similar_ids     = [others[i][0] for i in indices[0]]
 
-        similar_user_ids = [others[i][0] for i in indices[0]]
-
-        # Recomenda veículos que vizinhos compraram ou avaliaram bem
-        placeholders = ','.join('?' * len(similar_user_ids))
+        placeholders = ",".join("?" * len(similar_ids))
         cursor.execute(f"""
-            SELECT DISTINCT v.Marca, v.Modelo, v.Preco, v.Estilo
+            SELECT DISTINCT v.Id, v.Marca, v.Modelo, v.Preco, v.Estilo
             FROM HistoricoCompras hc
             JOIN Veiculos v ON hc.VeiculoId = v.Id
             WHERE hc.UsuarioId IN ({placeholders})
             UNION
-            SELECT DISTINCT v.Marca, v.Modelo, v.Preco, v.Estilo
+            SELECT DISTINCT v.Id, v.Marca, v.Modelo, v.Preco, v.Estilo
             FROM Avaliacoes a
             JOIN Veiculos v ON a.VeiculoId = v.Id
             WHERE a.UsuarioId IN ({placeholders}) AND a.Nota >= 4
-        """, similar_user_ids + similar_user_ids)
+        """, similar_ids + similar_ids)
 
-        recommendations = cursor.fetchall()
-        cursor.close()
-        conn.close()
-
-        rec_list = [
-            {"marca": r[0], "modelo": r[1], "preco": float(r[2]), "estilo": r[3]}
-            for r in recommendations
-        ]
-
+        recs = cursor.fetchall()
         return {
-            "user_id": user_id,
-            "similar_users": similar_user_ids,
-            "distances": distances[0].tolist(),
-            "recommendations": rec_list or "Nenhuma recomendação colaborativa encontrada ainda"
+            "user_id":       user_id,
+            "similar_users": similar_ids,
+            "recommendations": [
+                {"id": r[0], "marca": r[1], "modelo": r[2],
+                 "preco": float(r[3]), "estilo": r[4]}
+                for r in recs
+            ]
         }
-
+    except HTTPException:
+        raise
     except Exception as e:
+        log.error(f"Erro em /recommend/{user_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/recommend-hybrid/{user_id}")
-async def recommend_hybrid(user_id: int):
-    conn = pyodbc.connect(connection_string)
-    cursor = conn.cursor()
-
-    # 1. Busca os interesses do usuário
-    cursor.execute("SELECT InteressesPrincipais FROM Usuarios WHERE Id = ?", (user_id,))
-    user = cursor.fetchone()
-    if not user or not user.InteressesPrincipais:
-        return {"error": "Usuário sem interesses cadastrados."}
-    
-    interesses = user.InteressesPrincipais # Ex: "família, economia"
-
-    # 2. Transforma interesses em um "Vetor de Desejo" (Embedding)
-    inputs = tokenizer(interesses, return_tensors="pt", truncation=True, padding=True)
-    with torch.no_grad():
-        user_vector = bert_model(**inputs).last_hidden_state.mean(dim=1).squeeze().numpy()
-
-    # 3. Busca todos os veículos e seus embeddings
-    cursor.execute("""
-        SELECT v.Id, v.Marca, v.Modelo, v.Preco, f.EmbeddingTextual 
-        FROM FeaturesMultimodais f
-        JOIN Veiculos v ON f.VeiculoId = v.Id
-    """)
-    veiculos = cursor.fetchall()
-    
-    recommendations = []
-    for v_id, marca, modelo, preco, emb_bin in veiculos:
-        emb_veiculo = np.frombuffer(emb_bin, dtype=np.float32)
-        
-        # Similaridade de Cosseno entre Interesse do Usuário e Descrição do Carro
-        score = np.dot(user_vector, emb_veiculo) / (np.linalg.norm(user_vector) * np.linalg.norm(emb_veiculo))
-        
-        recommendations.append({
-            "veiculo": f"{marca} {modelo}",
-            "preco": float(preco),
-            "match_score": round(float(score) * 100, 2) # Porcentagem de match
-        })
-
-    # 4. Ordena pelos melhores matches
-    recommendations = sorted(recommendations, key=lambda x: x['match_score'], reverse=True)
-
-    return {
-        "usuario_id": user_id,
-        "interesses_analisados": interesses,
-        "sugestoes_personalizadas": recommendations[:60]
-    }
-
-# Carrega modelos uma vez (global)
-tokenizer = AutoTokenizer.from_pretrained('distilbert-base-uncased')
-bert_model = AutoModel.from_pretrained('distilbert-base-uncased')
-resnet = models.resnet18(pretrained=True)
-resnet.eval()
-
-# Transformação para imagens
-image_transform = transforms.Compose([
-    transforms.Resize(256),
-    transforms.CenterCrop(224),
-    transforms.ToTensor(),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-])
-
-@app.post("/embed-text")
-async def embed_text(text: str):
-    """Extrai embedding de texto com DistilBERT."""
-    inputs = tokenizer(text, return_tensors="pt", truncation=True, padding=True, max_length=128)
-    with torch.no_grad():
-        outputs = bert_model(**inputs)
-    embedding = outputs.last_hidden_state.mean(dim=1).squeeze().numpy().tolist()
-    return {"embedding": embedding, "dimension": len(embedding)}
-
-@app.post("/embed-image")
-async def embed_image(file: UploadFile = File(...)):
-    """Extrai embedding de imagem com ResNet18. Envie arquivo de imagem (jpg, png, webp)."""
-    if not file.content_type.startswith('image/'):
-        raise HTTPException(status_code=400, detail="Arquivo deve ser uma imagem (jpg, png, webp, etc.)")
-
-    try:
-        contents = await file.read()
-        image = Image.open(io.BytesIO(contents)).convert('RGB')
-        image_tensor = image_transform(image).unsqueeze(0)
-        with torch.no_grad():
-            embedding = resnet(image_tensor).squeeze().numpy().tolist()
-        return {"embedding": embedding, "dimension": len(embedding)}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Erro ao processar imagem: {str(e)}")
-
-@app.get("/search-multimodal")
-async def search_multimodal(query: str):
-    # 1. Gera o embedding do que o usuário digitou
-    inputs = tokenizer(query, return_tensors="pt", truncation=True, padding=True, max_length=128)
-    with torch.no_grad():
-        query_embedding = bert_model(**inputs).last_hidden_state.mean(dim=1).squeeze().numpy()
-
-    # 2. Busca os embeddings de todos os veículos no banco
-    conn = pyodbc.connect(connection_string)
-    cursor = conn.cursor()
-    cursor.execute("""
-        SELECT v.Marca, v.Modelo, f.EmbeddingTextual 
-        FROM FeaturesMultimodais f
-        JOIN Veiculos v ON f.VeiculoId = v.Id
-    """)
-    rows = cursor.fetchall()
-    
-    results = []
-    for marca, modelo, emb_bin in rows:
-        # Converte o binário do SQL de volta para array numpy
-        emb_veiculo = np.frombuffer(emb_bin, dtype=np.float32)
-        
-        # Cálculo de Similaridade de Cosseno (quão próximos estão os vetores)
-        similarity = np.dot(query_embedding, emb_veiculo) / (np.linalg.norm(query_embedding) * np.linalg.norm(emb_veiculo))
-        results.append({"veiculo": f"{marca} {modelo}", "score": float(similarity)})
-
-    # Ordena pelo mais parecido
-    results = sorted(results, key=lambda x: x['score'], reverse=True)
-    return {"query": query, "top_matches": results}
+    finally:
+        if conn: conn.close()
 
 
 @app.get("/recommend-hybrid/{user_id}")
 async def recommend_hybrid(user_id: int):
+    """Recomendação híbrida — combina perfil KNN com similaridade de embeddings."""
+    if not state.embeddings:
+        raise HTTPException(
+            status_code=503,
+            detail="Embeddings não carregados. Execute python train.py primeiro."
+        )
+
+    conn = None
     try:
-        conn = pyodbc.connect(connection_string)
+        conn   = get_conn()
         cursor = conn.cursor()
 
-        # 1. Pegar dados do Usuário (Interesses e Perfil)
-        cursor.execute("SELECT Nome, InteressesPrincipais FROM Usuarios WHERE Id = ?", (user_id,))
+        cursor.execute(
+            "SELECT Nome, InteressesPrincipais FROM Usuarios WHERE Id = ?",
+            (user_id,)
+        )
         user_data = cursor.fetchone()
         if not user_data:
-            raise HTTPException(status_code=404, detail="Usuário não encontrado")
-        
-        nome_usuario = user_data[0]
+            raise HTTPException(status_code=404, detail="Utilizador não encontrado")
+
         interesses = user_data[1] or ""
 
-        # 2. Gerar Vetor de Intenção do Usuário (IA - BERT)
-        inputs = tokenizer(interesses, return_tensors="pt", truncation=True, padding=True)
+        # Embedding do perfil via BERT
+        inputs = state.tokenizer(
+            interesses, return_tensors="pt",
+            truncation=True, padding=True, max_length=128
+        )
         with torch.no_grad():
-            user_intent_vector = bert_model(**inputs).last_hidden_state.mean(dim=1).squeeze().numpy()
+            user_vector = state.bert_model(**inputs).last_hidden_state.mean(dim=1).squeeze().numpy()
 
-        # 3. Buscar Veículos e seus Embeddings Multimodais
-        cursor.execute("""
-            SELECT v.Id, v.Marca, v.Modelo, v.Preco, v.Estilo, f.EmbeddingTextual 
-            FROM FeaturesMultimodais f
-            JOIN Veiculos v ON f.VeiculoId = v.Id
-        """)
-        veiculos = cursor.fetchall()
-        
-        final_recommendations = []
-        for v_id, marca, modelo, preco, estilo, emb_bin in veiculos:
-            # Converter binário para vetor numpy
-            emb_veiculo = np.frombuffer(emb_bin, dtype=np.float32)
-            
-            # Cálculo de Similaridade de Cosseno (IA pura)
-            cosine_sim = np.dot(user_intent_vector, emb_veiculo) / (
-                np.linalg.norm(user_intent_vector) * np.linalg.norm(emb_veiculo)
-            )
-            
-            # Converter para porcentagem amigável
-            match_percent = round(float(cosine_sim) * 100, 1)
+        # Busca preços dos veículos para retornar
+        cursor.execute("SELECT Id, Preco FROM Veiculos")
+        precos = {row[0]: float(row[1]) for row in cursor.fetchall()}
 
-            final_recommendations.append({
-                "veiculo_id": v_id,
-                "nome": f"{marca} {modelo}",
-                "preco": float(preco),
-                "estilo": estilo,
-                "match_score": f"{match_percent}%",
-                "justificativa": f"Este veículo combina com seu interesse em '{interesses}'"
+        # Calcula similaridade coseno com cada veículo
+        results = []
+        for v_id, vdata in state.embeddings.items():
+            emb = vdata["emb_textual"]
+            norm = np.linalg.norm(user_vector) * np.linalg.norm(emb)
+            if norm == 0:
+                continue
+            score = float(np.dot(user_vector, emb) / norm)
+            results.append({
+                "veiculo_id":   v_id,
+                "nome":         vdata["nome"],
+                "preco":        precos.get(v_id, 0),
+                "match_score":  f"{round(score * 100, 1)}%",
+                "justificativa": f"Combina com o seu interesse em '{interesses}'"
             })
 
-        # 4. Ordenar do melhor para o pior
-        final_recommendations = sorted(final_recommendations, key=lambda x: float(x['match_score'].replace('%','')), reverse=True)
-
-        cursor.close()
-        conn.close()
+        results.sort(key=lambda x: float(x["match_score"].replace("%", "")), reverse=True)
 
         return {
-            "cliente": nome_usuario,
-            "foco_da_ia": interesses,
-            "top_sugestoes": final_recommendations[:60] # Top 5 resultados
+            "cliente":      user_data[0],
+            "foco_da_ia":   interesses,
+            "top_sugestoes": results[:5]
         }
-
+    except HTTPException:
+        raise
     except Exception as e:
+        log.error(f"Erro em /recommend-hybrid/{user_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if conn: conn.close()
+
+
+@app.get("/search")
+async def search(query: str):
+    """Busca semântica de veículos por texto livre."""
+    if not state.embeddings:
+        raise HTTPException(
+            status_code=503,
+            detail="Embeddings não carregados. Execute python train.py primeiro."
+        )
+    try:
+        inputs = state.tokenizer(
+            query, return_tensors="pt",
+            truncation=True, padding=True, max_length=128
+        )
+        with torch.no_grad():
+            query_vec = state.bert_model(**inputs).last_hidden_state.mean(dim=1).squeeze().numpy()
+
+        results = []
+        for v_id, vdata in state.embeddings.items():
+            emb  = vdata["emb_textual"]
+            norm = np.linalg.norm(query_vec) * np.linalg.norm(emb)
+            if norm == 0:
+                continue
+            score = float(np.dot(query_vec, emb) / norm)
+            results.append({"veiculo": vdata["nome"], "score": round(score, 4)})
+
+        results.sort(key=lambda x: x["score"], reverse=True)
+        return {"query": query, "top_matches": results[:10]}
+    except Exception as e:
+        log.error(f"Erro em /search: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000, reload=False, timeout_keep_alive=60)
+    uvicorn.run(app, host="0.0.0.0", port=8000)

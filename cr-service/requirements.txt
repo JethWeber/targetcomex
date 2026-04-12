@@ -1,3 +1,6 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.5.0+cpu
+torchvision==0.20.0+cpu
 fastapi==0.115.0
 uvicorn==0.30.6
 pyodbc==5.2.0
@@ -5,8 +8,6 @@ sqlalchemy==2.0.35
 pandas==2.2.3
 numpy==1.26.4
 scikit-learn==1.5.2
-torch==2.5.0
-torchvision==0.20.0
 transformers==4.45.2
 huggingface-hub==0.25.2
 python-multipart==0.0.12

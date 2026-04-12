@@ -5,26 +5,43 @@ set -e
 # Inicia o SQL Server em background
 /opt/mssql/bin/sqlservr &
 
-# Espera o SQL Server estar pronto para conexões (timeout de 2 minutos)
-echo "Aguardando SQL Server iniciar..."
-for i in {1..24}; do
-  if /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P $MSSQL_SA_PASSWORD -Q "SELECT 1" > /dev/null 2>&1; then
-    echo "SQL Server pronto!"
+# Aguarda o SQL Server estar pronto (máx 150s)
+echo "⏳ Aguardando SQL Server iniciar..."
+for i in {1..30}; do
+  if /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -Q "SELECT 1" -C > /dev/null 2>&1; then
+    echo "✅ SQL Server pronto!"
     break
   fi
+  echo "   Tentativa $i/30 — aguardando 5s..."
   sleep 5
 done
 
-# Verifica se o banco TargetComex já existe (evita rodar init.sql toda vez)
-DB_EXISTS=$(/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P $MSSQL_SA_PASSWORD -Q "SELECT COUNT(*) FROM sys.databases WHERE name = 'TargetComex'" -h -1 | tr -d ' ')
+# Verifica se o banco TargetComex já existe
+DB_EXISTS=$(/opt/mssql-tools18/bin/sqlcmd \
+  -S localhost -U sa -P "$MSSQL_SA_PASSWORD" \
+  -Q "SET NOCOUNT ON; SELECT COUNT(*) FROM sys.databases WHERE name = 'TargetComex'" \
+  -h -1 -C | tr -d '[:space:]')
 
-if [ "$DB_EXISTS" -eq "0" ]; then
-  echo "Banco TargetComex não encontrado. Executando init.sql..."
-  /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P $MSSQL_SA_PASSWORD -i /docker-entrypoint-initdb.d/init.sql
-  echo "Inicialização do banco concluída!"
-else
-  echo "Banco TargetComex já existe. Pulando init.sql."
+# Garante que é um número válido
+if [[ ! "$DB_EXISTS" =~ ^[0-9]+$ ]]; then
+  DB_EXISTS=0
 fi
 
-# Mantém o container rodando (SQL Server continua em foreground)
+if [ "$DB_EXISTS" -eq "0" ]; then
+  echo "🗄️  Banco TargetComex não encontrado. Executando init.sql..."
+  /opt/mssql-tools18/bin/sqlcmd \
+    -S localhost -U sa -P "$MSSQL_SA_PASSWORD" \
+    -i /docker-entrypoint-initdb.d/init.sql -C
+
+  echo "🌱 Estrutura criada. Populando com dados de teste (popular_bd.sql)..."
+  /opt/mssql-tools18/bin/sqlcmd \
+    -S localhost -U sa -P "$MSSQL_SA_PASSWORD" \
+    -i /docker-entrypoint-initdb.d/popular_bd.sql -C
+
+  echo "🎉 Banco TargetComex inicializado com sucesso!"
+else
+  echo "ℹ️  Banco TargetComex já existe. Pulando inicialização."
+fi
+
+# Mantém o container rodando
 wait

@@ -2,7 +2,7 @@ FROM python:3.10-slim
 
 WORKDIR /app
 
-# Instala dependências essenciais + driver Microsoft ODBC 18 (sem pacote problemático unixodbc-bin)
+# Instala dependências essenciais + driver Microsoft ODBC 18
 RUN apt-get update && apt-get install -y \
     curl \
     gnupg \
@@ -16,14 +16,16 @@ RUN apt-get update && apt-get install -y \
     && ACCEPT_EULA=Y apt-get install -y msodbcsql18 \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Copia e instala requirements Python
+# Copia os requisitos
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+
+# Instalação com timeout extendido para evitar quedas em pacotes grandes (como o Torch)
+RUN pip install --no-cache-dir --default-timeout=1000 -r requirements.txt
 
 # Copia o código da aplicação
 COPY . .
 
 EXPOSE 8000
 
-# Roda com reload (ótimo para desenvolvimento)
+# Comando para rodar a API com Hot Reload
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

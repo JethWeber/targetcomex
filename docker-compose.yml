@@ -1,4 +1,6 @@
 services:
+
+  # ─── Banco de Dados ───────────────────────────────────────────────────────
   target_comex_db:
     build: ./db-service
     container_name: target_comex_db
@@ -10,25 +12,84 @@ services:
       - ACCEPT_EULA=Y
       - MSSQL_SA_PASSWORD=TargetComex2025!
       - MSSQL_PID=Developer
+    healthcheck:
+      test: ["CMD", "/opt/mssql-tools18/bin/sqlcmd", "-S", "localhost",
+             "-U", "sa", "-P", "TargetComex2025!", "-Q", "SELECT 1", "-C"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
     restart: unless-stopped
 
-  targetcomexcr:  # Nome todo minúsculo para evitar erro de tag
+  # ─── Canal de Recomendação (API) ─────────────────────────────────────────
+  targetcomexcr:
     build: ./cr-service
     container_name: targetcomexcr
     ports:
       - "8000:8000"
     depends_on:
-      - target_comex_db
+      target_comex_db:
+        condition: service_healthy
     volumes:
-      - ./cr-service:/app
+      - ./cr-service:/app              # código fonte
+      - models-data:/app/models        # embeddings persistentes
     environment:
       - DB_SERVER=target_comex_db
       - DB_PORT=1433
       - DB_DATABASE=TargetComex
       - DB_USERNAME=sa
       - DB_PASSWORD=TargetComex2025!
-      - DB_DRIVER=ODBC Driver 17 for SQL Server
+      - MODELS_DIR=/app/models
+    restart: unless-stopped
+
+  # ─── Watcher de Treino (detecta novos veículos e re-treina) ──────────────
+  targetcomexcr-trainer:
+    build: ./cr-service
+    container_name: targetcomexcr_trainer
+    command: python train.py --watch
+    depends_on:
+      target_comex_db:
+        condition: service_healthy
+    volumes:
+      - ./cr-service:/app
+      - models-data:/app/models        # mesmo volume da API
+    environment:
+      - DB_SERVER=target_comex_db
+      - DB_PORT=1433
+      - DB_DATABASE=TargetComex
+      - DB_USERNAME=sa
+      - DB_PASSWORD=TargetComex2025!
+      - MODELS_DIR=/app/models
+    restart: unless-stopped
+
+  # ─── Backend ASP.NET Core ─────────────────────────────────────────────────
+  target-api:
+    build: ./target-api/Target.Api
+    container_name: target_backend
+    ports:
+      - "5000:8080"
+    depends_on:
+      - target_comex_db
+      - targetcomexcr
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_HTTP_PORTS=8080
+      - ConnectionStrings__DefaultConnection=Server=target_comex_db;Database=TargetComex;User Id=sa;Password=TargetComex2025!;Encrypt=False;TrustServerCertificate=True;
+      - AIServiceUrl=http://targetcomexcr:8000
+    restart: unless-stopped
+
+  # ─── Frontend Blazor ──────────────────────────────────────────────────────
+  target-ui:
+    build: ./target-ui/Target.Ui
+    container_name: target_frontend
+    ports:
+      - "5001:80"
+    depends_on:
+      - target-api
+    environment:
+      - ApiServiceUrl=http://target_backend:8080
     restart: unless-stopped
 
 volumes:
   db-data:
+  models-data:    # volume nomeado para os embeddings
