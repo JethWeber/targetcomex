@@ -18,6 +18,7 @@ from sklearn.preprocessing import StandardScaler
 from transformers import AutoTokenizer, AutoModel
 from typing import List
 import torch
+import datetime
 
 # ─── Logging ─────────────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -178,6 +179,211 @@ def vectorize_user(user_row, cursor) -> np.ndarray:
         log.warning(f"Erro ao vectorizar usuário {user_row[0]}: {e}")
         return np.zeros(18, dtype=np.float32)
 
+def calc_age(data_nasc) -> int:
+    """Calcula idade a partir do campo DataNascimento (DATE/str)."""
+    try:
+        if not data_nasc:
+            return 30
+        year = data_nasc.year if hasattr(data_nasc, "year") else int(str(data_nasc)[:4])
+        current_year = datetime.datetime.utcnow().year
+        age = current_year - year
+        return max(18, min(90, age))
+    except Exception:
+        return 30
+
+def user_has_behavior(cursor, user_id: int) -> bool:
+    """Verifica se o usuário tem alguma interação na base."""
+    cursor.execute("SELECT COUNT(1) FROM HistoricoCompras WHERE UsuarioId = ?", (user_id,))
+    compras = cursor.fetchone()[0] or 0
+    cursor.execute("SELECT COUNT(1) FROM Avaliacoes WHERE UsuarioId = ?", (user_id,))
+    avaliacoes = cursor.fetchone()[0] or 0
+    cursor.execute("SELECT COUNT(1) FROM HistoricoNavegacao WHERE UsuarioId = ?", (user_id,))
+    navegacoes = cursor.fetchone()[0] or 0
+    return (compras + avaliacoes + navegacoes) > 0
+
+def profile_text_from_row(user_row) -> str:
+    """
+    Monta um texto único com as variáveis exigidas para similaridade:
+    Genero, Idade, EstadoCivil, Profissao, FaixaRendaMensal, InteressesPrincipais e TipoDeUsoPretendido.
+    """
+    # ORDER BY no SQL deve manter este alinhamento:
+    # (nome, genero, data_nascimento, estado_civil, profissao, faixa_renda, interesses, tipo_de_uso)
+    nome, genero, data_nasc, estado_civil, profissao, faixa_renda, interesses, tipo_de_uso = user_row
+
+    idade = calc_age(data_nasc)
+    return (
+        f"Genero: {genero or ''}. "
+        f"Idade: {idade}. "
+        f"EstadoCivil: {estado_civil or ''}. "
+        f"Profissao: {profissao or ''}. "
+        f"FaixaRendaMensal: {faixa_renda or ''}. "
+        f"InteressesPrincipais: {interesses or ''}. "
+        f"TipoDeUsoPretendido: {tipo_de_uso or ''}."
+    )
+
+def embed_text(text: str) -> np.ndarray:
+    """Embedding textual curto (DistilBERT) para similaridade entre perfis."""
+    inputs = state.tokenizer(
+        text or "",
+        return_tensors="pt",
+        truncation=True,
+        padding=True,
+        max_length=128,
+    )
+    with torch.no_grad():
+        vec = state.bert_model(**inputs).last_hidden_state.mean(dim=1).squeeze().numpy()
+    return vec
+
+def recommend_by_similar_profiles(cursor, user_id: int, max_candidates: int = 30, top_similar: int = 3, top_results: int = 5):
+    """
+    Fallback para usuários novos sem histórico/avaliações:
+    1) encontra usuários com perfis similares usando as variáveis exigidas
+    2) recomenda veículos com base no histórico (compras/avaliações) dos similares
+    """
+    cursor.execute(
+        """
+        SELECT Nome, Genero, DataNascimento, EstadoCivil, Profissao,
+               FaixaRendaMensal, InteressesPrincipais, TipoDeUsoPretendido
+        FROM Usuarios
+        WHERE Id = ?
+        """,
+        (user_id,),
+    )
+    user_row = cursor.fetchone()
+    if not user_row:
+        raise HTTPException(status_code=404, detail="Utilizador não encontrado")
+
+    user_name = user_row[0]
+    foco = (user_row[6] or "") if len(user_row) > 6 else ""
+    user_vec = embed_text(profile_text_from_row(user_row))
+    user_vec_norm = np.linalg.norm(user_vec)
+
+    # Mesmo que o usuário seja novo, tentamos sempre comparar com perfis existentes.
+    cursor.execute(
+        f"""
+        SELECT TOP {max_candidates} Id, Genero, DataNascimento, EstadoCivil, Profissao,
+               FaixaRendaMensal, InteressesPrincipais, TipoDeUsoPretendido, Nome
+        FROM Usuarios
+        WHERE Id <> ?
+        ORDER BY DataCadastro DESC
+        """,
+        (user_id,),
+    )
+    candidates = cursor.fetchall()
+    if not candidates:
+        return {"cliente": user_name, "foco_da_ia": foco, "top_sugestoes": []}
+
+    scored = []
+    for row in candidates:
+        # row: (Id, Genero, DataNascimento, EstadoCivil, Profissao, FaixaRendaMensal, InteressesPrincipais, TipoDeUsoPretendido, Nome)
+        cand_id = row[0]
+        cand_text = (
+            f"Genero: {row[1] or ''}. "
+            f"Idade: {calc_age(row[2])}. "
+            f"EstadoCivil: {row[3] or ''}. "
+            f"Profissao: {row[4] or ''}. "
+            f"FaixaRendaMensal: {row[5] or ''}. "
+            f"InteressesPrincipais: {row[6] or ''}. "
+            f"TipoDeUsoPretendido: {row[7] or ''}."
+        )
+        cand_vec = embed_text(cand_text)
+        denom = user_vec_norm * np.linalg.norm(cand_vec)
+        if denom == 0:
+            continue
+        score = float(np.dot(user_vec, cand_vec) / denom)  # cosseno
+        scored.append((cand_id, score))
+
+    scored.sort(key=lambda x: x[1], reverse=True)
+    similar_ids = [cid for cid, _ in scored[:top_similar]]
+    if not similar_ids:
+        return {"cliente": user_name, "foco_da_ia": foco, "top_sugestoes": []}
+
+    placeholders = ",".join("?" * len(similar_ids))
+
+    # Score do veículo baseado no histórico dos perfis similares.
+    vehicle_scores: dict[int, dict] = {}
+
+    def upsert_vehicle(vid, marca, modelo, preco, estilo, delta):
+        if vid not in vehicle_scores:
+            vehicle_scores[vid] = {
+                "veiculo_id": vid,
+                "nome": f"{marca} {modelo}".strip(),
+                "preco": float(preco) if preco is not None else 0.0,
+                "estilo": estilo,
+                "score": 0.0,
+            }
+        vehicle_scores[vid]["score"] += float(delta)
+
+    # Compras
+    cursor.execute(
+        f"""
+        SELECT v.Id, v.Marca, v.Modelo, v.Preco, v.Estilo, COUNT(*) as cnt
+        FROM HistoricoCompras hc
+        JOIN Veiculos v ON hc.VeiculoId = v.Id
+        WHERE hc.UsuarioId IN ({placeholders})
+        GROUP BY v.Id, v.Marca, v.Modelo, v.Preco, v.Estilo
+        """,
+        similar_ids,
+    )
+    for vid, marca, modelo, preco, estilo, cnt in cursor.fetchall():
+        upsert_vehicle(vid, marca, modelo, preco, estilo, delta=cnt * 1.0)
+
+    # Avaliações altas (>= 4)
+    cursor.execute(
+        f"""
+        SELECT v.Id, v.Marca, v.Modelo, v.Preco, v.Estilo, COUNT(*) as cnt
+        FROM Avaliacoes a
+        JOIN Veiculos v ON a.VeiculoId = v.Id
+        WHERE a.UsuarioId IN ({placeholders}) AND a.Nota >= 4
+        GROUP BY v.Id, v.Marca, v.Modelo, v.Preco, v.Estilo
+        """,
+        similar_ids,
+    )
+    for vid, marca, modelo, preco, estilo, cnt in cursor.fetchall():
+        upsert_vehicle(vid, marca, modelo, preco, estilo, delta=cnt * 2.0)
+
+    # Navegação (suave, só para não zerar recomendações)
+    cursor.execute(
+        f"""
+        SELECT v.Id, v.Marca, v.Modelo, v.Preco, v.Estilo, COUNT(*) as cnt
+        FROM HistoricoNavegacao hn
+        JOIN Veiculos v ON hn.VeiculoId = v.Id
+        WHERE hn.UsuarioId IN ({placeholders})
+        GROUP BY v.Id, v.Marca, v.Modelo, v.Preco, v.Estilo
+        """,
+        similar_ids,
+    )
+    for vid, marca, modelo, preco, estilo, cnt in cursor.fetchall():
+        upsert_vehicle(vid, marca, modelo, preco, estilo, delta=cnt * 0.5)
+
+    if not vehicle_scores:
+        return {"cliente": user_name, "foco_da_ia": foco, "top_sugestoes": []}
+
+    max_score = max(v["score"] for v in vehicle_scores.values()) or 0.0
+    justificativa = (
+        "Recomendado com base em usuários com perfis similares "
+        "(Genero/Idade/EstadoCivil/Profissao/FaixaRendaMensal/InteressesPrincipais/TipoDeUsoPretendido)."
+    )
+
+    ranked = sorted(vehicle_scores.values(), key=lambda x: x["score"], reverse=True)
+    top = ranked[:top_results]
+    suggestions = []
+    for v in top:
+        pct = 0.0 if max_score == 0 else (v["score"] / max_score) * 100.0
+        suggestions.append({
+            "veiculo_id": v["veiculo_id"],
+            "nome": v["nome"],
+            "preco": v["preco"],
+            "match_score": f"{round(pct, 1)}%",
+            "justificativa": justificativa,
+        })
+
+    return {
+        "cliente": user_name,
+        "foco_da_ia": foco,
+        "top_sugestoes": suggestions,
+    }
+
 
 # ─── Endpoints ────────────────────────────────────────────────────────────────
 
@@ -272,16 +478,19 @@ async def recommend(user_id: int):
 @app.get("/recommend-hybrid/{user_id}")
 async def recommend_hybrid(user_id: int):
     """Recomendação híbrida — combina perfil KNN com similaridade de embeddings."""
-    if not state.embeddings:
-        raise HTTPException(
-            status_code=503,
-            detail="Embeddings não carregados. Execute python train.py primeiro."
-        )
-
     conn = None
     try:
         conn   = get_conn()
         cursor = conn.cursor()
+
+        # Se o usuário ainda não tiver comportamento (compras/avaliações/navegação),
+        # recomendamos via perfis similares (fallback por similaridade de perfil).
+        if not user_has_behavior(cursor, user_id):
+            return recommend_by_similar_profiles(cursor, user_id)
+
+        if not state.embeddings:
+            # Sem embeddings, ainda assim conseguimos recomendar com base em perfis similares.
+            return recommend_by_similar_profiles(cursor, user_id)
 
         cursor.execute(
             "SELECT Nome, InteressesPrincipais FROM Usuarios WHERE Id = ?",

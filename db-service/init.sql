@@ -13,6 +13,10 @@ GO
 USE TargetComex;
 GO
 
+-- Evita saltos grandes nos IDs IDENTITY (ex.: +1000) após restart do SQL Server 2017+
+ALTER DATABASE SCOPED CONFIGURATION SET IDENTITY_CACHE = OFF;
+GO
+
 -- ================== USUÁRIOS ==================
 CREATE TABLE Usuarios (
     Id                   INT IDENTITY(1,1) PRIMARY KEY,
