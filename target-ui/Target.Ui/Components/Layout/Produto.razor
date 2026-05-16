@@ -1,0 +1,19 @@
+@page "/produto"
+@rendermode InteractiveServer
+
+<PageTitle>Produtos</PageTitle>
+
+<h1>PRODUTOS OFERECIDOS</h1>
+
+<P>@produto</P>
+
+<button class="btn btn-primary" @onclick="VerProduto">viewport Produto</button>
+
+@code {
+    private string produto = "Koenigseg Jesko Absolut";
+
+    private void VerProduto()
+    {
+        produto = (produto == "Koenigseg Jesko Absolut") ? "BMW M8" : produto; 
+    }
+}
