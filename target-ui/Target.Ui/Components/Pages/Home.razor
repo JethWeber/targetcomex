@@ -54,7 +54,7 @@
         </p>
 
         <!-- Carro hero -->
-        <div class="car-wrapper anim-fade-in" style="--d:0.5s; disply: none;">
+        <div class="car-wrapper anim-fade-in" style="--d:0.5s; display:none;">
             <div class="car-shadow"></div>
             <div class="car-glow-ring"></div>
             @* <img src="img/banner21.jpeg" style="disply: none;" class="car-hero-img" alt="Veículo em destaque" /> *@
@@ -63,28 +63,28 @@
             <div class="hud-badge hud-left anim-slide-right" style="--d:0.8s">
                 <div class="hud-icon">⚡</div>
                 <div>
-                    <div class="hud-label"></div>
-                    <div class="hud-value"></div>
+                    <div class="hud-label">Potência</div>
+                    <div class="hud-value">256 cv</div>
                 </div>
             </div>
 
             <div class="hud-badge hud-right anim-slide-left" style="--d:0.9s">
-                <div class="hud-icon"></div>
+                <div class="hud-icon">🛡️</div>
                 <div>
-                    <div class="hud-label"></div>
-                    <div class="hud-value cyan-text"></div>
+                    <div class="hud-label">Garantia</div>
+                    <div class="hud-value cyan-text">3 Anos</div>
                 </div>
             </div>
 
             <div class="hud-badge hud-top anim-slide-down" style="--d:1s">
-                <span class="hud-label"></span>
-                <span class="hud-value"></span>
+                <span class="hud-label">Match IA</span>
+                <span class="hud-value cyan-text">98%</span>
             </div>
         </div>
 
         <!-- Search UI -->
         <div class="search-area anim-slide-up" style="--d:0.6s" >
-            <div class="search-pills" style="display:none;">
+            <div class="search-pills">
                 <button class="spill active">Comprar</button>
                 <button class="spill">Vender</button>
                 <button class="spill">IA Recomendação</button>
@@ -108,13 +108,13 @@
 
             <p class="search-hint">
                 <span class="hint-dot"></span>
-                Muito mais INTELIGENTE — experimente a busca por imagem
+                Experimente a <span class="hint-highlight">busca por imagem</span> — ainda mais inteligente
             </p>
         </div>
     </div>
 
     <!-- Scroll indicator -->
-    <div class="scroll-indicator" style="display:none;">
+    <div class="scroll-indicator">
         <div class="scroll-mouse">
             <div class="scroll-wheel"></div>
         </div>
@@ -147,7 +147,7 @@
         <div class="stat-item">
             <span class="stat-num cyan-text">95</span>
             <span class="stat-plus">%</span>
-            <span class="stat-label">Os Funcionśrios são Angolanos</span>
+            <span class="stat-label">Os Funcionários são Angolanos</span>
         </div>
     </div>
 </section>
@@ -227,7 +227,7 @@
                     <span class="match-pct">98%</span>
                     <span class="match-lbl">Match</span>
                 </div>
-                <div class="car-tag-new">Lean Tesla</div>
+                <div class="car-tag-new">Híbrido</div>
             </div>
             <div class="car-card-info">
                 <div class="car-card-header">
@@ -242,7 +242,7 @@
                 <div class="car-card-footer">
                     <div>
                         <span class="car-price">AOA 180.000.000</span>
-                        <span class="car-old-price">AOA 195.000</span>
+                        <span class="car-old-price">AOA 195.000.000</span>
                     </div>
                     <button class="car-btn">Ver detalhes</button>
                 </div>
@@ -557,13 +557,12 @@ body { font-family: var(--font); color: var(--text); }
 .anim-reveal {
     opacity: 0;
     transform: translateY(30px);
-    transition: opacity 0.7s ease, transform 0.7s cubic-bezier(.2,.8,.2,1);
+    transition: opacity 0.7s ease var(--d, 0s), transform 0.7s cubic-bezier(.2,.8,.2,1) var(--d, 0s);
 }
 .anim-reveal.visible {
     opacity: 1;
     transform: translateY(0);
 }
-.anim-reveal.visible { transition-delay: var(--d, 0s); }
 
 /* ─── HERO ──────────────────────────────────────── */
 .hero-section {
@@ -749,7 +748,7 @@ body { font-family: var(--font); color: var(--text); }
     font-size: 1rem;
     color: var(--text-dim);
     line-height: 1.7;
-    margin-bottom: 0;
+    margin-bottom: 32px;
     max-width: 500px;
 }
 
@@ -919,6 +918,10 @@ body { font-family: var(--font); color: var(--text); }
     animation: dotPulse 1.4s ease infinite;
     flex-shrink: 0;
 }
+.hint-highlight {
+    color: var(--cyan);
+    font-weight: 600;
+}
 
 /* Scroll indicator */
 .scroll-indicator {
@@ -957,14 +960,15 @@ body { font-family: var(--font); color: var(--text); }
 }
 
 /* ─── STATS BAR ─────────────────────────────────── */
-/* ─── STATS BAR ─────────────────────────────────── */
 .stats-bar {
     background: var(--bg-1);
     border-top: 1px solid var(--border);
     border-bottom: 1px solid var(--border);
     padding: 32px 20px;
     overflow-x: auto;
+    scrollbar-width: none;
 }
+.stats-bar::-webkit-scrollbar { display: none; }
 
 .stats-inner {
     max-width: 1100px;
@@ -1166,10 +1170,9 @@ body { font-family: var(--font); color: var(--text); }
 }
 
 /* ─── CARS GRID ─────────────────────────────────── */
-/* ─── CARS GRID ─────────────────────────────────── */
 .cars-grid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 24px;
 }
 
@@ -1192,7 +1195,7 @@ body { font-family: var(--font); color: var(--text); }
     transform: scale(1.06); 
 }
 
-@@media (max-width: 992px) {
+@@media (max-width: 1200px) {
     .cars-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
@@ -1579,11 +1582,22 @@ body { font-family: var(--font); color: var(--text); }
     .hud-badge.hud-right { display: none; }
     .hud-badge.hud-top { top: 2%; font-size: 0.7rem; padding: 6px 12px; }
     .stat-divider { display: none; }
+    .stats-inner { justify-content: center; gap: 28px; flex-wrap: wrap; min-width: unset; }
     .features-section, .cars-section, .testimonials-section { padding: 60px 20px; }
+    .features-grid { grid-template-columns: 1fr; }
     .brands-section { padding: 40px 0; }
     .footer-top { grid-template-columns: 1fr; }
     .footer-bottom { flex-direction: column; gap: 10px; text-align: center; }
     .see-all-link { position: static; transform: none; margin-top: 12px; }
+    .search-pills { flex-wrap: wrap; }
+    .ia-cta-section { padding: 80px 20px; }
+}
+@@media (max-width: 480px) {
+    .hero-title { font-size: 1.7rem; letter-spacing: -0.5px; }
+    .hero-section { padding-top: 80px; }
+    .search-box { padding: 4px 4px 4px 12px; }
+    .search-btn { padding: 10px 18px; font-size: 0.85rem; }
+    .testi-grid { grid-template-columns: 1fr; }
 }
 </style>
 

@@ -1,30 +1,521 @@
-﻿@page "/Error"
+@page "/Error"
 @using System.Diagnostics
 
-<PageTitle>Error</PageTitle>
+<PageTitle>Erro — Target Comex</PageTitle>
 
-<h1 class="text-danger">Error.</h1>
-<h2 class="text-danger">An error occurred while processing your request.</h2>
+<!-- ══════════════════════════════════════════════════════
+     ERROR PAGE — Target Comex
+     Coloca este ficheiro em: Components/Pages/Error.razor
+══════════════════════════════════════════════════════ -->
 
-@if (ShowRequestId)
-{
-    <p>
-        <strong>Request ID:</strong> <code>@RequestId</code>
+<!-- ── FUNDO / AMBIENTE ───────────────────────────── -->
+<div class="err-scene">
+    <div class="err-grid"></div>
+    <div class="err-glow err-glow-1"></div>
+    <div class="err-glow err-glow-2"></div>
+    <div class="err-scan-line"></div>
+
+    <!-- Partículas -->
+    <div class="err-particles">
+        <span class="ep ep1"></span><span class="ep ep2"></span>
+        <span class="ep ep3"></span><span class="ep ep4"></span>
+        <span class="ep ep5"></span><span class="ep ep6"></span>
+    </div>
+</div>
+
+<!-- ── CONTEÚDO CENTRAL ───────────────────────────── -->
+<main class="err-main">
+
+    <!-- Ícone animado -->
+    <div class="err-icon-wrap anim-pop">
+        <div class="err-icon-ring err-ring-1"></div>
+        <div class="err-icon-ring err-ring-2"></div>
+        <div class="err-icon-core">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none"
+                 stroke="#00f2ff" stroke-width="1.6" stroke-linecap="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+        </div>
+    </div>
+
+    <!-- Código de erro glitch -->
+    <div class="err-code-wrap anim-fade" style="--d:0.15s">
+        <span class="err-code err-glitch" data-text="500">500</span>
+    </div>
+
+    <!-- Título e subtítulo -->
+    <h1 class="err-title anim-up" style="--d:0.25s">
+        Algo Correu Mal
+    </h1>
+    <p class="err-subtitle anim-up" style="--d:0.38s">
+        Ocorreu um erro inesperado ao processar o seu pedido.<br/>
+        A nossa equipa foi notificada e estamos a resolver o problema.
     </p>
-}
 
-<h3>Development Mode</h3>
-<p>
-    Swapping to <strong>Development</strong> environment will display more detailed information about the error that occurred.
-</p>
-<p>
-    <strong>The Development environment shouldn't be enabled for deployed applications.</strong>
-    It can result in displaying sensitive information from exceptions to end users.
-    For local debugging, enable the <strong>Development</strong> environment by setting the <strong>ASPNETCORE_ENVIRONMENT</strong> environment variable to <strong>Development</strong>
-    and restarting the app.
-</p>
+    <!-- Request ID (só em ambientes de diagnóstico) -->
+    @if (ShowRequestId)
+    {
+        <div class="err-req-box anim-up" style="--d:0.5s">
+            <span class="err-req-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                     stroke="#00f2ff" stroke-width="2">
+                    <rect x="2" y="2" width="20" height="20" rx="3"/>
+                    <path d="M8 12h8M12 8v8"/>
+                </svg>
+                Request ID
+            </span>
+            <code class="err-req-id">@RequestId</code>
+        </div>
+    }
 
-@code{
+    <!-- Acções -->
+    <div class="err-actions anim-up" style="--d:0.6s">
+        <a href="/" class="err-btn err-btn-primary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2.2">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                <polyline points="9 22 9 12 15 12 15 22"/>
+            </svg>
+            Voltar ao Início
+        </a>
+        <button class="err-btn err-btn-secondary" onclick="history.back()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2.2">
+                <path d="M19 12H5M12 5l-7 7 7 7"/>
+            </svg>
+            Página Anterior
+        </button>
+    </div>
+
+    <!-- Dica de ambiente (só visível em desenvolvimento) -->
+    <details class="err-dev-hint anim-up" style="--d:0.75s">
+        <summary>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                 stroke="#00f2ff" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 8v4M12 16h.01"/>
+            </svg>
+            Informação para Programadores
+        </summary>
+        <div class="err-dev-body">
+            <p>
+                Para obter detalhes completos sobre o erro, ative o ambiente
+                <strong>Development</strong> definindo a variável de ambiente
+                <code>ASPNETCORE_ENVIRONMENT</code> como <code>Development</code>
+                e reiniciando a aplicação.
+            </p>
+            <p class="err-dev-warn">
+                ⚠️ Nunca ative o modo Development em produção — pode expor
+                informações sensíveis aos utilizadores finais.
+            </p>
+        </div>
+    </details>
+
+    <!-- Logo rodapé -->
+    <div class="err-footer-brand anim-fade" style="--d:0.9s">
+        <span class="err-brand-dot"></span>
+        Target Comex LDA
+    </div>
+
+</main>
+
+<!-- ══════════════════════════════════════════════════════
+     ESTILOS
+══════════════════════════════════════════════════════ -->
+<style>
+    /* ─── Variáveis (consistentes com o resto do projeto) ─── */
+    :root {
+        --cyan:       #00f2ff;
+        --cyan-dim:   rgba(0,242,255,0.08);
+        --cyan-glow:  rgba(0,242,255,0.18);
+        --bg:         #080c10;
+        --bg-card:    #0d1117;
+        --border:     rgba(255,255,255,0.07);
+        --text:       #e8eaf0;
+        --text-dim:   #6b7280;
+        --radius:     14px;
+        --red-glow:   rgba(255,60,80,0.12);
+    }
+
+    /* ─── Reset de página ──────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body, html {
+        background: var(--bg);
+        color: var(--text);
+        font-family: 'Segoe UI', system-ui, sans-serif;
+        min-height: 100vh;
+        overflow-x: hidden;
+    }
+
+    /* ─── Cena de fundo ─────────────────────────────── */
+    .err-scene {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        overflow: hidden;
+        pointer-events: none;
+    }
+
+    .err-grid {
+        position: absolute;
+        inset: 0;
+        background-image:
+            linear-gradient(rgba(0,242,255,0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0,242,255,0.03) 1px, transparent 1px);
+        background-size: 60px 60px;
+    }
+
+    .err-glow {
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(90px);
+        opacity: 0.6;
+    }
+    .err-glow-1 {
+        width: 500px; height: 500px;
+        background: radial-gradient(circle, rgba(255,50,80,0.15), transparent 70%);
+        top: -120px; left: 50%;
+        transform: translateX(-50%);
+    }
+    .err-glow-2 {
+        width: 400px; height: 400px;
+        background: radial-gradient(circle, var(--cyan-glow), transparent 70%);
+        bottom: -100px; right: 10%;
+    }
+
+    .err-scan-line {
+        position: absolute;
+        top: -4px; left: 0; right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, transparent 0%, rgba(0,242,255,0.4) 50%, transparent 100%);
+        animation: errScan 5s linear infinite;
+    }
+    @@keyframes errScan {
+        0%   { top: -4px; opacity: 0.7; }
+        50%  { opacity: 0.3; }
+        100% { top: 100vh; opacity: 0; }
+    }
+
+    /* Partículas */
+    .err-particles { position: absolute; inset: 0; }
+    .ep {
+        position: absolute;
+        width: 3px; height: 3px;
+        border-radius: 50%;
+        background: var(--cyan);
+        opacity: 0.35;
+        animation: epFloat 8s ease-in-out infinite;
+    }
+    .ep1  { top: 15%; left: 8%;  animation-delay: 0s;    animation-duration: 9s;  }
+    .ep2  { top: 72%; left: 15%; animation-delay: 1.5s;  animation-duration: 11s; }
+    .ep3  { top: 40%; left: 88%; animation-delay: 0.7s;  animation-duration: 8s;  }
+    .ep4  { top: 85%; left: 78%; animation-delay: 2.2s;  animation-duration: 10s; }
+    .ep5  { top: 28%; left: 55%; animation-delay: 3.1s;  animation-duration: 7s;  }
+    .ep6  { top: 62%; left: 40%; animation-delay: 1.1s;  animation-duration: 12s; }
+    @@keyframes epFloat {
+        0%, 100% { transform: translateY(0)   scale(1);   }
+        50%       { transform: translateY(-20px) scale(1.4); }
+    }
+
+    /* ─── Layout central ─────────────────────────────── */
+    .err-main {
+        position: relative;
+        z-index: 1;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 60px 24px;
+        text-align: center;
+        gap: 0;
+    }
+
+    /* ─── Ícone ──────────────────────────────────────── */
+    .err-icon-wrap {
+        position: relative;
+        width: 110px; height: 110px;
+        margin-bottom: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .err-icon-ring {
+        position: absolute;
+        border-radius: 50%;
+        border: 1px solid rgba(0,242,255,0.15);
+        animation: errRingSpin linear infinite;
+    }
+    .err-ring-1 { width: 110px; height: 110px; animation-duration: 12s;  border-top-color: rgba(0,242,255,0.5); }
+    .err-ring-2 { width:  80px; height:  80px; animation-duration:  8s; animation-direction: reverse; border-right-color: rgba(0,242,255,0.35); }
+    @@keyframes errRingSpin { to { transform: rotate(360deg); } }
+
+    .err-icon-core {
+        width: 72px; height: 72px;
+        border-radius: 50%;
+        background: var(--bg-card);
+        border: 1px solid rgba(255,60,80,0.25);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 0 30px rgba(255,60,80,0.12), inset 0 0 20px rgba(0,0,0,0.4);
+        animation: errCorePulse 3s ease-in-out infinite;
+    }
+    @@keyframes errCorePulse {
+        0%, 100% { box-shadow: 0 0 30px rgba(255,60,80,0.12), inset 0 0 20px rgba(0,0,0,0.4); }
+        50%       { box-shadow: 0 0 50px rgba(255,60,80,0.22), inset 0 0 20px rgba(0,0,0,0.4); }
+    }
+
+    /* ─── Código 500 com glitch ──────────────────────── */
+    .err-code-wrap { margin-bottom: 16px; }
+    .err-code {
+        font-size: clamp(5rem, 18vw, 10rem);
+        font-weight: 900;
+        letter-spacing: -4px;
+        color: transparent;
+        -webkit-text-stroke: 2px rgba(0,242,255,0.15);
+        position: relative;
+        line-height: 1;
+        display: inline-block;
+    }
+    .err-glitch {
+        position: relative;
+    }
+    .err-glitch::before,
+    .err-glitch::after {
+        content: attr(data-text);
+        position: absolute;
+        inset: 0;
+        font-size: inherit;
+        font-weight: inherit;
+        letter-spacing: inherit;
+        color: transparent;
+    }
+    .err-glitch::before {
+        -webkit-text-stroke: 2px rgba(255,50,80,0.5);
+        animation: glitchShift1 4s infinite;
+    }
+    .err-glitch::after {
+        -webkit-text-stroke: 2px rgba(0,242,255,0.5);
+        animation: glitchShift2 4s infinite;
+    }
+    @@keyframes glitchShift1 {
+        0%, 92%, 100% { clip-path: none; transform: none; }
+        93% { clip-path: inset(20% 0 60% 0); transform: translateX(-4px); }
+        95% { clip-path: inset(55% 0 20% 0); transform: translateX( 4px); }
+        97% { clip-path: inset(80% 0  5% 0); transform: translateX(-2px); }
+    }
+    @@keyframes glitchShift2 {
+        0%, 88%, 100% { clip-path: none; transform: none; }
+        89% { clip-path: inset(10% 0 70% 0); transform: translateX( 3px); }
+        91% { clip-path: inset(65% 0 10% 0); transform: translateX(-3px); }
+        93% { clip-path: inset(40% 0 40% 0); transform: translateX( 2px); }
+    }
+
+    /* ─── Textos ─────────────────────────────────────── */
+    .err-title {
+        font-size: clamp(1.6rem, 4vw, 2.5rem);
+        font-weight: 800;
+        color: #fff;
+        margin-bottom: 14px;
+        letter-spacing: -0.5px;
+    }
+    .err-subtitle {
+        font-size: 1rem;
+        color: var(--text-dim);
+        line-height: 1.75;
+        max-width: 480px;
+        margin-bottom: 36px;
+    }
+
+    /* ─── Caixa Request ID ───────────────────────────── */
+    .err-req-box {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 12px 20px;
+        margin-bottom: 36px;
+        max-width: 100%;
+    }
+    .err-req-label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.75rem;
+        color: var(--text-dim);
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+    .err-req-id {
+        font-family: 'Courier New', Consolas, monospace;
+        font-size: 0.82rem;
+        color: var(--cyan);
+        background: var(--cyan-dim);
+        border: 1px solid rgba(0,242,255,0.12);
+        border-radius: 6px;
+        padding: 4px 10px;
+        word-break: break-all;
+    }
+
+    /* ─── Botões de acção ────────────────────────────── */
+    .err-actions {
+        display: flex;
+        gap: 14px;
+        flex-wrap: wrap;
+        justify-content: center;
+        margin-bottom: 40px;
+    }
+    .err-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 13px 26px;
+        border-radius: 10px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        text-decoration: none;
+        cursor: pointer;
+        border: none;
+        transition: all 0.25s;
+    }
+    .err-btn-primary {
+        background: linear-gradient(135deg, var(--cyan), #00b8c4);
+        color: #080c10;
+        box-shadow: 0 0 20px rgba(0,242,255,0.25);
+    }
+    .err-btn-primary:hover {
+        box-shadow: 0 0 35px rgba(0,242,255,0.45);
+        transform: translateY(-2px);
+    }
+    .err-btn-secondary {
+        background: var(--bg-card);
+        color: #ccc;
+        border: 1px solid var(--border);
+    }
+    .err-btn-secondary:hover {
+        border-color: rgba(0,242,255,0.25);
+        color: var(--cyan);
+        transform: translateY(-2px);
+    }
+
+    /* ─── Dica programadores ─────────────────────────── */
+    .err-dev-hint {
+        max-width: 520px;
+        width: 100%;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        text-align: left;
+        margin-bottom: 48px;
+        overflow: hidden;
+    }
+    .err-dev-hint summary {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 14px 20px;
+        font-size: 0.8rem;
+        color: var(--text-dim);
+        cursor: pointer;
+        list-style: none;
+        transition: color 0.2s;
+        user-select: none;
+    }
+    .err-dev-hint summary::-webkit-details-marker { display: none; }
+    .err-dev-hint summary:hover { color: var(--cyan); }
+    .err-dev-hint[open] summary { color: var(--cyan); border-bottom: 1px solid var(--border); }
+    .err-dev-body {
+        padding: 18px 20px;
+        font-size: 0.82rem;
+        color: var(--text-dim);
+        line-height: 1.7;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    .err-dev-body code {
+        font-family: 'Courier New', Consolas, monospace;
+        background: var(--cyan-dim);
+        border: 1px solid rgba(0,242,255,0.1);
+        border-radius: 4px;
+        padding: 1px 6px;
+        font-size: 0.8rem;
+        color: var(--cyan);
+    }
+    .err-dev-body strong { color: #ddd; }
+    .err-dev-warn {
+        background: rgba(255,180,0,0.06);
+        border: 1px solid rgba(255,180,0,0.12);
+        border-radius: 8px;
+        padding: 10px 14px;
+        color: #c8a856;
+        font-size: 0.78rem;
+    }
+
+    /* ─── Rodapé de marca ────────────────────────────── */
+    .err-footer-brand {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.78rem;
+        color: var(--text-dim);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+    }
+    .err-brand-dot {
+        width: 7px; height: 7px;
+        border-radius: 50%;
+        background: var(--cyan);
+        box-shadow: 0 0 8px var(--cyan);
+        animation: brandPulse 2s ease-in-out infinite;
+    }
+    @@keyframes brandPulse {
+        0%, 100% { opacity: 1; }
+        50%       { opacity: 0.4; }
+    }
+
+    /* ─── Animações de entrada ───────────────────────── */
+    .anim-pop {
+        animation: popIn 0.6s cubic-bezier(.34,1.56,.64,1) both;
+    }
+    @@keyframes popIn {
+        from { transform: scale(0.5); opacity: 0; }
+        to   { transform: scale(1);   opacity: 1; }
+    }
+
+    .anim-fade {
+        animation: fadeIn 0.5s ease calc(var(--d, 0s)) both;
+    }
+    @@keyframes fadeIn {
+        from { opacity: 0; }
+        to   { opacity: 1; }
+    }
+
+    .anim-up {
+        animation: slideUp 0.55s cubic-bezier(.22,1,.36,1) calc(var(--d, 0s)) both;
+    }
+    @@keyframes slideUp {
+        from { transform: translateY(22px); opacity: 0; }
+        to   { transform: translateY(0);    opacity: 1; }
+    }
+
+    /* ─── Responsivo ─────────────────────────────────── */
+    @@media (max-width: 480px) {
+        .err-actions { flex-direction: column; width: 100%; max-width: 280px; }
+        .err-btn     { justify-content: center; }
+        .err-req-box { flex-direction: column; align-items: flex-start; gap: 8px; }
+    }
+</style>
+
+@code {
     [CascadingParameter]
     private HttpContext? HttpContext { get; set; }
 
