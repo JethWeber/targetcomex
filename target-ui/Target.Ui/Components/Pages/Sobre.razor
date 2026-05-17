@@ -1,0 +1,809 @@
+@page "/sobre"
+
+<!-- ══════════════════════════════════════════════════════
+     HERO
+══════════════════════════════════════════════════════ -->
+<section class="sv-hero">
+    <div class="sv-hero-bg"></div>
+    <div class="sv-hero-overlay"></div>
+    <div class="sv-grid-dots"></div>
+    <div class="sv-scan-line"></div>
+
+    <div class="sv-hero-content">
+        <div class="sv-badge anim-up" style="--d:0.1s">
+            <span class="sv-badge-dot"></span>
+            Desde 2002 — Target Comex LDA
+        </div>
+        <h1 class="sv-hero-title anim-up" style="--d:0.25s">
+            A Nossa História<br/>
+            <span class="sv-cyan sv-glitch" data-text="de Excelência">de Excelência</span>
+        </h1>
+        <p class="sv-hero-sub anim-up" style="--d:0.4s">
+            De um pequeno comerciante automotivo local até um dos grupos mais respeitados
+            de Angola no setor automóvel. 23 anos construindo confiança e mobilidade.
+        </p>
+
+        <div class="sv-hero-stats anim-up" style="--d:0.6s">
+            <div class="sv-stat">
+                <span class="sv-stat-num">2002</span>
+                <span class="sv-stat-label">Fundação</span>
+            </div>
+            <div class="sv-stat-sep"></div>
+            <div class="sv-stat">
+                <span class="sv-stat-num sv-cyan">5</span>
+                <span class="sv-stat-label">Showrooms</span>
+            </div>
+            <div class="sv-stat-sep"></div>
+            <div class="sv-stat">
+                <span class="sv-stat-num">4</span>
+                <span class="sv-stat-label">Marcas</span>
+            </div>
+            <div class="sv-stat-sep"></div>
+            <div class="sv-stat">
+                <span class="sv-stat-num sv-cyan">+500</span>
+                <span class="sv-stat-label">Colaboradores</span>
+            </div>
+        </div>
+
+        <a href="#historia" class="sv-scroll-cta anim-up" style="--d:0.8s">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M12 5v14M5 12l7 7 7-7"/>
+            </svg>
+            Conheça a Nossa Jornada
+        </a>
+    </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     HISTÓRIA PRINCIPAL
+══════════════════════════════════════════════════════ -->
+<section class="sv-section" id="historia">
+    <div class="sv-container">
+        <div class="sv-section-header">
+            <div class="sv-section-eyebrow">A Target Comex</div>
+            <h2 class="sv-section-title">Mais que uma Empresa,<br/><span class="sv-cyan">uma Jornada</span></h2>
+            <p class="sv-section-desc">
+                Fundada em 2002, a Target Comex LDA cresceu de um comerciante automotivo local
+                para um dos nomes mais confiáveis de Angola em soluções de mobilidade.
+            </p>
+        </div>
+
+        <div class="sb-story-grid anim-reveal">
+            <div class="sb-story-text">
+                <p>
+                    Construída sobre uma base de visão, perseverança e compromisso com a excelência,
+                    a empresa evoluiu para um grupo automotivo abrangente — abrangendo veículos de
+                    passageiros, veículos comerciais, serviços pós-venda e operações de concessionárias
+                    multimarcas.
+                </p>
+                <p>
+                    Com uma forte presença em Angola, a Target Comex LDA desempenha um papel fundamental
+                    na condução do crescimento económico, na criação de oportunidades de emprego e na
+                    melhoria da indústria automóvel em todo o país.
+                </p>
+            </div>
+            <div class="sb-story-kpis">
+                @foreach (var k in kpis)
+                {
+                    <div class="sb-kpi-card">
+                        <div class="sb-kpi-icon">@((MarkupString)k.Icon)</div>
+                        <div class="sb-kpi-num">@k.Numero</div>
+                        <div class="sb-kpi-label">@k.Label</div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     MISSÃO, PERSONALIDADE E VALORES
+══════════════════════════════════════════════════════ -->
+<section class="sv-premium-section">
+    <div class="sv-container">
+        <div class="sv-section-header">
+            <div class="sv-section-eyebrow">O Que Nos Move</div>
+            <h2 class="sv-section-title">Missão, Valores<br/><span class="sv-cyan">e Personalidade</span></h2>
+        </div>
+
+        <div class="sb-values-grid">
+            @foreach (var v in valores)
+            {
+                <div class="sb-value-card anim-reveal">
+                    <div class="sb-value-icon">@((MarkupString)v.Icon)</div>
+                    <h3 class="sb-value-title">@v.Titulo</h3>
+                    <p class="sb-value-desc">@v.Descricao</p>
+                </div>
+            }
+        </div>
+    </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     TIMELINE / JORNADA
+══════════════════════════════════════════════════════ -->
+<section class="sv-section sb-timeline-section">
+    <div class="sv-container">
+        <div class="sv-section-header">
+            <div class="sv-section-eyebrow">A Nossa Jornada</div>
+            <h2 class="sv-section-title">Crescimento e Liderança<br/><span class="sv-cyan">em Angola</span></h2>
+        </div>
+
+        <div class="sb-timeline">
+            @foreach (var t in timeline)
+            {
+                <div class="sb-tl-item anim-reveal">
+                    <div class="sb-tl-left">
+                        <div class="sb-tl-year">@t.Ano</div>
+                        <div class="sb-tl-line"></div>
+                    </div>
+                    <div class="sb-tl-card">
+                        <div class="sb-tl-dot"></div>
+                        <h4 class="sb-tl-title">@t.Titulo</h4>
+                        <p class="sb-tl-desc">@t.Descricao</p>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     MARCAS PARCEIRAS
+══════════════════════════════════════════════════════ -->
+<section class="sv-premium-section sb-marcas-section">
+    <div class="sv-container">
+        <div class="sv-section-header">
+            <div class="sv-section-eyebrow">Os Nossos Parceiros</div>
+            <h2 class="sv-section-title">Marcas que<br/><span class="sv-cyan">Representamos</span></h2>
+            <p class="sv-section-desc">
+                Concessionários oficiais e distribuidores de marcas globais,
+                comprometidos com os mais altos padrões do fabricante.
+            </p>
+        </div>
+
+        <div class="sb-marcas-grid">
+            @foreach (var m in marcas)
+            {
+                <div class="sb-marca-card anim-reveal">
+                    <div class="sb-marca-icon">@((MarkupString)m.Icon)</div>
+                    <div class="sb-marca-nome">@m.Nome</div>
+                    <div class="sb-marca-tag">@m.Tag</div>
+                </div>
+            }
+        </div>
+    </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     CONTACTO
+══════════════════════════════════════════════════════ -->
+<section class="sv-contact-section">
+    <div class="sv-container">
+        <div class="sv-contact-grid">
+            <div class="sv-contact-text">
+                <div class="sv-section-eyebrow">Fale Connosco</div>
+                <h2 class="sv-contact-title">Venha Fazer Parte<br/><span class="sv-cyan">da Nossa História</span></h2>
+                <p class="sv-contact-desc">
+                    Estamos prontos para recebê-lo em qualquer um dos nossos showrooms
+                    e mostrar-lhe o que 23 anos de excelência representam.
+                </p>
+            </div>
+
+            <div class="sv-contact-cards">
+                <div class="sv-contact-card">
+                    <div class="sv-cc-icon">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="sv-cc-label">Endereço</div>
+                        <div class="sv-cc-value">Rua Villa De Gamek, Morro Bento<br/>Luanda, Angola</div>
+                    </div>
+                </div>
+
+                <div class="sv-contact-card">
+                    <div class="sv-cc-icon">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.4 2 2 0 0 1 3.58 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.55a16 16 0 0 0 6.55 6.55l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="sv-cc-label">Telefone</div>
+                        <div class="sv-cc-value">+244 959 288 88<br/>+244 944 615 961</div>
+                    </div>
+                </div>
+
+                <div class="sv-contact-card sv-contact-cta">
+                    <div class="sv-cta-text">
+                        <div class="sv-cc-label">Visite-nos</div>
+                        <div class="sv-cc-value">Conheça os nossos showrooms</div>
+                    </div>
+                    <a href="/contacto" class="sv-btn-agendar">
+                        Agendar Visita
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <path d="M5 12h14M12 5l7 7-7 7"/>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     ESTILOS
+══════════════════════════════════════════════════════ -->
+<style>
+    :root {
+        --cyan: #00f2ff;
+        --cyan-bright: #40f8ff;
+        --cyan-glow: rgba(0,242,255,0.22);
+        --bg: #080808;
+        --bg-card: #111111;
+        --bg-card2: #161616;
+        --border: rgba(255,255,255,0.07);
+        --border-c: rgba(0,242,255,0.25);
+        --text: #f0f0f0;
+        --text-dim: #999;
+        --radius: 16px;
+        --radius-sm: 10px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    button, a { border: none; cursor: pointer; font-family: inherit; text-decoration: none; }
+
+    /* ── ANIMAÇÕES ── */
+    @@keyframes scanMove  { 0% { top: -2px; } 100% { top: 100%; } }
+    @@keyframes pulseGlow { 0%,100% { opacity:1; } 50% { opacity:0.35; } }
+    @@keyframes slideUp   { from { opacity:0; transform:translateY(28px); } to { opacity:1; transform:translateY(0); } }
+    @@keyframes glitch {
+        0%   { clip-path:inset(0 0 98% 0); transform:translate(-3px,0); }
+        15%  { clip-path:inset(40% 0 40% 0); transform:translate(3px,0); }
+        30%  { clip-path:inset(70% 0 10% 0); transform:translate(-2px,0); }
+        50%  { clip-path:inset(0 0 0 0); transform:translate(0,0); }
+        100% { clip-path:inset(0 0 0 0); transform:translate(0,0); }
+    }
+
+    .anim-up {
+        opacity: 0;
+        animation: slideUp 0.7s cubic-bezier(0.22,1,0.36,1) forwards;
+        animation-delay: var(--d, 0s);
+    }
+    .anim-reveal {
+        opacity: 0;
+        transform: translateY(36px);
+        transition: opacity 0.6s cubic-bezier(0.22,1,0.36,1), transform 0.6s cubic-bezier(0.22,1,0.36,1);
+    }
+    .anim-reveal.visible { opacity: 1; transform: translateY(0); }
+
+    .sv-cyan { color: var(--cyan); }
+
+    /* Glitch */
+    .sv-glitch { position: relative; display: inline-block; }
+    .sv-glitch::before, .sv-glitch::after {
+        content: attr(data-text);
+        position: absolute; left: 0; top: 0;
+        color: var(--cyan); width: 100%;
+    }
+    .sv-glitch::before {
+        text-shadow: 2px 0 #ff00ea;
+        animation: glitch 5s infinite linear alternate-reverse;
+        opacity: 0.6;
+    }
+    .sv-glitch::after {
+        text-shadow: -2px 0 var(--cyan);
+        animation: glitch 4s infinite linear alternate;
+        opacity: 0.45;
+    }
+
+    /* ════════════ HERO ════════════ */
+    .sv-hero {
+        position: relative; min-height: 100vh;
+        display: flex; align-items: center;
+        overflow: hidden; z-index: 0;
+    }
+    .sv-hero-bg {
+        position: absolute; inset: 0;
+        background: url('img/banner2.jpeg') center / cover no-repeat;
+        z-index: 0;
+    }
+    .sv-hero-overlay {
+        position: absolute; inset: 0;
+        background: linear-gradient(135deg, rgba(0,0,0,0.93) 0%, rgba(0,0,0,0.7) 55%, rgba(0,0,0,0.85) 100%);
+        z-index: 1;
+    }
+    .sv-grid-dots {
+        position: absolute; inset: 0;
+        background-image: radial-gradient(circle, rgba(0,242,255,0.07) 1px, transparent 1px);
+        background-size: 44px 44px;
+        z-index: 2; pointer-events: none;
+    }
+    .sv-scan-line {
+        position: absolute; left: 0; right: 0; height: 2px;
+        background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+        opacity: 0.2; z-index: 3;
+        animation: scanMove 8s linear infinite;
+    }
+    .sv-hero-content {
+        position: relative; z-index: 4;
+        padding: 140px 60px 80px;
+        max-width: 860px;
+    }
+
+    /* Badge */
+    .sv-badge {
+        display: inline-flex; align-items: center; gap: 10px;
+        background: rgba(0,242,255,0.08);
+        border: 1px solid rgba(0,242,255,0.3);
+        color: var(--cyan-bright);
+        font-size: 0.75rem; font-weight: 700;
+        text-transform: uppercase; letter-spacing: 0.1em;
+        padding: 8px 20px; border-radius: 100px;
+        margin-bottom: 28px;
+    }
+    .sv-badge-dot {
+        width: 8px; height: 8px;
+        background: var(--cyan); border-radius: 50%;
+        animation: pulseGlow 1.8s ease-in-out infinite;
+    }
+
+    .sv-hero-title {
+        font-size: clamp(2.6rem, 6vw, 5rem);
+        font-weight: 900; color: #fff;
+        line-height: 1.05; letter-spacing: -0.025em;
+        margin-bottom: 22px;
+    }
+    .sv-hero-sub {
+        font-size: 1.05rem; color: var(--text-dim);
+        line-height: 1.7; margin-bottom: 44px;
+        max-width: 620px;
+    }
+
+    /* Stats */
+    .sv-hero-stats {
+        display: flex; align-items: center; gap: 32px;
+        margin-bottom: 44px;
+    }
+    .sv-stat { display: flex; flex-direction: column; gap: 4px; }
+    .sv-stat-num { font-size: 2.2rem; font-weight: 900; color: #fff; line-height: 1; }
+    .sv-stat-label { font-size: 0.7rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.07em; }
+    .sv-stat-sep { width: 1px; height: 44px; background: rgba(255,255,255,0.12); }
+
+    /* Scroll CTA */
+    .sv-scroll-cta {
+        display: inline-flex; align-items: center; gap: 10px;
+        color: rgba(255,255,255,0.5); font-size: 0.82rem; font-weight: 600;
+        border: 1px solid rgba(255,255,255,0.14);
+        padding: 12px 22px; border-radius: 100px;
+        transition: all 0.25s;
+    }
+    .sv-scroll-cta:hover { color: var(--cyan); border-color: var(--cyan); }
+
+    /* ════════════ LAYOUT ════════════ */
+    .sv-container { max-width: 1380px; margin: 0 auto; padding: 0 32px; }
+    .sv-section { background: var(--bg); padding: 90px 0; }
+    .sv-section-header { text-align: center; margin-bottom: 60px; }
+    .sv-section-eyebrow {
+        font-size: 0.72rem; font-weight: 700;
+        text-transform: uppercase; letter-spacing: 0.14em;
+        color: var(--cyan); margin-bottom: 12px;
+    }
+    .sv-section-title {
+        font-size: clamp(2rem, 3.5vw, 3rem);
+        font-weight: 900; color: #fff;
+        line-height: 1.1; letter-spacing: -0.02em;
+        margin-bottom: 18px;
+    }
+    .sv-section-desc {
+        font-size: 0.95rem; color: var(--text-dim);
+        line-height: 1.7; max-width: 560px; margin: 0 auto;
+    }
+
+    /* ════════════ HISTÓRIA — STORY GRID ════════════ */
+    .sb-story-grid {
+        display: grid;
+        grid-template-columns: 1fr 360px;
+        gap: 80px;
+        align-items: start;
+    }
+    .sb-story-text p {
+        font-size: 1.05rem;
+        color: var(--text-dim);
+        line-height: 1.8;
+        margin-bottom: 1.6rem;
+    }
+    .sb-story-text p:last-child { margin-bottom: 0; }
+
+    .sb-story-kpis {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+    }
+    .sb-kpi-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 24px 20px;
+        text-align: center;
+        transition: border-color 0.25s, box-shadow 0.25s;
+    }
+    .sb-kpi-card:hover {
+        border-color: var(--border-c);
+        box-shadow: 0 0 22px var(--cyan-glow);
+    }
+    .sb-kpi-icon {
+        color: var(--cyan);
+        margin-bottom: 12px;
+        display: flex; justify-content: center;
+    }
+    .sb-kpi-num {
+        font-size: 1.9rem; font-weight: 900;
+        color: #fff; line-height: 1;
+        margin-bottom: 6px;
+    }
+    .sb-kpi-label {
+        font-size: 0.72rem; color: var(--text-dim);
+        text-transform: uppercase; letter-spacing: 0.08em;
+    }
+
+    /* ════════════ VALORES ════════════ */
+    .sv-premium-section {
+        background: var(--bg-card2);
+        padding: 100px 0;
+        border-top: 1px solid var(--border);
+        border-bottom: 1px solid var(--border);
+    }
+    .sb-values-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 18px;
+    }
+    .sb-value-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 36px 28px;
+        transition: border-color 0.25s, box-shadow 0.25s, transform 0.25s;
+        position: relative; overflow: hidden;
+    }
+    .sb-value-card::before {
+        content: '';
+        position: absolute; inset: 0;
+        background: linear-gradient(135deg, rgba(0,242,255,0.04) 0%, transparent 60%);
+        opacity: 0; transition: opacity 0.3s;
+    }
+    .sb-value-card:hover {
+        border-color: var(--border-c);
+        box-shadow: 0 0 28px var(--cyan-glow);
+        transform: translateY(-4px);
+    }
+    .sb-value-card:hover::before { opacity: 1; }
+
+    .sb-value-icon {
+        width: 52px; height: 52px;
+        background: rgba(0,242,255,0.08);
+        border: 1px solid rgba(0,242,255,0.2);
+        border-radius: 14px;
+        display: grid; place-items: center;
+        color: var(--cyan);
+        margin-bottom: 20px;
+    }
+    .sb-value-title {
+        font-size: 1.05rem; font-weight: 800;
+        color: #fff; margin-bottom: 10px;
+    }
+    .sb-value-desc {
+        font-size: 0.85rem; color: var(--text-dim);
+        line-height: 1.7;
+    }
+
+    /* Stagger para valores */
+    .sb-values-grid .anim-reveal:nth-child(1) { transition-delay: 0.00s; }
+    .sb-values-grid .anim-reveal:nth-child(2) { transition-delay: 0.10s; }
+    .sb-values-grid .anim-reveal:nth-child(3) { transition-delay: 0.20s; }
+
+    /* ════════════ TIMELINE ════════════ */
+    .sb-timeline-section { background: var(--bg); }
+
+    .sb-timeline {
+        max-width: 860px;
+        margin: 0 auto;
+        position: relative;
+    }
+    /* Linha vertical contínua */
+    .sb-timeline::before {
+        content: '';
+        position: absolute;
+        left: 72px;
+        top: 0; bottom: 0;
+        width: 2px;
+        background: linear-gradient(to bottom, transparent, var(--border) 8%, var(--border) 92%, transparent);
+    }
+
+    .sb-tl-item {
+        display: grid;
+        grid-template-columns: 144px 1fr;
+        gap: 0;
+        margin-bottom: 10px;
+        align-items: stretch;
+    }
+    .sb-tl-item:last-child { margin-bottom: 0; }
+
+    .sb-tl-left {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0;
+        padding-top: 28px;
+    }
+    .sb-tl-year {
+        font-size: 1.05rem; font-weight: 900;
+        color: var(--cyan);
+        background: var(--bg-card);
+        border: 2px solid rgba(0,242,255,0.4);
+        border-radius: 100px;
+        padding: 6px 16px;
+        white-space: nowrap;
+        position: relative; z-index: 2;
+        box-shadow: 0 0 16px var(--cyan-glow);
+    }
+    .sb-tl-line {
+        flex: 1;
+        width: 2px;
+        background: transparent;
+    }
+
+    .sb-tl-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 28px 32px;
+        margin: 16px 0 16px 32px;
+        position: relative;
+        transition: border-color 0.25s, box-shadow 0.25s;
+    }
+    .sb-tl-card:hover {
+        border-color: var(--border-c);
+        box-shadow: 0 0 22px var(--cyan-glow);
+    }
+    /* Seta para a esquerda */
+    .sb-tl-card::before {
+        content: '';
+        position: absolute;
+        left: -9px; top: 36px;
+        width: 16px; height: 16px;
+        background: var(--bg-card);
+        border-left: 1px solid var(--border);
+        border-bottom: 1px solid var(--border);
+        transform: rotate(45deg);
+        transition: border-color 0.25s;
+    }
+    .sb-tl-card:hover::before { border-color: var(--border-c); }
+
+    .sb-tl-dot {
+        width: 10px; height: 10px;
+        background: var(--cyan);
+        border-radius: 50%;
+        box-shadow: 0 0 10px var(--cyan-glow);
+        position: absolute;
+        left: -38px; top: 40px;
+        z-index: 2;
+    }
+    .sb-tl-title {
+        font-size: 1.05rem; font-weight: 800;
+        color: #fff; margin-bottom: 8px;
+    }
+    .sb-tl-desc {
+        font-size: 0.88rem; color: var(--text-dim);
+        line-height: 1.65;
+    }
+
+    /* Stagger timeline */
+    .sb-timeline .anim-reveal:nth-child(1) { transition-delay: 0.00s; }
+    .sb-timeline .anim-reveal:nth-child(2) { transition-delay: 0.08s; }
+    .sb-timeline .anim-reveal:nth-child(3) { transition-delay: 0.16s; }
+    .sb-timeline .anim-reveal:nth-child(4) { transition-delay: 0.24s; }
+    .sb-timeline .anim-reveal:nth-child(5) { transition-delay: 0.32s; }
+    .sb-timeline .anim-reveal:nth-child(6) { transition-delay: 0.40s; }
+
+    /* ════════════ MARCAS ════════════ */
+    .sb-marcas-section { border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .sb-marcas-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+    }
+    .sb-marca-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 36px 24px;
+        text-align: center;
+        transition: border-color 0.25s, box-shadow 0.25s, transform 0.25s;
+    }
+    .sb-marca-card:hover {
+        border-color: var(--border-c);
+        box-shadow: 0 0 24px var(--cyan-glow);
+        transform: translateY(-4px);
+    }
+    .sb-marca-icon {
+        color: var(--cyan);
+        display: flex; justify-content: center;
+        margin-bottom: 16px;
+    }
+    .sb-marca-nome {
+        font-size: 1.1rem; font-weight: 900;
+        color: #fff; margin-bottom: 6px;
+    }
+    .sb-marca-tag {
+        font-size: 0.7rem; font-weight: 700;
+        color: var(--cyan);
+        text-transform: uppercase; letter-spacing: 0.1em;
+        background: rgba(0,242,255,0.08);
+        border: 1px solid rgba(0,242,255,0.2);
+        border-radius: 100px;
+        padding: 4px 14px;
+        display: inline-block;
+    }
+
+    /* Stagger marcas */
+    .sb-marcas-grid .anim-reveal:nth-child(1) { transition-delay: 0.00s; }
+    .sb-marcas-grid .anim-reveal:nth-child(2) { transition-delay: 0.08s; }
+    .sb-marcas-grid .anim-reveal:nth-child(3) { transition-delay: 0.16s; }
+    .sb-marcas-grid .anim-reveal:nth-child(4) { transition-delay: 0.24s; }
+
+    /* ════════════ CONTACTO ════════════ */
+    .sv-contact-section { background: var(--bg); padding: 100px 0; }
+    .sv-contact-grid {
+        display: grid;
+        grid-template-columns: 380px 1fr;
+        gap: 80px;
+        align-items: start;
+    }
+    .sv-contact-title {
+        font-size: clamp(2rem, 3vw, 2.8rem);
+        font-weight: 900; color: #fff;
+        line-height: 1.1; letter-spacing: -0.02em;
+        margin-bottom: 16px;
+    }
+    .sv-contact-desc { font-size: 0.9rem; color: var(--text-dim); line-height: 1.7; }
+    .sv-contact-cards { display: flex; flex-direction: column; gap: 14px; }
+    .sv-contact-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 24px;
+        display: flex; align-items: flex-start; gap: 16px;
+        transition: border-color 0.25s;
+    }
+    .sv-contact-card:hover { border-color: var(--border-c); }
+    .sv-cc-icon {
+        width: 44px; height: 44px; flex-shrink: 0;
+        background: rgba(0,242,255,0.08);
+        border: 1px solid rgba(0,242,255,0.2);
+        border-radius: 10px;
+        display: grid; place-items: center;
+        color: var(--cyan);
+    }
+    .sv-cc-label { font-size: 0.7rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.09em; margin-bottom: 4px; }
+    .sv-cc-value { font-size: 0.9rem; color: #fff; font-weight: 600; line-height: 1.6; }
+
+    .sv-contact-cta {
+        background: linear-gradient(135deg, rgba(0,242,255,0.08), rgba(0,242,255,0.02));
+        border-color: rgba(0,242,255,0.25) !important;
+        flex-direction: row; justify-content: space-between; align-items: center;
+        flex-wrap: wrap; gap: 16px;
+    }
+    .sv-btn-agendar {
+        display: inline-flex; align-items: center; gap: 10px;
+        background: var(--cyan); color: #000;
+        font-weight: 800; font-size: 0.9rem;
+        padding: 13px 26px; border-radius: var(--radius-sm);
+        white-space: nowrap;
+        transition: all 0.25s;
+    }
+    .sv-btn-agendar:hover { background: var(--cyan-bright); transform: translateY(-2px); box-shadow: 0 10px 30px var(--cyan-glow); }
+
+    /* ── RESPONSIVE ── */
+    @@media (max-width: 1100px) {
+        .sb-story-grid   { grid-template-columns: 1fr; gap: 48px; }
+        .sb-marcas-grid  { grid-template-columns: repeat(2, 1fr); }
+        .sv-contact-grid { grid-template-columns: 1fr; gap: 40px; }
+    }
+    @@media (max-width: 900px) {
+        .sb-values-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @@media (max-width: 768px) {
+        .sv-hero-content { padding: 120px 24px 60px; }
+        .sv-container    { padding: 0 20px; }
+        .sv-hero-stats   { flex-wrap: wrap; gap: 20px; }
+        .sv-stat-sep     { display: none; }
+        .sb-values-grid  { grid-template-columns: 1fr; }
+        .sb-marcas-grid  { grid-template-columns: repeat(2, 1fr); }
+        .sb-tl-item      { grid-template-columns: 100px 1fr; }
+        .sb-timeline::before { left: 50px; }
+        .sb-tl-card      { margin-left: 20px; }
+        .sb-tl-dot       { left: -26px; }
+    }
+    @@media (max-width: 480px) {
+        .sb-marcas-grid { grid-template-columns: 1fr; }
+        .sb-story-kpis  { grid-template-columns: 1fr 1fr; }
+    }
+</style>
+
+@code {
+    record Kpi(string Numero, string Label, string Icon);
+    record Valor(string Titulo, string Descricao, string Icon);
+    record TimelineItem(string Ano, string Titulo, string Descricao);
+    record Marca(string Nome, string Tag, string Icon);
+
+    List<Kpi> kpis = new()
+    {
+        new("+500", "Colaboradores",
+            """<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.34a4 4 0 0 1 0 7.32"/></svg>"""),
+        new("5", "Showrooms",
+            """<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>"""),
+        new("4", "Marcas",
+            """<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>"""),
+        new("23", "Anos de Experiência",
+            """<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>"""),
+    };
+
+    List<Valor> valores = new()
+    {
+        new("Missão",
+            "Fomentar e entregar valor com integridade, qualidade e inovação constante — construindo um futuro sustentável para Angola.",
+            """<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>"""),
+        new("Personalidade",
+            "Fazemos sempre o que é certo. Priorizamos o valor dos nossos parceiros e colaboramos para superar desafios com determinação.",
+            """<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>"""),
+        new("Valores",
+            "A diversidade é a nossa força — impulsiona inovação, colaboração e excelência no atendimento ao cliente em todos os pontos de contacto.",
+            """<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.34a4 4 0 0 1 0 7.32"/></svg>"""),
+    };
+
+    List<TimelineItem> timeline = new()
+    {
+        new("2002", "Fundação da Target Comex",         "Início da atividade como comerciante automotivo local em Luanda, Angola."),
+        new("2005", "Primeiro Showroom",                "Inauguração do primeiro espaço dedicado à venda de veículos, estabelecendo a nossa presença."),
+        new("2007", "Segundo Showroom — Viana",         "Expansão para Viana, aumentando a capacidade de atendimento e alcance geográfico."),
+        new("2018", "Terceiro Showroom — Samba",        "Consolidação da presença na capital com um novo espaço moderno e tecnologicamente equipado."),
+        new("2021", "Quarto Showroom + BAIC",           "Expansão física em Morro Bento e início da parceria estratégica com a marca BAIC."),
+        new("2024", "Concessionária Oficial Suzuki",    "Conquista da representação oficial da Suzuki em Angola, reforçando o portfólio premium."),
+        new("2025", "Distribuidora Oficial Forthing",   "Nova parceria estratégica com a Forthing, diversificando e fortalecendo o grupo automotivo."),
+    };
+
+    List<Marca> marcas = new()
+    {
+        new("BAIC", "Parceiro Oficial",
+            """<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="7" width="20" height="10" rx="2"/><path d="M7 7V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2M5 17v2M19 17v2M2 12h20"/></svg>"""),
+        new("Suzuki", "Concessionário Oficial",
+            """<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>"""),
+        new("Forthing", "Distribuidor Oficial",
+            """<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>"""),
+        new("Wolver", "Óleos Premium",
+            """<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>"""),
+    };
+}
+
+<!-- Scroll Reveal -->
+<script>
+(function () {
+    var io = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) {
+            if (e.isIntersecting) { e.target.classList.add('visible'); io.unobserve(e.target); }
+        });
+    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+    function observe() {
+        document.querySelectorAll('.anim-reveal').forEach(function(el) { io.observe(el); });
+    }
+
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', observe);
+    else observe();
+
+    new MutationObserver(observe).observe(document.body, { childList: true, subtree: true });
+})();
+</script>

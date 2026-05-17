@@ -1,0 +1,198 @@
+<footer class="site-footer">
+    <div class="footer-top">
+        <div class="footer-brand">
+            <img src="logo-1.png" height="36" alt="Target" />
+            <p class="footer-tagline">O marketplace de automóveis mais inteligente de Angola.</p>
+            <div class="footer-socials">
+                <a href="#" class="social-btn" aria-label="Facebook">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+                </a>
+                <a href="#" class="social-btn" aria-label="Instagram">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>
+                </a>
+                <a href="#" class="social-btn" aria-label="LinkedIn">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+                </a>
+            </div>
+        </div>
+        <div class="footer-links-group">
+            <h5>Anunciar</h5>
+            <a href="#">Publicar veículo</a>
+            <a href="#">Planos de destaque</a>
+            <a href="#">Concessionárias</a>
+            <a href="#">Parceiros</a>
+        </div>
+        <div class="footer-links-group">
+            <h5>Sou Perfil</h5>
+            <a href="#">Perfil</a>
+            <a href="#">Favoritos</a>
+            <a href="#">Recomendações</a>
+            <a href="#">Sobre Nós</a>
+        </div>
+        <div class="footer-links-group">
+            <h5>Meus Favoritos</h5>
+            <a href="#">Meus</a>
+            <a href="#">Dados</a>
+            <a href="#">Suporte</a>
+            <a href="#">Segurança</a>
+        </div>
+        <div class="footer-newsletter">
+            <h5>Recebe as melhores ofertas</h5>
+            <p>Novos veículos e promoções directamente no teu email.</p>
+            <div class="newsletter-box">
+                <input type="email" placeholder="O teu email…" class="newsletter-input" />
+                <button class="newsletter-btn">→</button>
+            </div>
+        </div>
+    </div>
+    <div class="footer-bottom">
+        <span>© 2025 TARGET Comex. Todos os direitos reservados.</span>
+        <span>Luanda, Angola</span>
+    </div>
+</footer>
+
+
+<style>
+    /* ─── FOOTER ────────────────────────────────────── */
+
+    /* ─── VARIÁVEIS ─────────────────────────────────── */
+:root {
+    --cyan: #00f2ff;
+    --cyan-dim: rgba(0, 242, 255, 0.12);
+    --cyan-glow: rgba(0, 242, 255, 0.4);
+    --bg: #000;
+    --bg-1: #080808;
+    --bg-2: #0d0d0d;
+    --bg-card: #111;
+    --border: rgba(255,255,255,0.07);
+    --text: #e0e0e0;
+    --text-dim: #666;
+    --font: -apple-system, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    --radius: 14px;
+    --radius-sm: 8px;
+}
+.site-footer {
+    background: var(--bg-1);
+    border-top: 1px solid var(--border);
+    padding: 80px 40px 30px;
+}
+.footer-top {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr 2fr;
+    gap: 40px;
+    padding-bottom: 60px;
+    border-bottom: 1px solid var(--border);
+}
+.footer-tagline {
+    font-size: 0.82rem;
+    color: var(--text-dim);
+    margin: 16px 0 20px;
+    line-height: 1.6;
+}
+.footer-socials { display: flex; gap: 10px; }
+.social-btn {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    color: #666;
+    transition: all 0.2s;
+    text-decoration: none;
+}
+.social-btn svg { width: 16px; height: 16px; }
+.social-btn:hover { border-color: var(--cyan); color: var(--cyan); }
+
+.footer-links-group h5 {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #888;
+    margin-bottom: 18px;
+}
+.footer-links-group a {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    text-decoration: none;
+    margin-bottom: 10px;
+    transition: color 0.2s;
+}
+.footer-links-group a:hover { color: var(--cyan); }
+
+.footer-newsletter h5 {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #888;
+    margin-bottom: 10px;
+}
+.footer-newsletter p {
+    font-size: 0.82rem;
+    color: var(--text-dim);
+    margin-bottom: 16px;
+    line-height: 1.6;
+}
+.newsletter-box {
+    display: flex;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+}
+.newsletter-box:focus-within { border-color: rgba(0,242,255,0.4); }
+.newsletter-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    padding: 12px 16px;
+    color: #fff;
+    font-size: 0.85rem;
+}
+.newsletter-btn {
+    background: var(--cyan);
+    border: none;
+    padding: 12px 18px;
+    color: #000;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.newsletter-btn:hover { background: #00d4e0; }
+
+.footer-bottom {
+    max-width: 1200px;
+    margin: 30px auto 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.78rem;
+    color: #333;
+}
+
+/* ─── RESPONSIVE ────────────────────────────────── */
+@@media (max-width: 1024px) {
+    .ia-cta-content { grid-template-columns: 1fr; gap: 50px; }
+    .ia-cta-right { max-width: 400px; margin: 0 auto; }
+    .footer-top { grid-template-columns: 1fr 1fr; }
+}
+@@media (max-width: 768px) {
+    .hero-title { font-size: 2rem; }
+    .hud-badge.hud-left,
+    .hud-badge.hud-right { display: none; }
+    .hud-badge.hud-top { top: 2%; font-size: 0.7rem; padding: 6px 12px; }
+    .stat-divider { display: none; }
+    .features-section, .cars-section, .testimonials-section { padding: 60px 20px; }
+    .brands-section { padding: 40px 0; }
+    .footer-top { grid-template-columns: 1fr; }
+    .footer-bottom { flex-direction: column; gap: 10px; text-align: center; }
+    .see-all-link { position: static; transform: none; margin-top: 12px; }
+}
+</style>

@@ -1,0 +1,986 @@
+@page "/produtos"
+@using System.Linq
+@inject NavigationManager Nav
+
+<!-- ══════════════════════════════════════════════════════
+     HERO SECTION
+══════════════════════════════════════════════════════ -->
+<section class="products-hero">
+    <div class="hero-bg-image"></div>
+    <div class="hero-overlay"></div>
+    <div class="grid-overlay"></div>
+    <div class="scan-line"></div>
+
+    <div class="hero-content">
+        <div class="ai-badge anim-slide-up" style="--d:0.1s">
+            <span class="ai-dot"></span>
+            <span>Catálogo Inteligente com IA</span>
+        </div>
+
+        <h1 class="hero-title anim-slide-up" style="--d:0.25s">
+            O Futuro Move-se<br/>
+            <span class="cyan-text glitch-text" data-text="a 300 km/h">a 300 km/h</span>
+        </h1>
+
+        <p class="hero-subtitle anim-slide-up" style="--d:0.4s">
+            @veiculos.Count veículos verificados • Recomendações por IA com 98% de precisão
+        </p>
+
+        <div class="search-area anim-slide-up" style="--d:0.6s">
+            <div class="search-box">
+                <div class="search-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2.5">
+                        <circle cx="11" cy="11" r="8"/>
+                        <path d="m21 21-4.35-4.35"/>
+                    </svg>
+                </div>
+                <input type="text" class="search-input"
+                       placeholder="Pesquisar por marca, modelo..."
+                       @bind="termoBusca"
+                       @bind:event="oninput"
+                       @onkeyup="AplicarFiltros" />
+                <button class="search-btn" @onclick="AplicarFiltros">Pesquisar</button>
+            </div>
+        </div>
+
+        <div class="hero-stats anim-slide-up" style="--d:0.8s">
+            <div class="hero-stat">
+                <span class="stat-num">@veiculos.Count</span>
+                <span class="stat-label">Veículos disponíveis</span>
+            </div>
+            <div class="hero-stat">
+                <span class="stat-num cyan-text">98%</span>
+                <span class="stat-label">Precisão IA</span>
+            </div>
+            <div class="hero-stat">
+                <span class="stat-num">@veiculosFiltrados.Count</span>
+                <span class="stat-label">Resultados actuais</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     FILTROS + RESULTADOS
+══════════════════════════════════════════════════════ -->
+<section class="products-section">
+    <div class="products-container">
+
+        <!-- ── SIDEBAR ── -->
+        <aside class="filters-sidebar">
+            <div class="filters-header">
+                <h3>Filtros Avançados</h3>
+                <button class="clear-filters" @onclick="LimparFiltros">Limpar Tudo</button>
+            </div>
+
+            <!-- Combustível -->
+            <div class="filter-group">
+                <label class="filter-label">Tipo de Combustível</label>
+                <div class="filter-options">
+                    @foreach (var op in opcoesCombus)
+                    {
+                        <button class="filter-chip @(filtroCombus.Contains(op) ? "active" : "")"
+                                @onclick="() => ToggleFiltro(filtroCombus, op)">@op</button>
+                    }
+                </div>
+            </div>
+
+            <!-- Marca -->
+            <div class="filter-group">
+                <label class="filter-label">Marca</label>
+                <div class="filter-options">
+                    @foreach (var op in opcoesMarca)
+                    {
+                        <button class="filter-chip @(filtroMarca.Contains(op) ? "active" : "")"
+                                @onclick="() => ToggleFiltro(filtroMarca, op)">@op</button>
+                    }
+                </div>
+            </div>
+
+            <!-- Transmissão -->
+            <div class="filter-group">
+                <label class="filter-label">Transmissão</label>
+                <div class="filter-options">
+                    @foreach (var op in opcoesTransm)
+                    {
+                        <button class="filter-chip @(filtroTransm.Contains(op) ? "active" : "")"
+                                @onclick="() => ToggleFiltro(filtroTransm, op)">@op</button>
+                    }
+                </div>
+            </div>
+
+            <!-- Ano -->
+            <div class="filter-group">
+                <label class="filter-label">Ano mínimo: <span class="cyan-text">@filtroAnoMin</span></label>
+                <div class="slider-wrap">
+                    <input type="range" class="range-slider"
+                           min="2018" max="2025"
+                           @bind="filtroAnoMin"
+                           @bind:event="oninput"
+                           @onchange="AplicarFiltros"
+                            />
+                    <div class="slider-tooltip" style="left: calc(@(((filtroAnoMin - 2018) * 100.0 / (2025 - 2018)))% )">@filtroAnoMin</div>
+                </div>
+                <div class="range-labels"><span>2018</span><span>2025</span></div>
+            </div>
+
+            <!-- Preço -->
+            <div class="filter-group">
+                <label class="filter-label">
+                    Preço máx: <span class="cyan-text">AOA @filtroPrecoMax.ToString("N0").Replace(",",".")</span>
+                </label>
+                <div class="slider-wrap">
+                    <input type="range" class="range-slider"
+                           min="50000000" max="900000000" step="10000000"
+                           @bind="filtroPrecoMax"
+                           @bind:event="oninput"
+                           @onchange="AplicarFiltros"
+                           />
+                    <div class="slider-tooltip" style="left: calc(@(((filtroPrecoMax - 50_000_000) * 100.0 / (900_000_000 - 50_000_000)))% )">@((filtroPrecoMax/1_000_000).ToString("0"))M</div>
+                </div>
+                <div class="range-labels"><span>50M</span><span>900M</span></div>
+            </div>
+
+            <!-- Ordenação -->
+            <div class="filter-group">
+                <label class="filter-label">Ordenar por</label>
+                <select class="filter-select" @bind="ordenacao" @bind:after="AplicarFiltros">
+                    <option value="relevancia">Relevância</option>
+                    <option value="preco-asc">Preço ↑</option>
+                    <option value="preco-desc">Preço ↓</option>
+                    <option value="ano-desc">Mais recentes</option>
+                    <option value="nome-asc">Nome A–Z</option>
+                </select>
+            </div>
+        </aside>
+
+        <!-- ── RESULTS AREA ── -->
+        <div class="results-area">
+
+            <!-- Barra de resultados -->
+            <div class="results-topbar">
+                <p class="results-count">
+                    <span class="cyan-text">@veiculosFiltrados.Count</span> veículos encontrados
+                </p>
+                <div class="view-toggle">
+                    <button class="view-btn @(viewGrid ? "active" : "")" @onclick="() => viewGrid = true" title="Grelha">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                            <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+                            <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+                        </svg>
+                    </button>
+                    <button class="view-btn @(!viewGrid ? "active" : "")" @onclick="() => viewGrid = false" title="Lista">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Cards -->
+            @if (!veiculosFiltrados.Any())
+            {
+                <div class="no-results">
+                    <div class="no-results-icon">🔍</div>
+                    <h3>Nenhum veículo encontrado</h3>
+                    <p>Tente ajustar os filtros ou a pesquisa.</p>
+                    <button class="search-btn" @onclick="LimparFiltros">Limpar Filtros</button>
+                </div>
+            }
+            else
+            {
+                <div class="cars-grid @(viewGrid ? "grid-view" : "list-view")">
+                    @foreach (var v in veiculosFiltrados)
+                    {
+                        <div class="car-card anim-reveal">
+                            <div class="car-image-wrap">
+                                <img src="@v.Imagem" alt="@v.Nome" class="car-img" loading="lazy" />
+                                <div class="car-badge">@v.Combustivel</div>
+                                <button class="car-fav @(favoritos.Contains(v.Id) ? "car-fav-active" : "")"
+                                        @onclick="() => ToggleFavorito(v.Id)">
+                                    <svg width="18" height="18" viewBox="0 0 24 24"
+                                         fill="@(favoritos.Contains(v.Id) ? "#00f2ff" : "none")"
+                                         stroke="@(favoritos.Contains(v.Id) ? "#00f2ff" : "currentColor")"
+                                         stroke-width="2">
+                                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                                    </svg>
+                                </button>
+                                <div class="car-score">
+                                    <span>⚡</span> @v.ScoreIA% IA
+                                </div>
+                            </div>
+                            <div class="car-body">
+                                <div class="car-meta">
+                                    <span class="car-ano">@v.Ano</span>
+                                    <span class="car-transm">@v.Transmissao</span>
+                                </div>
+                                <h4 class="car-name">@v.Nome</h4>
+                                <div class="car-specs">
+                                    <span>🏎 @v.Potencia cv</span>
+                                    <span>⚙ @v.Motor</span>
+                                    <span>📏 @(new Random(v.Id * 137).Next(8000, 95000).ToString("N0").Replace(",",".")) km</span>
+                                </div>
+                                <div class="car-footer">
+                                    <div class="car-price">AOA @v.Preco.ToString("N0").Replace(",",".")</div>
+                                    @* <button class="btn-details" @onclick="() => Navegar(v.Id)">Ver Detalhes</button> *@
+                                    <button class="btn-details" @onclick='() => Nav.NavigateTo($"/detalhes-veiculo/{v.Id}")'>
+                                        Ver Detalhes
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+
+        </div>
+    </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     ESTILOS
+══════════════════════════════════════════════════════ -->
+<style>
+    :root {
+        --cyan: #00f2ff;
+        --cyan-bright: #40f8ff;
+        --cyan-glow: rgba(0,242,255,0.25);
+        --text: #f0f0f0;
+        --text-dim: #aaaaaa;
+        --bg-dark: #080808;
+        --bg-card: #111111;
+        --bg-card2: #161616;
+        --border: rgba(255,255,255,0.08);
+        --border-hover: rgba(0,242,255,0.4);
+        --radius: 16px;
+        --radius-sm: 10px;
+    }
+
+    /* ── RESET ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    button { border: none; cursor: pointer; font-family: inherit; }
+
+    /* ── ANIMAÇÕES ── */
+    @@keyframes slideUp {
+        from { opacity: 0; transform: translateY(28px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+    @@keyframes scanMove {
+        0%   { top: -2px; }
+        100% { top: 100%; }
+    }
+    @@keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50%       { opacity: 0.4; }
+    }
+    @@keyframes revealFade {
+        from { opacity: 0; transform: translateY(20px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+    @@keyframes cardReveal {
+        from { opacity: 0; transform: translateY(40px) scale(0.97); }
+        to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @@keyframes glitch {
+        0%   { clip-path: inset(0 0 98% 0); transform: translate(-3px, 0); }
+        10%  { clip-path: inset(30% 0 50% 0); transform: translate(3px, 0); }
+        20%  { clip-path: inset(60% 0 20% 0); transform: translate(-2px, 0); }
+        30%  { clip-path: inset(10% 0 80% 0); transform: translate(2px, 0); }
+        40%  { clip-path: inset(80% 0 5% 0);  transform: translate(-3px, 0); }
+        50%  { clip-path: inset(0 0 0 0);      transform: translate(0, 0); }
+        100% { clip-path: inset(0 0 0 0);      transform: translate(0, 0); }
+    }
+
+    .anim-slide-up {
+        opacity: 0;
+        animation: slideUp 0.7s cubic-bezier(0.22,1,0.36,1) forwards;
+        animation-delay: var(--d, 0s);
+    }
+    .anim-reveal {
+        opacity: 0;
+        transform: translateY(40px) scale(0.97);
+        transition: opacity 0.6s cubic-bezier(0.22,1,0.36,1),
+                    transform 0.6s cubic-bezier(0.22,1,0.36,1);
+    }
+    .anim-reveal.visible { opacity: 1; transform: translateY(0) scale(1); }
+
+    /* Glitch effect on hero title span */
+    .glitch-text {
+        position: relative;
+        display: inline-block;
+    }
+    .glitch-text::before,
+    .glitch-text::after {
+        content: attr(data-text);
+        position: absolute;
+        left: 0; top: 0;
+        color: var(--cyan);
+        width: 100%;
+    }
+    .glitch-text::before {
+        text-shadow: 2px 0 #ff00ea;
+        animation: glitch 4s infinite linear alternate-reverse;
+        opacity: 0.7;
+    }
+    .glitch-text::after {
+        text-shadow: -2px 0 #00f2ff;
+        animation: glitch 3.5s infinite linear alternate;
+        opacity: 0.5;
+    }
+
+    /* Slider tooltip */
+    .slider-wrap {
+        position: relative;
+        padding-bottom: 24px;
+    }
+    .slider-tooltip {
+        position: absolute;
+        bottom: 0;
+        transform: translateX(-50%);
+        background: var(--cyan);
+        color: #000;
+        font-size: 0.7rem;
+        font-weight: 800;
+        padding: 2px 7px;
+        border-radius: 6px;
+        white-space: nowrap;
+        pointer-events: none;
+        letter-spacing: 0.04em;
+        transition: left 0.1s;
+    }
+    .slider-tooltip::before {
+        content: '';
+        position: absolute;
+        top: -5px;
+        left: 50%;
+        transform: translateX(-50%);
+        border: 3px solid transparent;
+        border-bottom-color: var(--cyan);
+    }
+
+    /* ════════════════════════════════════
+       HERO
+    ════════════════════════════════════ */
+    .products-hero {
+        position: relative;
+        min-height: 70vh;
+        display: flex;
+        align-items: center;
+        padding: 130px 40px 90px;
+        overflow: hidden;
+        z-index: 0;
+    }
+
+    /* Imagem de fundo */
+    .hero-bg-image {
+        position: absolute;
+        inset: 0;
+        background: url('img/banner2.jpeg') center center / cover no-repeat;
+        z-index: 0;
+    }
+
+    /* Overlay escuro sobre a imagem */
+    .hero-overlay {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+            135deg,
+            rgba(0,0,0,0.82) 0%,
+            rgba(0,0,0,0.60) 50%,
+            rgba(0,0,0,0.75) 100%
+        );
+        z-index: 1;
+    }
+
+    /* Grid de pontos */
+    .grid-overlay {
+        position: absolute;
+        inset: 0;
+        background-image: radial-gradient(circle, rgba(0,242,255,0.08) 1px, transparent 1px);
+        background-size: 40px 40px;
+        z-index: 2;
+        pointer-events: none;
+    }
+
+    /* Linha de scan */
+    .scan-line {
+        position: absolute;
+        left: 0; right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+        opacity: 0.25;
+        z-index: 3;
+        animation: scanMove 6s linear infinite;
+    }
+
+    .hero-content {
+        position: relative;
+        z-index: 4;
+        max-width: 820px;
+    }
+
+    /* Badge IA */
+    .ai-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(0,242,255,0.1);
+        border: 1px solid rgba(0,242,255,0.35);
+        color: var(--cyan-bright);
+        font-size: 0.8rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        padding: 8px 18px;
+        border-radius: 100px;
+        margin-bottom: 24px;
+    }
+    .ai-dot {
+        width: 8px; height: 8px;
+        background: var(--cyan);
+        border-radius: 50%;
+        animation: pulse 1.8s ease-in-out infinite;
+    }
+
+    /* Título */
+    .hero-title {
+        font-size: clamp(2.4rem, 5.5vw, 4.4rem);
+        font-weight: 800;
+        color: #fff;
+        line-height: 1.1;
+        margin-bottom: 20px;
+        letter-spacing: -0.02em;
+    }
+    .cyan-text { color: var(--cyan); }
+
+    /* Subtítulo */
+    .hero-subtitle {
+        font-size: 1.05rem;
+        color: var(--text-dim);
+        margin-bottom: 36px;
+        max-width: 600px;
+        line-height: 1.6;
+    }
+
+    /* Search box */
+    .search-area { width: 100%; max-width: 680px; margin-bottom: 40px; }
+    .search-box {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: rgba(255,255,255,0.96);
+        border: 2px solid #ddd;
+        border-radius: var(--radius);
+        padding: 8px 8px 8px 18px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        transition: border-color 0.2s;
+    }
+    .search-box:focus-within { border-color: var(--cyan); }
+    .search-icon { flex-shrink: 0; }
+    .search-input {
+        flex: 1;
+        border: none;
+        background: transparent;
+        color: #111;
+        font-size: 0.95rem;
+        font-weight: 500;
+        outline: none;
+    }
+    .search-input::placeholder { color: #888; }
+    .search-btn {
+        background: var(--cyan);
+        color: #000;
+        font-weight: 700;
+        font-size: 0.9rem;
+        padding: 12px 28px;
+        border-radius: var(--radius-sm);
+        transition: all 0.25s;
+        white-space: nowrap;
+    }
+    .search-btn:hover { background: #00ffff; transform: translateY(-2px); }
+
+    /* Stats */
+    .hero-stats { display: flex; gap: 48px; }
+    .hero-stat { display: flex; flex-direction: column; gap: 4px; }
+    .stat-num { font-size: 2rem; font-weight: 800; color: #fff; line-height: 1; }
+    .stat-label { font-size: 0.78rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.06em; }
+
+    /* ════════════════════════════════════
+       PRODUCTS SECTION
+    ════════════════════════════════════ */
+    .products-section {
+        background: var(--bg-dark);
+        min-height: 100vh;
+        padding: 60px 0 100px;
+    }
+    .products-container {
+        max-width: 1480px;
+        margin: 0 auto;
+        padding: 0 24px;
+        display: grid;
+        grid-template-columns: 280px 1fr;
+        gap: 40px;
+        align-items: start;
+    }
+
+    /* ── SIDEBAR ── */
+    .filters-sidebar {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 28px;
+        position: sticky;
+        top: 100px;
+    }
+    .filters-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 28px;
+    }
+    .filters-header h3 { color: #fff; font-size: 1rem; font-weight: 700; }
+    .clear-filters {
+        background: transparent;
+        color: var(--cyan-bright);
+        border: 1px solid rgba(0,242,255,0.4);
+        padding: 6px 14px;
+        border-radius: 8px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        transition: all 0.2s;
+    }
+    .clear-filters:hover { background: var(--cyan); color: #000; }
+
+    .filter-group { margin-bottom: 24px; }
+    .filter-label {
+        display: block;
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: var(--text-dim);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 10px;
+    }
+    .filter-options { display: flex; flex-wrap: wrap; gap: 8px; }
+    .filter-chip {
+        background: rgba(255,255,255,0.04);
+        color: var(--text-dim);
+        border: 1px solid var(--border);
+        padding: 6px 14px;
+        border-radius: 100px;
+        font-size: 0.82rem;
+        font-weight: 500;
+        transition: all 0.2s;
+    }
+    .filter-chip:hover { border-color: var(--cyan); color: var(--cyan); }
+    .filter-chip.active {
+        background: rgba(0,242,255,0.12);
+        border-color: var(--cyan);
+        color: var(--cyan-bright);
+        font-weight: 700;
+    }
+
+    /* Range slider */
+    .range-slider {
+        width: 100%;
+        -webkit-appearance: none;
+        height: 4px;
+        background: rgba(255,255,255,0.12);
+        border-radius: 2px;
+        outline: none;
+        margin-bottom: 6px;
+    }
+    .range-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 18px; height: 18px;
+        border-radius: 50%;
+        background: var(--cyan);
+        cursor: pointer;
+        border: 2px solid #000;
+        box-shadow: 0 0 8px var(--cyan-glow);
+    }
+    .range-labels {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.72rem;
+        color: var(--text-dim);
+    }
+
+    /* Select */
+    .filter-select {
+        width: 100%;
+        background: rgba(255,255,255,0.05);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 10px 14px;
+        font-size: 0.85rem;
+        outline: none;
+        cursor: pointer;
+        transition: border-color 0.2s;
+    }
+    .filter-select:focus { border-color: var(--cyan); }
+
+    /* ── RESULTS ── */
+    .results-topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+    }
+    .results-count { color: var(--text-dim); font-size: 0.9rem; }
+    .view-toggle { display: flex; gap: 4px; }
+    .view-btn {
+        background: rgba(255,255,255,0.05);
+        color: var(--text-dim);
+        border: 1px solid var(--border);
+        width: 36px; height: 36px;
+        border-radius: 8px;
+        display: grid; place-items: center;
+        transition: all 0.2s;
+    }
+    .view-btn.active, .view-btn:hover {
+        background: rgba(0,242,255,0.12);
+        border-color: var(--cyan);
+        color: var(--cyan);
+    }
+
+    /* Grid / List */
+    .cars-grid.grid-view {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+        gap: 24px;
+    }
+    .cars-grid.list-view {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    /* Staggered reveal delays */
+    .cars-grid .anim-reveal:nth-child(1) { transition-delay: 0.00s; }
+    .cars-grid .anim-reveal:nth-child(2) { transition-delay: 0.07s; }
+    .cars-grid .anim-reveal:nth-child(3) { transition-delay: 0.14s; }
+    .cars-grid .anim-reveal:nth-child(4) { transition-delay: 0.21s; }
+    .cars-grid .anim-reveal:nth-child(5) { transition-delay: 0.28s; }
+    .cars-grid .anim-reveal:nth-child(6) { transition-delay: 0.35s; }
+    .cars-grid .anim-reveal:nth-child(n+7) { transition-delay: 0.42s; }
+
+    /* ── CAR CARD ── */
+    .car-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        overflow: hidden;
+        transition: border-color 0.3s, box-shadow 0.3s, transform 0.3s;
+    }
+    .car-card:hover {
+        border-color: var(--border-hover);
+        box-shadow: 0 0 32px var(--cyan-glow);
+        transform: translateY(-4px);
+    }
+    .list-view .car-card {
+        display: grid;
+        grid-template-columns: 260px 1fr;
+        transform: none !important;
+    }
+
+    .car-image-wrap {
+        position: relative;
+        overflow: hidden;
+        height: 190px;
+        background: #0a0a0a;
+    }
+    .list-view .car-image-wrap { height: 100%; min-height: 160px; }
+    .car-img {
+        width: 100%; height: 100%;
+        object-fit: cover;
+        transition: transform 0.5s ease;
+    }
+    .car-card:hover .car-img { transform: scale(1.06); }
+
+    .car-badge {
+        position: absolute;
+        top: 12px; left: 12px;
+        background: rgba(0,0,0,0.7);
+        color: var(--cyan);
+        font-size: 0.72rem;
+        font-weight: 700;
+        padding: 4px 10px;
+        border-radius: 100px;
+        border: 1px solid rgba(0,242,255,0.35);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+    }
+
+    .car-fav {
+        position: absolute;
+        top: 12px; right: 12px;
+        background: rgba(0,0,0,0.6);
+        color: #fff;
+        width: 34px; height: 34px;
+        border-radius: 50%;
+        display: grid; place-items: center;
+        border: 1px solid rgba(255,255,255,0.15);
+        transition: all 0.2s;
+    }
+    .car-fav:hover, .car-fav.car-fav-active {
+        background: rgba(0,242,255,0.15);
+        border-color: var(--cyan);
+    }
+
+    .car-score {
+        position: absolute;
+        bottom: 12px; right: 12px;
+        background: rgba(0,242,255,0.15);
+        color: var(--cyan-bright);
+        font-size: 0.72rem;
+        font-weight: 700;
+        padding: 4px 10px;
+        border-radius: 100px;
+        border: 1px solid rgba(0,242,255,0.3);
+    }
+
+    .car-body { padding: 20px; }
+    .car-meta {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 6px;
+    }
+    .car-ano, .car-transm {
+        font-size: 0.72rem;
+        color: var(--text-dim);
+        background: rgba(255,255,255,0.05);
+        padding: 3px 8px;
+        border-radius: 6px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .car-name {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #fff;
+        margin-bottom: 10px;
+        line-height: 1.3;
+    }
+
+    .car-specs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 16px;
+        margin-bottom: 16px;
+    }
+    .car-specs span { font-size: 0.8rem; color: #888; }
+
+    .car-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .car-price {
+        font-size: 1.15rem;
+        font-weight: 800;
+        color: var(--cyan);
+    }
+    .btn-details {
+        background: transparent;
+        color: var(--cyan);
+        border: 1px solid rgba(0,242,255,0.4);
+        padding: 8px 18px;
+        border-radius: 8px;
+        font-size: 0.82rem;
+        font-weight: 600;
+        transition: all 0.2s;
+    }
+    .btn-details:hover { background: var(--cyan); color: #000; }
+
+    /* No results */
+    .no-results {
+        text-align: center;
+        padding: 80px 20px;
+        color: var(--text-dim);
+    }
+    .no-results-icon { font-size: 3rem; margin-bottom: 16px; }
+    .no-results h3 { color: #fff; margin-bottom: 8px; font-size: 1.2rem; }
+    .no-results p  { margin-bottom: 24px; }
+
+    /* ── RESPONSIVE ── */
+    @@media (max-width: 1024px) {
+        .products-container { grid-template-columns: 240px 1fr; gap: 24px; }
+    }
+    @@media (max-width: 768px) {
+        .products-hero { padding: 100px 20px 60px; }
+        .hero-stats { gap: 28px; }
+        .products-container { grid-template-columns: 1fr; }
+        .filters-sidebar { position: static; }
+        .list-view .car-card { grid-template-columns: 1fr; }
+    }
+</style>
+
+<!-- ══════════════════════════════════════════════════════
+     CÓDIGO C# (LÓGICA BLAZOR)
+══════════════════════════════════════════════════════ -->
+@code {
+
+    // ── Modelo ──────────────────────────────────────────
+    record Veiculo(
+        int    Id,
+        string Nome,
+        string Marca,
+        string Combustivel,
+        string Transmissao,
+        string Motor,
+        int    Potencia,
+        int    Ano,
+        long   Preco,
+        int    ScoreIA,
+        string Localizacao,
+        string Imagem
+    );
+
+    // ── Estado dos filtros ───────────────────────────────
+    string termoBusca   = "";
+    HashSet<string> filtroCombus  = new();
+    HashSet<string> filtroMarca   = new();
+    HashSet<string> filtroTransm  = new();
+    int    filtroAnoMin  = 2018;
+    long   filtroPrecoMax = 900_000_000;
+    string ordenacao     = "relevancia";
+    bool   viewGrid      = true;
+
+    HashSet<int> favoritos = new();
+
+    void Navegar(int id) => Nav.NavigateTo($"/detalhes-veiculo/{id}");
+
+
+    // ── Opções dos filtros ───────────────────────────────
+    List<string> opcoesCombus = new() { "Elétrico", "Híbrido", "Gasolina", "Diesel" };
+    List<string> opcoesMarca  = new() { "BMW", "Mercedes", "Toyota", "Audi", "Tesla", "Hyundai" };
+    List<string> opcoesTransm = new() { "Automática", "Manual" };
+
+    // ── Dados hardcoded ──────────────────────────────────
+    List<Veiculo> veiculos = new()
+    {
+        new(1, "BMW M4 Competition",      "BMW",      "Gasolina",  "Automática", "3.0L Twin-Turbo", 510, 2023, 420_000_000, 97, "Luanda",    "img/cars/bmw-m4.jpg"),
+        new(2, "Tesla Model S Plaid",     "Tesla",    "Elétrico",  "Automática", "Tri-Motor",        1020, 2024, 650_000_000, 99, "Luanda",    "img/cars/tesla-ms.jpg"),
+        new(3, "Mercedes-AMG C63",        "Mercedes", "Híbrido",   "Automática", "2.0L Turbo-Híb",  680, 2024, 580_000_000, 95, "Benguela",  "img/cars/amg-c63.jpg"),
+        new(4, "Toyota GR Supra 3.0",     "Toyota",   "Gasolina",  "Manual",     "3.0L Turbo",       382, 2022, 280_000_000, 88, "Luanda",    "img/cars/supra.jpg"),
+        new(5, "Audi RS6 Avant",          "Audi",     "Gasolina",  "Automática", "4.0L V8 Turbo",    600, 2023, 510_000_000, 94, "Lubango",   "img/cars/rs6.jpg"),
+        new(6, "Hyundai IONIQ 6",         "Hyundai",  "Elétrico",  "Automática", "Dual Motor",       320, 2024, 210_000_000, 91, "Luanda",    "img/cars/ioniq6.jpg"),
+        new(7, "BMW iX M60",              "BMW",      "Elétrico",  "Automática", "Dual Motor",       619, 2024, 720_000_000, 96, "Luanda",    "img/cars/bmw-ix.jpg"),
+        new(8, "Mercedes EQS 450+",       "Mercedes", "Elétrico",  "Automática", "Single Motor",     329, 2023, 480_000_000, 93, "Benguela",  "img/cars/eqs.jpg"),
+        new(9, "Audi Q8 e-tron",          "Audi",     "Elétrico",  "Automática", "Dual Motor",       408, 2024, 550_000_000, 92, "Luanda",    "img/cars/q8-etron.jpg"),
+        new(10,"Toyota bZ4X",             "Toyota",   "Elétrico",  "Automática", "Dual Motor",       218, 2023, 180_000_000, 85, "Luanda",    "img/cars/bz4x.jpg"),
+        new(11,"BMW 330e",                "BMW",      "Híbrido",   "Automática", "2.0L Turbo-Híb",  293, 2022, 260_000_000, 87, "Malanje",   "img/cars/330e.jpg"),
+        new(12,"Mercedes C 300 e",        "Mercedes", "Híbrido",   "Automática", "2.0L Turbo-Híb",  313, 2023, 370_000_000, 89, "Luanda",    "img/cars/c300e.jpg"),
+    };
+
+    // ── Lista filtrada ───────────────────────────────────
+    List<Veiculo> veiculosFiltrados = new();
+
+    protected override void OnInitialized() => AplicarFiltros();
+
+    void AplicarFiltros()
+    {
+        var q = veiculos.AsEnumerable();
+
+        // Busca por texto
+        if (!string.IsNullOrWhiteSpace(termoBusca))
+        {
+            var t = termoBusca.ToLower();
+            q = q.Where(v => v.Nome.ToLower().Contains(t) ||
+                              v.Marca.ToLower().Contains(t) ||
+                              v.Motor.ToLower().Contains(t));
+        }
+
+        // Combustível
+        if (filtroCombus.Any())
+            q = q.Where(v => filtroCombus.Contains(v.Combustivel));
+
+        // Marca
+        if (filtroMarca.Any())
+            q = q.Where(v => filtroMarca.Contains(v.Marca));
+
+        // Transmissão
+        if (filtroTransm.Any())
+            q = q.Where(v => filtroTransm.Contains(v.Transmissao));
+
+        // Ano
+        q = q.Where(v => v.Ano >= filtroAnoMin);
+
+        // Preço
+        q = q.Where(v => v.Preco <= filtroPrecoMax);
+
+        // Ordenação
+        q = ordenacao switch
+        {
+            "preco-asc"  => q.OrderBy(v => v.Preco),
+            "preco-desc" => q.OrderByDescending(v => v.Preco),
+            "ano-desc"   => q.OrderByDescending(v => v.Ano),
+            "nome-asc"   => q.OrderBy(v => v.Nome),
+            _            => q.OrderByDescending(v => v.ScoreIA)
+        };
+
+        veiculosFiltrados = q.ToList();
+    }
+
+    void LimparFiltros()
+    {
+        termoBusca    = "";
+        filtroCombus  = new();
+        filtroMarca   = new();
+        filtroTransm  = new();
+        filtroAnoMin  = 2018;
+        filtroPrecoMax = 900_000_000;
+        ordenacao     = "relevancia";
+        AplicarFiltros();
+    }
+
+    void ToggleFiltro(HashSet<string> set, string valor)
+    {
+        if (!set.Add(valor)) set.Remove(valor);
+        AplicarFiltros();
+    }
+
+    void ToggleFavorito(int id)
+    {
+        if (!favoritos.Add(id)) favoritos.Remove(id);
+    }
+
+    // Scroll reveal via JS interop (inicializado uma vez)
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+            await Task.Delay(100); // pequena pausa para DOM estar pronto
+    }
+}
+
+<!-- Scroll Reveal (JavaScript) -->
+<script>
+(function () {
+    'use strict';
+    var io = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) {
+            if (e.isIntersecting) e.target.classList.add('visible');
+        });
+    }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+
+    function observe() {
+        document.querySelectorAll('.anim-reveal').forEach(function(el) {
+            io.observe(el);
+        });
+    }
+
+    // Observa imediatamente e re-observa quando Blazor re-renderiza
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', observe);
+    } else {
+        observe();
+    }
+
+    // Re-observa após navegações Blazor (componente já montado)
+    var mo = new MutationObserver(function() { observe(); });
+    mo.observe(document.body, { childList: true, subtree: true });
+})();
+</script>

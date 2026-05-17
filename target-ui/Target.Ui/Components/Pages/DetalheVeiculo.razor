@@ -1,0 +1,927 @@
+@page "/detalhes-veiculo/{VeiculoId:int}"
+@using System.Linq
+
+<!-- ══════════════════════════════════════════════════════
+     DETALHE DO VEÍCULO
+══════════════════════════════════════════════════════ -->
+
+@if (veiculo == null)
+{
+    <div class="dv-loading">
+        <div class="dv-spinner"></div>
+        <p>A carregar veículo...</p>
+    </div>
+}
+else
+{
+<!-- ── HERO IMAGEM PRINCIPAL ── -->
+<section class="dv-hero">
+    <div class="dv-hero-img-wrap">
+        <img src="@fotoPrincipal" alt="@veiculo.Nome" class="dv-hero-img" />
+        <div class="dv-hero-overlay"></div>
+        <div class="dv-scan-line"></div>
+    </div>
+
+    <div class="dv-hero-content">
+        <a href="/produtos" class="dv-back-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M19 12H5M5 12l7-7M5 12l7 7"/>
+            </svg>
+            Voltar ao Catálogo
+        </a>
+
+        <div class="dv-hero-meta">
+            <span class="dv-badge-fuel">@veiculo.Combustivel</span>
+            <span class="dv-badge-score">⚡ @veiculo.ScoreIA% IA Match</span>
+        </div>
+
+        <h1 class="dv-hero-title">@veiculo.Nome</h1>
+
+        <div class="dv-hero-quick">
+            <div class="dv-quick-item">
+                <span class="dv-quick-value">@veiculo.Potencia</span>
+                <span class="dv-quick-label">cv</span>
+            </div>
+            <div class="dv-quick-sep"></div>
+            <div class="dv-quick-item">
+                <span class="dv-quick-value">@veiculo.Ano</span>
+                <span class="dv-quick-label">Ano</span>
+            </div>
+            <div class="dv-quick-sep"></div>
+            <div class="dv-quick-item">
+                <span class="dv-quick-value">@veiculo.Transmissao</span>
+                <span class="dv-quick-label">Câmbio</span>
+            </div>
+        </div>
+
+        <div class="dv-hero-price">
+            <span class="dv-price-label">Preço</span>
+            <span class="dv-price-value">AOA @veiculo.Preco.ToString("N0").Replace(",",".")</span>
+        </div>
+    </div>
+</section>
+
+<!-- ── BODY ── -->
+<div class="dv-body">
+
+    <!-- COLUNA PRINCIPAL -->
+    <main class="dv-main">
+
+        <!-- GALERIA -->
+        <section class="dv-section dv-gallery-section">
+            <h2 class="dv-section-title">
+                <span class="dv-title-line"></span>
+                Galeria de Fotos
+            </h2>
+            <div class="dv-gallery">
+                @for (int i = 0; i < fotos.Count; i++)
+                {
+                    var idx = i;
+                    <div class="dv-thumb @(fotoPrincipal == fotos[idx] ? "active" : "")"
+                         @onclick="() => fotoPrincipal = fotos[idx]">
+                        <img src="@fotos[idx]" alt="Foto @(idx+1)" />
+                        <div class="dv-thumb-overlay"></div>
+                    </div>
+                }
+            </div>
+        </section>
+
+        <!-- ESPECIFICAÇÕES TÉCNICAS -->
+        <section class="dv-section">
+            <h2 class="dv-section-title">
+                <span class="dv-title-line"></span>
+                Especificações Técnicas
+            </h2>
+            <div class="dv-specs-grid">
+                <div class="dv-spec-card">
+                    <div class="dv-spec-icon">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                            <circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/>
+                        </svg>
+                    </div>
+                    <div class="dv-spec-info">
+                        <span class="dv-spec-label">Motor</span>
+                        <span class="dv-spec-value">@veiculo.Motor</span>
+                    </div>
+                </div>
+                <div class="dv-spec-card">
+                    <div class="dv-spec-icon">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                        </svg>
+                    </div>
+                    <div class="dv-spec-info">
+                        <span class="dv-spec-label">Potência</span>
+                        <span class="dv-spec-value">@veiculo.Potencia cv</span>
+                    </div>
+                </div>
+                <div class="dv-spec-card">
+                    <div class="dv-spec-icon">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                    </div>
+                    <div class="dv-spec-info">
+                        <span class="dv-spec-label">Ano</span>
+                        <span class="dv-spec-value">@veiculo.Ano</span>
+                    </div>
+                </div>
+                <div class="dv-spec-card">
+                    <div class="dv-spec-icon">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                            <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+                        </svg>
+                    </div>
+                    <div class="dv-spec-info">
+                        <span class="dv-spec-label">Combustível</span>
+                        <span class="dv-spec-value">@veiculo.Combustivel</span>
+                    </div>
+                </div>
+                <div class="dv-spec-card">
+                    <div class="dv-spec-icon">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                            <circle cx="12" cy="12" r="10"/><path d="M4.93 4.93 19.07 19.07"/>
+                        </svg>
+                    </div>
+                    <div class="dv-spec-info">
+                        <span class="dv-spec-label">Transmissão</span>
+                        <span class="dv-spec-value">@veiculo.Transmissao</span>
+                    </div>
+                </div>
+                <div class="dv-spec-card">
+                    <div class="dv-spec-icon">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+                        </svg>
+                    </div>
+                    <div class="dv-spec-info">
+                        <span class="dv-spec-label">Localização</span>
+                        <span class="dv-spec-value">@veiculo.Localizacao</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- PORQUE ESTE CARRO (IA) -->
+        <section class="dv-section">
+            <div class="dv-ai-card">
+                <div class="dv-ai-header">
+                    <div class="dv-ai-icon">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                            <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="dv-ai-label">Análise por Inteligência Artificial</div>
+                        <h3 class="dv-ai-title">Por que este carro combina com você</h3>
+                    </div>
+                    <div class="dv-ai-score-badge">@veiculo.ScoreIA%</div>
+                </div>
+                <p class="dv-ai-text">
+                    A análise com IA identificou que o <strong>@veiculo.Nome</strong> tem uma compatibilidade de
+                    <span class="dv-cyan">@veiculo.ScoreIA%</span> com o seu perfil. Com o motor <strong>@veiculo.Motor</strong>
+                    e @veiculo.Potencia cv de potência, este veículo encaixa perfeitamente nas preferências registadas:
+                    performance elevada, transmissão @veiculo.Transmissao e tecnologia de propulsão @veiculo.Combustivel.
+                    A relação custo-benefício está acima da média do mercado angolano, com histórico de manutenção verificado
+                    e garantia de procedência documentada.
+                </p>
+                <div class="dv-ai-bars">
+                    <div class="dv-ai-bar-row">
+                        <span>Performance</span>
+                        <div class="dv-ai-bar-track"><div class="dv-ai-bar-fill" style="width:@(veiculo.Potencia > 500 ? 95 : veiculo.Potencia > 300 ? 80 : 65)%"></div></div>
+                        <span class="dv-cyan">@(veiculo.Potencia > 500 ? 95 : veiculo.Potencia > 300 ? 80 : 65)%</span>
+                    </div>
+                    <div class="dv-ai-bar-row">
+                        <span>Eficiência</span>
+                        <div class="dv-ai-bar-track"><div class="dv-ai-bar-fill" style="width:@(veiculo.Combustivel == "Elétrico" ? 98 : veiculo.Combustivel == "Híbrido" ? 85 : 68)%"></div></div>
+                        <span class="dv-cyan">@(veiculo.Combustivel == "Elétrico" ? 98 : veiculo.Combustivel == "Híbrido" ? 85 : 68)%</span>
+                    </div>
+                    <div class="dv-ai-bar-row">
+                        <span>Custo-Benefício</span>
+                        <div class="dv-ai-bar-track"><div class="dv-ai-bar-fill" style="width:@veiculo.ScoreIA%"></div></div>
+                        <span class="dv-cyan">@veiculo.ScoreIA%</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ══ SECÇÃO DE COMENTÁRIOS ══ -->
+        <section class="dv-section dv-comments-section">
+            <h2 class="dv-section-title">
+                <span class="dv-title-line"></span>
+                Comentários <span class="dv-comment-count">(@comentarios.Count)</span>
+            </h2>
+
+            <!-- Formulário de novo comentário -->
+            <div class="dv-comment-form">
+                <div class="dv-cf-header">
+                    <div class="dv-cf-avatar">@(string.IsNullOrWhiteSpace(novoAutor) ? "?" : novoAutor[0].ToString().ToUpper())</div>
+                    <div class="dv-cf-fields">
+                        <input class="dv-cf-input dv-cf-name"
+                               type="text"
+                               placeholder="O seu nome"
+                               @bind="novoAutor"
+                               @bind:event="oninput"
+                               maxlength="50" />
+                        <div class="dv-cf-rating-row">
+                            <span class="dv-cf-rating-label">Avaliação:</span>
+                            @for (int s = 1; s <= 5; s++)
+                            {
+                                var star = s;
+                                <button class="dv-star @(star <= novaAvaliacao ? "active" : "")"
+                                        @onclick="() => novaAvaliacao = star">★</button>
+                            }
+                        </div>
+                    </div>
+                </div>
+                <textarea class="dv-cf-textarea"
+                          placeholder="Partilhe a sua opinião sobre este veículo…"
+                          @bind="novoTexto"
+                          @bind:event="oninput"
+                          rows="4"
+                          maxlength="500"></textarea>
+                <div class="dv-cf-footer">
+                    <span class="dv-char-count">@novoTexto.Length / 500</span>
+                    <button class="dv-submit-btn"
+                            @onclick="SubmeterComentario"
+                            disabled="@(!PodeSubmeter)">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                        </svg>
+                        Publicar Comentário
+                    </button>
+                </div>
+                @if (mostrarSucesso)
+                {
+                    <div class="dv-success-toast">✓ Comentário publicado com sucesso!</div>
+                }
+            </div>
+
+            <!-- Lista de comentários -->
+            @if (!comentarios.Any())
+            {
+                <div class="dv-no-comments">
+                    <div class="dv-no-comments-icon">💬</div>
+                    <p>Seja o primeiro a comentar este veículo.</p>
+                </div>
+            }
+            else
+            {
+                <div class="dv-comment-list">
+                    @foreach (var c in comentarios.OrderByDescending(x => x.Data))
+                    {
+                        <div class="dv-comment-card @(c.IsNew ? "dv-comment-new" : "")">
+                            <div class="dv-comment-avatar">@c.Autor[0].ToString().ToUpper()</div>
+                            <div class="dv-comment-body">
+                                <div class="dv-comment-meta">
+                                    <span class="dv-comment-autor">@c.Autor</span>
+                                    <div class="dv-comment-stars">
+                                        @for (int s = 1; s <= 5; s++)
+                                        {
+                                            <span class="@(s <= c.Avaliacao ? "dv-star-filled" : "dv-star-empty")">★</span>
+                                        }
+                                    </div>
+                                    <span class="dv-comment-data">@c.Data.ToString("dd/MM/yyyy HH:mm")</span>
+                                </div>
+                                <p class="dv-comment-text">@c.Texto</p>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </section>
+
+    </main>
+
+    <!-- SIDEBAR -->
+    <aside class="dv-sidebar">
+
+        <!-- PREÇO -->
+        <div class="dv-side-card dv-price-card">
+            <div class="dv-price-main">AOA @veiculo.Preco.ToString("N0").Replace(",",".")</div>
+            <div class="dv-price-note">Preço de venda • IVA incluído</div>
+            <button class="dv-cta-btn dv-cta-primary">Reservar</button>
+            <button class="dv-cta-btn dv-cta-secondary">Agendar Test Drive</button>
+            <div class="dv-cta-divider">ou</div>
+            <button class="dv-cta-btn dv-cta-ghost">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="@(isFav ? "#00f2ff" : "none")" stroke="#00f2ff" stroke-width="2">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                </svg>
+                @(isFav ? "Guardado nos Favoritos" : "Guardar nos Favoritos")
+            </button>
+        </div>
+
+        <!-- GUY PERFIL (IA) -->
+        <div class="dv-side-card">
+            <div class="dv-side-title">Guy Perfil</div>
+            <div class="dv-profile-tags">
+                <span class="dv-ptag">Performance</span>
+                <span class="dv-ptag">Tecnologia</span>
+                <span class="dv-ptag">@veiculo.Combustivel</span>
+                <span class="dv-ptag">Luxo</span>
+                <span class="dv-ptag">@veiculo.Transmissao</span>
+            </div>
+        </div>
+
+        <!-- NOVOS FAVORITOS (outros) -->
+        <div class="dv-side-card">
+            <div class="dv-side-title">Novos Favoritos</div>
+            <div class="dv-favs-list">
+                @foreach (var f in outrosVeiculos.Take(3))
+                {
+                    <div class="dv-fav-item">
+                        <img src="@f.Imagem" alt="@f.Nome" class="dv-fav-img" />
+                        <div class="dv-fav-info">
+                            <div class="dv-fav-name">@f.Nome</div>
+                            <div class="dv-fav-price">AOA @(f.Preco / 1_000_000)M</div>
+                        </div>
+                        <div class="dv-fav-score">@f.ScoreIA%</div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- SCORE BREAKDOWN -->
+        <div class="dv-side-card dv-score-card">
+            <div class="dv-side-title">Score IA</div>
+            <div class="dv-score-ring-wrap">
+                <svg class="dv-score-ring" viewBox="0 0 80 80">
+                    <circle cx="40" cy="40" r="34" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="7"/>
+                    <circle cx="40" cy="40" r="34" fill="none" stroke="#00f2ff" stroke-width="7"
+                            stroke-dasharray="@(2 * Math.PI * 34 * veiculo.ScoreIA / 100) @(2 * Math.PI * 34)"
+                            stroke-linecap="round"
+                            transform="rotate(-90 40 40)"/>
+                    <text x="40" y="44" text-anchor="middle" fill="#00f2ff" font-size="14" font-weight="800">@veiculo.ScoreIA%</text>
+                </svg>
+            </div>
+            <p class="dv-score-desc">Compatibilidade com o seu perfil de condutor</p>
+        </div>
+
+    </aside>
+</div>
+}
+
+<!-- ══════════════════════════════════════════════════════
+     ESTILOS
+══════════════════════════════════════════════════════ -->
+<style>
+    :root {
+        --cyan: #00f2ff;
+        --cyan-bright: #40f8ff;
+        --cyan-glow: rgba(0,242,255,0.22);
+        --bg-dark: #080808;
+        --bg-card: #111111;
+        --bg-card2: #161616;
+        --border: rgba(255,255,255,0.07);
+        --border-hover: rgba(0,242,255,0.4);
+        --text: #f0f0f0;
+        --text-dim: #999;
+        --radius: 16px;
+        --radius-sm: 10px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    button { border: none; cursor: pointer; font-family: inherit; }
+    a { text-decoration: none; }
+
+    /* ── LOADING ── */
+    .dv-loading {
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        height: 60vh; gap: 20px; color: var(--text-dim);
+    }
+    .dv-spinner {
+        width: 40px; height: 40px;
+        border: 3px solid rgba(0,242,255,0.15);
+        border-top-color: var(--cyan);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+    @@keyframes spin { to { transform: rotate(360deg); } }
+    @@keyframes scanMove { 0% { top: -2px; } 100% { top: 100%; } }
+    @@keyframes barFill { from { width: 0 !important; } }
+    @@keyframes commentSlide {
+        from { opacity: 0; transform: translateY(16px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+    @@keyframes successFade {
+        0%   { opacity: 0; transform: translateY(6px); }
+        15%  { opacity: 1; transform: translateY(0); }
+        80%  { opacity: 1; }
+        100% { opacity: 0; }
+    }
+
+    /* ── HERO ── */
+    .dv-hero {
+        position: relative;
+        height: 70vh;
+        min-height: 480px;
+        overflow: hidden;
+        z-index: 0;
+    }
+    .dv-hero-img-wrap { position: absolute; inset: 0; }
+    .dv-hero-img { width: 100%; height: 100%; object-fit: cover; object-position: center; }
+    .dv-hero-overlay {
+        position: absolute; inset: 0;
+        background: linear-gradient(
+            to right,
+            rgba(0,0,0,0.92) 0%,
+            rgba(0,0,0,0.65) 50%,
+            rgba(0,0,0,0.3) 100%
+        );
+        z-index: 1;
+    }
+    .dv-scan-line {
+        position: absolute; left: 0; right: 0; height: 2px;
+        background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+        opacity: 0.2; z-index: 2;
+        animation: scanMove 7s linear infinite;
+    }
+    .dv-hero-content {
+        position: absolute; inset: 0; z-index: 3;
+        display: flex; flex-direction: column; justify-content: flex-end;
+        padding: 40px 60px 60px;
+        max-width: 700px;
+    }
+    .dv-back-btn {
+        display: inline-flex; align-items: center; gap: 8px;
+        color: rgba(255,255,255,0.6); font-size: 0.82rem; font-weight: 600;
+        margin-bottom: 32px;
+        transition: color 0.2s;
+    }
+    .dv-back-btn:hover { color: var(--cyan); }
+    .dv-hero-meta { display: flex; gap: 10px; margin-bottom: 14px; }
+    .dv-badge-fuel, .dv-badge-score {
+        font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em;
+        text-transform: uppercase; padding: 5px 12px; border-radius: 100px;
+    }
+    .dv-badge-fuel {
+        background: rgba(0,242,255,0.12); color: var(--cyan-bright);
+        border: 1px solid rgba(0,242,255,0.35);
+    }
+    .dv-badge-score {
+        background: rgba(255,255,255,0.08); color: #fff;
+        border: 1px solid rgba(255,255,255,0.2);
+    }
+    .dv-hero-title {
+        font-size: clamp(2rem, 4.5vw, 3.4rem);
+        font-weight: 800; color: #fff; letter-spacing: -0.02em; line-height: 1.1;
+        margin-bottom: 24px;
+    }
+    .dv-hero-quick {
+        display: flex; align-items: center; gap: 24px; margin-bottom: 28px;
+    }
+    .dv-quick-item { display: flex; flex-direction: column; gap: 2px; }
+    .dv-quick-value { font-size: 1.3rem; font-weight: 800; color: #fff; }
+    .dv-quick-label { font-size: 0.7rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.06em; }
+    .dv-quick-sep { width: 1px; height: 36px; background: rgba(255,255,255,0.15); }
+    .dv-hero-price { display: flex; flex-direction: column; gap: 2px; }
+    .dv-price-label { font-size: 0.72rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; }
+    .dv-price-value { font-size: 1.6rem; font-weight: 800; color: var(--cyan); letter-spacing: -0.01em; }
+
+    /* ── BODY LAYOUT ── */
+    .dv-body {
+        background: var(--bg-dark);
+        display: grid;
+        grid-template-columns: 1fr 340px;
+        gap: 40px;
+        max-width: 1480px;
+        margin: 0 auto;
+        padding: 48px 32px 100px;
+        align-items: start;
+    }
+
+    /* ── SECTIONS ── */
+    .dv-section { margin-bottom: 48px; }
+    .dv-section-title {
+        display: flex; align-items: center; gap: 14px;
+        font-size: 1.1rem; font-weight: 700; color: #fff;
+        margin-bottom: 24px; letter-spacing: -0.01em;
+    }
+    .dv-title-line {
+        display: inline-block; width: 4px; height: 22px;
+        background: var(--cyan); border-radius: 2px;
+        box-shadow: 0 0 10px var(--cyan-glow);
+    }
+    .dv-comment-count { color: var(--text-dim); font-weight: 500; font-size: 0.9rem; }
+
+    /* ── GALERIA ── */
+    .dv-gallery { display: flex; gap: 12px; flex-wrap: wrap; }
+    .dv-thumb {
+        width: calc(25% - 9px); aspect-ratio: 4/3;
+        border-radius: var(--radius-sm); overflow: hidden;
+        position: relative; cursor: pointer;
+        border: 2px solid transparent;
+        transition: border-color 0.2s, transform 0.2s;
+    }
+    .dv-thumb:hover { transform: translateY(-3px); }
+    .dv-thumb.active { border-color: var(--cyan); box-shadow: 0 0 16px var(--cyan-glow); }
+    .dv-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .dv-thumb-overlay {
+        position: absolute; inset: 0;
+        background: rgba(0,242,255,0.0);
+        transition: background 0.2s;
+    }
+    .dv-thumb:hover .dv-thumb-overlay { background: rgba(0,242,255,0.08); }
+
+    /* ── SPECS ── */
+    .dv-specs-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+    }
+    .dv-spec-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 18px;
+        display: flex; gap: 14px; align-items: flex-start;
+        transition: border-color 0.25s, box-shadow 0.25s;
+    }
+    .dv-spec-card:hover {
+        border-color: var(--border-hover);
+        box-shadow: 0 0 20px var(--cyan-glow);
+    }
+    .dv-spec-icon {
+        color: var(--cyan); flex-shrink: 0;
+        width: 36px; height: 36px;
+        background: rgba(0,242,255,0.08);
+        border-radius: 8px;
+        display: grid; place-items: center;
+    }
+    .dv-spec-info { display: flex; flex-direction: column; gap: 4px; }
+    .dv-spec-label { font-size: 0.7rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.07em; }
+    .dv-spec-value { font-size: 0.9rem; font-weight: 700; color: #fff; }
+
+    /* ── IA CARD ── */
+    .dv-ai-card {
+        background: linear-gradient(135deg, rgba(0,242,255,0.06) 0%, rgba(0,0,0,0) 60%);
+        border: 1px solid rgba(0,242,255,0.2);
+        border-radius: var(--radius);
+        padding: 28px;
+    }
+    .dv-ai-header {
+        display: flex; align-items: flex-start; gap: 16px;
+        margin-bottom: 18px;
+    }
+    .dv-ai-icon {
+        width: 44px; height: 44px; flex-shrink: 0;
+        background: rgba(0,242,255,0.12);
+        border: 1px solid rgba(0,242,255,0.3);
+        border-radius: 10px;
+        display: grid; place-items: center;
+        color: var(--cyan);
+    }
+    .dv-ai-label { font-size: 0.7rem; color: var(--cyan); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700; }
+    .dv-ai-title { font-size: 1rem; font-weight: 700; color: #fff; margin-top: 2px; }
+    .dv-ai-score-badge {
+        margin-left: auto; flex-shrink: 0;
+        background: var(--cyan); color: #000;
+        font-size: 0.8rem; font-weight: 900;
+        padding: 6px 14px; border-radius: 100px;
+    }
+    .dv-ai-text {
+        font-size: 0.88rem; color: var(--text-dim); line-height: 1.7;
+        margin-bottom: 22px;
+    }
+    .dv-ai-text strong { color: #fff; }
+    .dv-cyan { color: var(--cyan); font-weight: 700; }
+    .dv-ai-bars { display: flex; flex-direction: column; gap: 12px; }
+    .dv-ai-bar-row {
+        display: grid; grid-template-columns: 120px 1fr 40px;
+        align-items: center; gap: 14px;
+        font-size: 0.82rem; color: var(--text-dim);
+    }
+    .dv-ai-bar-track {
+        height: 5px; background: rgba(255,255,255,0.08);
+        border-radius: 10px; overflow: hidden;
+    }
+    .dv-ai-bar-fill {
+        height: 100%; background: linear-gradient(90deg, var(--cyan), #40f8ff);
+        border-radius: 10px;
+        animation: barFill 1.2s cubic-bezier(0.22,1,0.36,1) forwards;
+    }
+
+    /* ══════════════════════════════
+       COMENTÁRIOS
+    ══════════════════════════════ */
+    .dv-comments-section {}
+
+    .dv-comment-form {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 24px;
+        margin-bottom: 28px;
+        position: relative;
+    }
+    .dv-cf-header {
+        display: flex; gap: 14px; align-items: flex-start;
+        margin-bottom: 14px;
+    }
+    .dv-cf-avatar {
+        width: 42px; height: 42px; flex-shrink: 0;
+        background: linear-gradient(135deg, rgba(0,242,255,0.2), rgba(0,242,255,0.06));
+        border: 1px solid rgba(0,242,255,0.3);
+        border-radius: 50%;
+        display: grid; place-items: center;
+        color: var(--cyan); font-size: 1.1rem; font-weight: 800;
+    }
+    .dv-cf-fields { flex: 1; display: flex; flex-direction: column; gap: 10px; }
+    .dv-cf-input {
+        background: rgba(255,255,255,0.04);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        color: #fff; font-size: 0.88rem;
+        padding: 10px 14px;
+        outline: none; font-family: inherit;
+        transition: border-color 0.2s;
+        width: 100%;
+    }
+    .dv-cf-input:focus { border-color: var(--cyan); }
+    .dv-cf-input::placeholder { color: var(--text-dim); }
+    .dv-cf-rating-row {
+        display: flex; align-items: center; gap: 6px;
+    }
+    .dv-cf-rating-label { font-size: 0.78rem; color: var(--text-dim); }
+    .dv-star {
+        background: transparent; border: none;
+        font-size: 1.3rem; color: rgba(255,255,255,0.2);
+        cursor: pointer; padding: 0 2px;
+        transition: color 0.15s, transform 0.15s;
+        line-height: 1;
+    }
+    .dv-star:hover { transform: scale(1.25); }
+    .dv-star.active { color: #ffd700; }
+    .dv-cf-textarea {
+        width: 100%;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        color: #fff; font-size: 0.88rem; line-height: 1.6;
+        padding: 12px 14px;
+        outline: none; resize: vertical; font-family: inherit;
+        transition: border-color 0.2s;
+        min-height: 100px;
+    }
+    .dv-cf-textarea:focus { border-color: var(--cyan); }
+    .dv-cf-textarea::placeholder { color: var(--text-dim); }
+    .dv-cf-footer {
+        display: flex; justify-content: space-between; align-items: center;
+        margin-top: 14px;
+    }
+    .dv-char-count { font-size: 0.72rem; color: var(--text-dim); }
+    .dv-submit-btn {
+        display: inline-flex; align-items: center; gap: 8px;
+        background: var(--cyan); color: #000;
+        font-weight: 800; font-size: 0.85rem;
+        padding: 10px 22px; border-radius: var(--radius-sm);
+        transition: all 0.2s;
+    }
+    .dv-submit-btn:hover:not([disabled]) { background: #40f8ff; transform: translateY(-2px); box-shadow: 0 8px 24px var(--cyan-glow); }
+    .dv-submit-btn[disabled] { opacity: 0.4; cursor: not-allowed; }
+    .dv-success-toast {
+        position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
+        background: rgba(0,242,255,0.15); color: var(--cyan);
+        border: 1px solid rgba(0,242,255,0.35);
+        font-size: 0.82rem; font-weight: 700;
+        padding: 8px 20px; border-radius: 100px;
+        animation: successFade 3s forwards;
+        white-space: nowrap;
+    }
+
+    /* Lista de comentários */
+    .dv-no-comments {
+        text-align: center; padding: 48px; color: var(--text-dim);
+    }
+    .dv-no-comments-icon { font-size: 2.4rem; margin-bottom: 12px; }
+    .dv-comment-list { display: flex; flex-direction: column; gap: 14px; }
+    .dv-comment-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 18px;
+        display: flex; gap: 14px;
+        transition: border-color 0.25s;
+    }
+    .dv-comment-card:hover { border-color: rgba(255,255,255,0.14); }
+    .dv-comment-new {
+        border-color: rgba(0,242,255,0.25) !important;
+        animation: commentSlide 0.5s cubic-bezier(0.22,1,0.36,1) forwards;
+    }
+    .dv-comment-avatar {
+        width: 38px; height: 38px; flex-shrink: 0;
+        background: linear-gradient(135deg, rgba(0,242,255,0.15), rgba(0,242,255,0.04));
+        border: 1px solid rgba(0,242,255,0.25);
+        border-radius: 50%;
+        display: grid; place-items: center;
+        color: var(--cyan); font-weight: 800; font-size: 0.95rem;
+    }
+    .dv-comment-body { flex: 1; }
+    .dv-comment-meta {
+        display: flex; align-items: center; gap: 10px;
+        margin-bottom: 8px; flex-wrap: wrap;
+    }
+    .dv-comment-autor { font-size: 0.88rem; font-weight: 700; color: #fff; }
+    .dv-comment-stars { display: flex; gap: 2px; }
+    .dv-star-filled { color: #ffd700; font-size: 0.85rem; }
+    .dv-star-empty  { color: rgba(255,255,255,0.15); font-size: 0.85rem; }
+    .dv-comment-data { font-size: 0.72rem; color: var(--text-dim); margin-left: auto; }
+    .dv-comment-text { font-size: 0.86rem; color: var(--text-dim); line-height: 1.65; }
+
+    /* ── SIDEBAR ── */
+    .dv-sidebar {
+        position: sticky; top: 100px;
+        display: flex; flex-direction: column; gap: 16px;
+    }
+    .dv-side-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 22px;
+    }
+    .dv-side-title {
+        font-size: 0.72rem; font-weight: 700; color: var(--text-dim);
+        text-transform: uppercase; letter-spacing: 0.1em;
+        margin-bottom: 16px;
+    }
+
+    /* Price card */
+    .dv-price-card {}
+    .dv-price-main {
+        font-size: 1.45rem; font-weight: 900; color: var(--cyan);
+        margin-bottom: 4px; letter-spacing: -0.01em;
+    }
+    .dv-price-note { font-size: 0.72rem; color: var(--text-dim); margin-bottom: 20px; }
+    .dv-cta-btn {
+        display: flex; align-items: center; justify-content: center; gap: 8px;
+        width: 100%; padding: 12px; border-radius: var(--radius-sm);
+        font-size: 0.86rem; font-weight: 700;
+        margin-bottom: 10px; transition: all 0.2s;
+    }
+    .dv-cta-primary {
+        background: var(--cyan); color: #000;
+    }
+    .dv-cta-primary:hover { background: #40f8ff; transform: translateY(-2px); box-shadow: 0 8px 24px var(--cyan-glow); }
+    .dv-cta-secondary {
+        background: rgba(0,242,255,0.08);
+        color: var(--cyan-bright);
+        border: 1px solid rgba(0,242,255,0.25);
+    }
+    .dv-cta-secondary:hover { background: rgba(0,242,255,0.15); }
+    .dv-cta-divider {
+        text-align: center; font-size: 0.72rem; color: var(--text-dim);
+        margin: 4px 0 10px;
+    }
+    .dv-cta-ghost {
+        background: transparent; color: var(--text-dim);
+        border: 1px solid var(--border);
+        font-size: 0.82rem;
+    }
+    .dv-cta-ghost:hover { border-color: var(--cyan); color: var(--cyan); }
+
+    /* Profile tags */
+    .dv-profile-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+    .dv-ptag {
+        font-size: 0.75rem; font-weight: 600;
+        padding: 5px 12px; border-radius: 100px;
+        background: rgba(0,242,255,0.07);
+        border: 1px solid rgba(0,242,255,0.2);
+        color: var(--cyan-bright);
+    }
+
+    /* Favoritos */
+    .dv-favs-list { display: flex; flex-direction: column; gap: 12px; }
+    .dv-fav-item {
+        display: flex; align-items: center; gap: 10px;
+        padding: 8px; border-radius: var(--radius-sm);
+        cursor: pointer; transition: background 0.2s;
+    }
+    .dv-fav-item:hover { background: rgba(255,255,255,0.04); }
+    .dv-fav-img { width: 52px; height: 36px; object-fit: cover; border-radius: 6px; flex-shrink: 0; }
+    .dv-fav-info { flex: 1; }
+    .dv-fav-name { font-size: 0.78rem; font-weight: 700; color: #fff; line-height: 1.2; }
+    .dv-fav-price { font-size: 0.72rem; color: var(--cyan); font-weight: 600; }
+    .dv-fav-score {
+        font-size: 0.7rem; font-weight: 800; color: #000;
+        background: var(--cyan); padding: 3px 7px; border-radius: 100px;
+        flex-shrink: 0;
+    }
+
+    /* Score ring */
+    .dv-score-card { text-align: center; }
+    .dv-score-ring-wrap { display: flex; justify-content: center; margin: 8px 0 12px; }
+    .dv-score-ring { width: 80px; height: 80px; }
+    .dv-score-desc { font-size: 0.75rem; color: var(--text-dim); line-height: 1.5; }
+
+    /* ── RESPONSIVE ── */
+    @@media (max-width: 1100px) {
+        .dv-body { grid-template-columns: 1fr; }
+        .dv-sidebar { position: static; flex-direction: row; flex-wrap: wrap; }
+        .dv-side-card { flex: 1 1 280px; }
+        .dv-specs-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @@media (max-width: 768px) {
+        .dv-hero-content { padding: 24px 24px 40px; }
+        .dv-body { padding: 28px 16px 60px; }
+        .dv-specs-grid { grid-template-columns: 1fr 1fr; }
+        .dv-thumb { width: calc(50% - 6px); }
+        .dv-ai-bar-row { grid-template-columns: 90px 1fr 36px; }
+    }
+    @@media (max-width: 480px) {
+        .dv-specs-grid { grid-template-columns: 1fr; }
+        .dv-sidebar { flex-direction: column; }
+    }
+</style>
+
+@code {
+    [Parameter] public int VeiculoId { get; set; }
+
+    // ── Modelo ──────────────────────────────────────────
+    record Veiculo(
+        int    Id,
+        string Nome,
+        string Marca,
+        string Combustivel,
+        string Transmissao,
+        string Motor,
+        int    Potencia,
+        int    Ano,
+        long   Preco,
+        int    ScoreIA,
+        string Localizacao,
+        string Imagem
+    );
+
+    record Comentario(string Autor, string Texto, int Avaliacao, DateTime Data, bool IsNew = false);
+
+    // ── Dados ─────────────────────────────────────────────
+    List<Veiculo> todos = new()
+    {
+        new(1,  "BMW M4 Competition",    "BMW",      "Gasolina", "Automática", "3.0L Twin-Turbo",  510,  2023, 420_000_000, 97, "Luanda",   "img/cars/bmw-m4.jpg"),
+        new(2,  "Tesla Model S Plaid",   "Tesla",    "Elétrico", "Automática", "Tri-Motor",        1020, 2024, 650_000_000, 99, "Luanda",   "img/cars/tesla-ms.jpg"),
+        new(3,  "Mercedes-AMG C63",      "Mercedes", "Híbrido",  "Automática", "2.0L Turbo-Híb",  680,  2024, 580_000_000, 95, "Benguela", "img/cars/amg-c63.jpg"),
+        new(4,  "Toyota GR Supra 3.0",   "Toyota",   "Gasolina", "Manual",     "3.0L Turbo",       382,  2022, 280_000_000, 88, "Luanda",   "img/cars/supra.jpg"),
+        new(5,  "Audi RS6 Avant",        "Audi",     "Gasolina", "Automática", "4.0L V8 Turbo",    600,  2023, 510_000_000, 94, "Lubango",  "img/cars/rs6.jpg"),
+        new(6,  "Hyundai IONIQ 6",       "Hyundai",  "Elétrico", "Automática", "Dual Motor",       320,  2024, 210_000_000, 91, "Luanda",   "img/cars/ioniq6.jpg"),
+        new(7,  "BMW iX M60",            "BMW",      "Elétrico", "Automática", "Dual Motor",       619,  2024, 720_000_000, 96, "Luanda",   "img/cars/bmw-ix.jpg"),
+        new(8,  "Mercedes EQS 450+",     "Mercedes", "Elétrico", "Automática", "Single Motor",     329,  2023, 480_000_000, 93, "Benguela", "img/cars/eqs.jpg"),
+        new(9,  "Audi Q8 e-tron",        "Audi",     "Elétrico", "Automática", "Dual Motor",       408,  2024, 550_000_000, 92, "Luanda",   "img/cars/q8-etron.jpg"),
+        new(10, "Toyota bZ4X",           "Toyota",   "Elétrico", "Automática", "Dual Motor",       218,  2023, 180_000_000, 85, "Luanda",   "img/cars/bz4x.jpg"),
+        new(11, "BMW 330e",              "BMW",      "Híbrido",  "Automática", "2.0L Turbo-Híb",  293,  2022, 260_000_000, 87, "Malanje",  "img/cars/330e.jpg"),
+        new(12, "Mercedes C 300 e",      "Mercedes", "Híbrido",  "Automática", "2.0L Turbo-Híb",  313,  2023, 370_000_000, 89, "Luanda",   "img/cars/c300e.jpg"),
+    };
+
+    Veiculo? veiculo;
+    List<Veiculo> outrosVeiculos = new();
+    List<string> fotos = new();
+    string fotoPrincipal = "";
+    bool isFav = false;
+
+    // ── Comentários ─────────────────────────────────────
+    List<Comentario> comentarios = new()
+    {
+        new("Carlos M.",   "Testei este carro e fiquei impressionado com a resposta do motor. Vale cada kwanza!", 5, DateTime.Now.AddDays(-3)),
+        new("Ana Ferreira","Relação custo-benefício excelente para o mercado angolano. Recomendo vivamente.", 4, DateTime.Now.AddDays(-7)),
+    };
+
+    string novoAutor  = "";
+    string novoTexto  = "";
+    int    novaAvaliacao = 0;
+    bool   mostrarSucesso = false;
+
+    bool PodeSubmeter => !string.IsNullOrWhiteSpace(novoAutor)
+                      && !string.IsNullOrWhiteSpace(novoTexto)
+                      && novaAvaliacao > 0;
+
+    protected override void OnParametersSet()
+    {
+        Console.WriteLine($"VeiculoId recebido: {VeiculoId}");
+        veiculo = todos.FirstOrDefault(v => v.Id == VeiculoId) ?? todos[0];
+        outrosVeiculos = todos.Where(v => v.Id != veiculo!.Id).OrderByDescending(v => v.ScoreIA).ToList();
+
+        // Simula múltiplas fotos reutilizando a imagem principal
+        fotos = new List<string> {
+            veiculo!.Imagem,
+            outrosVeiculos.ElementAtOrDefault(0)?.Imagem ?? veiculo.Imagem,
+            outrosVeiculos.ElementAtOrDefault(1)?.Imagem ?? veiculo.Imagem,
+            outrosVeiculos.ElementAtOrDefault(2)?.Imagem ?? veiculo.Imagem,
+        };
+        fotoPrincipal = fotos[0];
+    }
+
+    async Task SubmeterComentario()
+    {
+        if (!PodeSubmeter) return;
+
+        var novo = new Comentario(novoAutor.Trim(), novoTexto.Trim(), novaAvaliacao, DateTime.Now, true);
+        comentarios.Add(novo);
+
+        novoAutor     = "";
+        novoTexto     = "";
+        novaAvaliacao = 0;
+        mostrarSucesso = true;
+
+        await Task.Delay(3200);
+        mostrarSucesso = false;
+    }
+}

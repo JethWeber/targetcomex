@@ -1,0 +1,969 @@
+@page "/contacto"
+@rendermode InteractiveServer
+@using System.Net.Http
+@using System.Text
+@using System.Text.Json
+@inject IHttpClientFactory HttpFactory
+
+<!-- ══════════════════════════════════════════════════════
+     HERO
+══════════════════════════════════════════════════════ -->
+<section class="sv-hero">
+    <div class="sv-hero-bg"></div>
+    <div class="sv-hero-overlay"></div>
+    <div class="sv-grid-dots"></div>
+    <div class="sv-scan-line"></div>
+
+    <div class="sv-hero-content">
+        <div class="sv-badge anim-up" style="--d:0.1s">
+            <span class="sv-badge-dot"></span>
+            5 Showrooms em Luanda
+        </div>
+        <h1 class="sv-hero-title anim-up" style="--d:0.25s">
+            Estamos Onde<br/>
+            <span class="sv-cyan sv-glitch" data-text="Você Precisar">Você Precisar</span>
+        </h1>
+        <p class="sv-hero-sub anim-up" style="--d:0.4s">
+            Cinco pontos de presença espalhados por Luanda, prontos para recebê-lo
+            com o serviço de excelência que a Target Comex representa desde 2002.
+        </p>
+
+        <div class="sv-hero-stats anim-up" style="--d:0.6s">
+            <div class="sv-stat">
+                <span class="sv-stat-num sv-cyan">5</span>
+                <span class="sv-stat-label">Showrooms</span>
+            </div>
+            <div class="sv-stat-sep"></div>
+            <div class="sv-stat">
+                <span class="sv-stat-num">4</span>
+                <span class="sv-stat-label">Marcas</span>
+            </div>
+            <div class="sv-stat-sep"></div>
+            <div class="sv-stat">
+                <span class="sv-stat-num sv-cyan">23</span>
+                <span class="sv-stat-label">Anos</span>
+            </div>
+            <div class="sv-stat-sep"></div>
+            <div class="sv-stat">
+                <span class="sv-stat-num">+500</span>
+                <span class="sv-stat-label">Colaboradores</span>
+            </div>
+        </div>
+
+        <a href="#showrooms" class="sv-scroll-cta anim-up" style="--d:0.8s">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M12 5v14M5 12l7 7 7-7"/>
+            </svg>
+            Ver Showrooms
+        </a>
+    </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     SHOWROOM CARDS
+══════════════════════════════════════════════════════ -->
+<section class="sv-section ct-showrooms-section" id="showrooms">
+    <div class="sv-container">
+        <div class="sv-section-header">
+            <div class="sv-section-eyebrow">Os Nossos Espaços</div>
+            <h2 class="sv-section-title">Encontre o Showroom<br/><span class="sv-cyan">mais Próximo</span></h2>
+            <p class="sv-section-desc">
+                Cada espaço foi desenhado para proporcionar a melhor experiência
+                automóvel em Angola, com atendimento personalizado e instalações premium.
+            </p>
+        </div>
+
+        <!-- Card principal em destaque -->
+        <div class="ct-hero-card anim-reveal">
+            <div class="ct-hero-card-img">
+                <img src="img/showroom-morro-bento.jpg" alt="Showroom Morro Bento"
+                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'"/>
+                <div class="ct-img-fallback" style="display:none">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                        <polyline points="9 22 9 12 15 12 15 22"/>
+                    </svg>
+                    <span>Morro Bento</span>
+                </div>
+                <div class="ct-card-badge-featured">Sede Principal</div>
+            </div>
+            <div class="ct-hero-card-body">
+                <div class="ct-card-eyebrow">Showroom Flagship</div>
+                <h3 class="ct-hero-card-name">Morro Bento</h3>
+                <div class="ct-card-marcas">
+                    <span class="ct-marca-pill">BAIC</span>
+                    <span class="ct-marca-pill">Suzuki</span>
+                    <span class="ct-marca-pill">Forthing</span>
+                    <span class="ct-marca-pill">Motores Alvo</span>
+                </div>
+                <div class="ct-card-info-list">
+                    <div class="ct-info-row">
+                        <div class="ct-info-icon">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+                            </svg>
+                        </div>
+                        <span>Rua Villa De Gamek, Morro Bento, Luanda</span>
+                    </div>
+                    <div class="ct-info-row">
+                        <div class="ct-info-icon">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.4 2 2 0 0 1 3.58 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.55a16 16 0 0 0 6.55 6.55l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+                            </svg>
+                        </div>
+                        <span>+244 959 288 888 &nbsp;·&nbsp; +244 944 615 961</span>
+                    </div>
+                    <div class="ct-info-row">
+                        <div class="ct-info-icon">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                            </svg>
+                        </div>
+                        <span>Seg – Sáb: 08h00 – 18h00</span>
+                    </div>
+                </div>
+                <a href="https://maps.google.com/?q=Morro+Bento+Luanda" target="_blank" class="ct-btn-dir">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <polygon points="3 11 22 2 13 21 11 13 3 11"/>
+                    </svg>
+                    Como Chegar
+                </a>
+            </div>
+        </div>
+
+        <!-- Grid dos outros showrooms -->
+        <div class="ct-grid">
+            @foreach (var s in showrooms)
+            {
+                <div class="ct-card anim-reveal">
+                    <div class="ct-card-img-wrap">
+                        <img src="@s.Imagem" alt="@s.Nome"
+                             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'"/>
+                        <div class="ct-img-fallback" style="display:none">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3">
+                                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                                <polyline points="9 22 9 12 15 12 15 22"/>
+                            </svg>
+                            <span>@s.Nome</span>
+                        </div>
+                        <div class="ct-card-overlay-grad"></div>
+                        <div class="ct-card-year">@s.Ano</div>
+                    </div>
+                    <div class="ct-card-body">
+                        <h3 class="ct-card-name">@s.Nome</h3>
+                        <div class="ct-card-marcas">
+                            @foreach (var m in s.Marcas)
+                            {
+                                <span class="ct-marca-pill">@m</span>
+                            }
+                        </div>
+                        <div class="ct-card-info-list">
+                            <div class="ct-info-row">
+                                <div class="ct-info-icon">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+                                    </svg>
+                                </div>
+                                <span>@s.Endereco</span>
+                            </div>
+                            <div class="ct-info-row">
+                                <div class="ct-info-icon">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.4 2 2 0 0 1 3.58 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.55a16 16 0 0 0 6.55 6.55l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+                                    </svg>
+                                </div>
+                                <span>@s.Telefone</span>
+                            </div>
+                        </div>
+                        <a href="https://maps.google.com/?q=@Uri.EscapeDataString(s.Nome + " " + s.Endereco)" target="_blank" class="ct-btn-dir ct-btn-sm">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <polygon points="3 11 22 2 13 21 11 13 3 11"/>
+                            </svg>
+                            Como Chegar
+                        </a>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     FORMULÁRIO DE CONTACTO — SMS
+══════════════════════════════════════════════════════ -->
+<section class="sv-premium-section ct-form-section" id="contacto">
+    <div class="sv-container">
+        <div class="ct-form-layout">
+
+            <!-- Lado esquerdo — info -->
+            <div class="ct-form-info">
+                <div class="sv-section-eyebrow">Fale Connosco</div>
+                <h2 class="ct-form-title">
+                    Envie-nos<br/>
+                    <span class="sv-cyan">uma Mensagem</span>
+                </h2>
+                <p class="ct-form-desc">
+                    Preencha o formulário e entraremos em contacto consigo
+                    o mais brevemente possível. Resposta garantida em menos de 2 horas.
+                </p>
+
+                <div class="ct-promise-list">
+                    <div class="ct-promise-item">
+                        <div class="ct-promise-icon">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                        </div>
+                        <span>Resposta em menos de 2 horas</span>
+                    </div>
+                    <div class="ct-promise-item">
+                        <div class="ct-promise-icon">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                        </div>
+                        <span>Atendimento personalizado</span>
+                    </div>
+                    <div class="ct-promise-item">
+                        <div class="ct-promise-icon">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                        </div>
+                        <span>Sem spam, só o que importa</span>
+                    </div>
+                </div>
+
+                <!-- Contacto direto -->
+                <div class="ct-direct-contact">
+                    <div class="ct-dc-label">Preferir ligar?</div>
+                    <a href="tel:+244959288888" class="ct-dc-phone">+244 959 288 888</a>
+                    <a href="tel:+244944615961" class="ct-dc-phone">+244 944 615 961</a>
+                </div>
+            </div>
+
+            <!-- Lado direito — formulário -->
+            <div class="ct-form-card">
+                <div class="ct-form-card-header">
+                    <div class="ct-sms-indicator">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                        </svg>
+                        Envio via SMS
+                    </div>
+                </div>
+
+                @if (enviado)
+                {
+                    <div class="ct-success-state">
+                        <div class="ct-success-icon">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                        </div>
+                        <h3 class="ct-success-title">Mensagem Enviada!</h3>
+                        <p class="ct-success-desc">
+                            Recebemos a sua mensagem e entraremos em contacto em breve.
+                            Obrigado por escolher a Target Comex.
+                        </p>
+                        <button class="ct-btn-novo" @onclick="ResetForm">Enviar Nova Mensagem</button>
+                    </div>
+                }
+                else
+                {
+                    <div class="ct-form-fields">
+                        <!-- Nome + Telefone -->
+                        <div class="ct-field-row">
+                            <div class="ct-field @(erros.ContainsKey("Nome") ? "ct-field-error" : "")">
+                                <label class="ct-label">Nome Completo</label>
+                                <input class="ct-input" type="text" placeholder="O seu nome"
+                                       @bind="form.Nome" @bind:event="oninput"/>
+                                @if (erros.ContainsKey("Nome"))
+                                {
+                                    <span class="ct-error-msg">@erros["Nome"]</span>
+                                }
+                            </div>
+                            <div class="ct-field @(erros.ContainsKey("Telefone") ? "ct-field-error" : "")">
+                                <label class="ct-label">Telefone</label>
+                                <input class="ct-input" type="tel" placeholder="+244 9XX XXX XXX"
+                                       @bind="form.Telefone" @bind:event="oninput"/>
+                                @if (erros.ContainsKey("Telefone"))
+                                {
+                                    <span class="ct-error-msg">@erros["Telefone"]</span>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Assunto -->
+                        <div class="ct-field @(erros.ContainsKey("Assunto") ? "ct-field-error" : "")">
+                            <label class="ct-label">Assunto</label>
+                            <div class="ct-select-wrap">
+                                <select class="ct-input ct-select" @bind="form.Assunto">
+                                    <option value="">Selecione o assunto...</option>
+                                    <option value="Venda de Viatura">Venda de Viatura</option>
+                                    <option value="Serviço Pós-Venda">Serviço Pós-Venda</option>
+                                    <option value="Test Drive">Test Drive</option>
+                                    <option value="Peças e Acessórios">Peças e Acessórios</option>
+                                    <option value="Financiamento">Financiamento</option>
+                                    <option value="Outro">Outro</option>
+                                </select>
+                                <svg class="ct-select-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                    <polyline points="6 9 12 15 18 9"/>
+                                </svg>
+                            </div>
+                            @if (erros.ContainsKey("Assunto"))
+                            {
+                                <span class="ct-error-msg">@erros["Assunto"]</span>
+                            }
+                        </div>
+
+                        <!-- Showroom -->
+                        <div class="ct-field">
+                            <label class="ct-label">Showroom de Preferência</label>
+                            <div class="ct-select-wrap">
+                                <select class="ct-input ct-select" @bind="form.Showroom">
+                                    <option value="">Qualquer showroom</option>
+                                    <option value="Morro Bento">Morro Bento (Sede)</option>
+                                    <option value="Viana">Viana</option>
+                                    <option value="Samba">Samba</option>
+                                    <option value="Talatona">Talatona</option>
+                                    <option value="Kilamba">Kilamba</option>
+                                </select>
+                                <svg class="ct-select-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                    <polyline points="6 9 12 15 18 9"/>
+                                </svg>
+                            </div>
+                        </div>
+
+                        <!-- Mensagem -->
+                        <div class="ct-field @(erros.ContainsKey("Mensagem") ? "ct-field-error" : "")">
+                            <label class="ct-label">Mensagem</label>
+                            <textarea class="ct-input ct-textarea" rows="4"
+                                      placeholder="Como podemos ajudá-lo?"
+                                      @bind="form.Mensagem" @bind:event="oninput"></textarea>
+                            @if (erros.ContainsKey("Mensagem"))
+                            {
+                                <span class="ct-error-msg">@erros["Mensagem"]</span>
+                            }
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(erroGeral))
+                        {
+                            <div class="ct-alert-error">@erroGeral</div>
+                        }
+
+                        <button class="ct-btn-enviar @(enviando ? "ct-btn-loading" : "")"
+                                @onclick="EnviarSMS" disabled="@enviando">
+                            @if (enviando)
+                            {
+                                <span class="ct-spinner"></span>
+                                <span>A enviar...</span>
+                            }
+                            else
+                            {
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                                </svg>
+                                <span>Enviar Mensagem</span>
+                            }
+                        </button>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     ESTILOS
+══════════════════════════════════════════════════════ -->
+<style>
+    :root {
+        --cyan: #00f2ff;
+        --cyan-bright: #40f8ff;
+        --cyan-glow: rgba(0,242,255,0.22);
+        --bg: #080808;
+        --bg-card: #111111;
+        --bg-card2: #161616;
+        --border: rgba(255,255,255,0.07);
+        --border-c: rgba(0,242,255,0.25);
+        --text: #f0f0f0;
+        --text-dim: #999;
+        --radius: 16px;
+        --radius-sm: 10px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    button, a { border: none; cursor: pointer; font-family: inherit; text-decoration: none; }
+
+    /* ── ANIMAÇÕES ── */
+    @@keyframes scanMove  { 0% { top: -2px; } 100% { top: 100%; } }
+    @@keyframes pulseGlow { 0%,100% { opacity:1; } 50% { opacity:0.35; } }
+    @@keyframes slideUp   { from { opacity:0; transform:translateY(28px); } to { opacity:1; transform:translateY(0); } }
+    @@keyframes spin      { to { transform: rotate(360deg); } }
+    @@keyframes glitch {
+        0%   { clip-path:inset(0 0 98% 0); transform:translate(-3px,0); }
+        15%  { clip-path:inset(40% 0 40% 0); transform:translate(3px,0); }
+        30%  { clip-path:inset(70% 0 10% 0); transform:translate(-2px,0); }
+        50%  { clip-path:inset(0 0 0 0); transform:translate(0,0); }
+        100% { clip-path:inset(0 0 0 0); transform:translate(0,0); }
+    }
+    @@keyframes successPop {
+        0%   { transform: scale(0.5); opacity: 0; }
+        70%  { transform: scale(1.15); }
+        100% { transform: scale(1); opacity: 1; }
+    }
+
+    .anim-up {
+        opacity: 0;
+        animation: slideUp 0.7s cubic-bezier(0.22,1,0.36,1) forwards;
+        animation-delay: var(--d, 0s);
+    }
+    .anim-reveal {
+        opacity: 0;
+        transform: translateY(36px);
+        transition: opacity 0.6s cubic-bezier(0.22,1,0.36,1), transform 0.6s cubic-bezier(0.22,1,0.36,1);
+    }
+    .anim-reveal.visible { opacity: 1; transform: translateY(0); }
+
+    .sv-cyan { color: var(--cyan); }
+
+    /* Glitch */
+    .sv-glitch { position: relative; display: inline-block; }
+    .sv-glitch::before, .sv-glitch::after {
+        content: attr(data-text); position: absolute; left: 0; top: 0;
+        color: var(--cyan); width: 100%;
+    }
+    .sv-glitch::before {
+        text-shadow: 2px 0 #ff00ea;
+        animation: glitch 5s infinite linear alternate-reverse; opacity: 0.6;
+    }
+    .sv-glitch::after {
+        text-shadow: -2px 0 var(--cyan);
+        animation: glitch 4s infinite linear alternate; opacity: 0.45;
+    }
+
+    /* ════════════ HERO ════════════ */
+    .sv-hero {
+        position: relative; min-height: 100vh;
+        display: flex; align-items: center;
+        overflow: hidden; z-index: 0;
+    }
+    .sv-hero-bg {
+        position: absolute; inset: 0;
+        background: url('img/banner2.jpeg') center / cover no-repeat; z-index: 0;
+    }
+    .sv-hero-overlay {
+        position: absolute; inset: 0;
+        background: linear-gradient(135deg, rgba(0,0,0,0.93) 0%, rgba(0,0,0,0.7) 55%, rgba(0,0,0,0.85) 100%);
+        z-index: 1;
+    }
+    .sv-grid-dots {
+        position: absolute; inset: 0;
+        background-image: radial-gradient(circle, rgba(0,242,255,0.07) 1px, transparent 1px);
+        background-size: 44px 44px; z-index: 2; pointer-events: none;
+    }
+    .sv-scan-line {
+        position: absolute; left: 0; right: 0; height: 2px;
+        background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+        opacity: 0.2; z-index: 3; animation: scanMove 8s linear infinite;
+    }
+    .sv-hero-content {
+        position: relative; z-index: 4;
+        padding: 140px 60px 80px; max-width: 860px;
+    }
+    .sv-badge {
+        display: inline-flex; align-items: center; gap: 10px;
+        background: rgba(0,242,255,0.08); border: 1px solid rgba(0,242,255,0.3);
+        color: var(--cyan-bright); font-size: 0.75rem; font-weight: 700;
+        text-transform: uppercase; letter-spacing: 0.1em;
+        padding: 8px 20px; border-radius: 100px; margin-bottom: 28px;
+    }
+    .sv-badge-dot {
+        width: 8px; height: 8px; background: var(--cyan); border-radius: 50%;
+        animation: pulseGlow 1.8s ease-in-out infinite;
+    }
+    .sv-hero-title {
+        font-size: clamp(2.6rem, 6vw, 5rem); font-weight: 900; color: #fff;
+        line-height: 1.05; letter-spacing: -0.025em; margin-bottom: 22px;
+    }
+    .sv-hero-sub {
+        font-size: 1.05rem; color: var(--text-dim);
+        line-height: 1.7; margin-bottom: 44px; max-width: 620px;
+    }
+    .sv-hero-stats { display: flex; align-items: center; gap: 32px; margin-bottom: 44px; }
+    .sv-stat { display: flex; flex-direction: column; gap: 4px; }
+    .sv-stat-num { font-size: 2.2rem; font-weight: 900; color: #fff; line-height: 1; }
+    .sv-stat-label { font-size: 0.7rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.07em; }
+    .sv-stat-sep { width: 1px; height: 44px; background: rgba(255,255,255,0.12); }
+    .sv-scroll-cta {
+        display: inline-flex; align-items: center; gap: 10px;
+        color: rgba(255,255,255,0.5); font-size: 0.82rem; font-weight: 600;
+        border: 1px solid rgba(255,255,255,0.14); padding: 12px 22px;
+        border-radius: 100px; transition: all 0.25s;
+    }
+    .sv-scroll-cta:hover { color: var(--cyan); border-color: var(--cyan); }
+
+    /* ════════════ LAYOUT ════════════ */
+    .sv-container { max-width: 1380px; margin: 0 auto; padding: 0 32px; }
+    .sv-section { background: var(--bg); padding: 90px 0; }
+    .sv-section-header { text-align: center; margin-bottom: 60px; }
+    .sv-section-eyebrow {
+        font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+        letter-spacing: 0.14em; color: var(--cyan); margin-bottom: 12px;
+    }
+    .sv-section-title {
+        font-size: clamp(2rem, 3.5vw, 3rem); font-weight: 900; color: #fff;
+        line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 18px;
+    }
+    .sv-section-desc {
+        font-size: 0.95rem; color: var(--text-dim);
+        line-height: 1.7; max-width: 560px; margin: 0 auto;
+    }
+    .sv-premium-section {
+        background: var(--bg-card2); padding: 100px 0;
+        border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+    }
+
+    /* ════════════ SHOWROOMS ════════════ */
+    .ct-showrooms-section { background: var(--bg); }
+
+    /* Card principal */
+    .ct-hero-card {
+        display: grid;
+        grid-template-columns: 1fr 420px;
+        border-radius: 20px;
+        overflow: hidden;
+        border: 1px solid var(--border);
+        margin-bottom: 20px;
+        transition: border-color 0.3s, box-shadow 0.3s;
+    }
+    .ct-hero-card:hover {
+        border-color: var(--border-c);
+        box-shadow: 0 0 40px var(--cyan-glow);
+    }
+    .ct-hero-card-img {
+        position: relative; min-height: 380px;
+        background: var(--bg-card);
+        overflow: hidden;
+    }
+    .ct-hero-card-img img {
+        width: 100%; height: 100%;
+        object-fit: cover;
+        transition: transform 0.6s cubic-bezier(0.22,1,0.36,1);
+    }
+    .ct-hero-card:hover .ct-hero-card-img img { transform: scale(1.05); }
+    .ct-img-fallback {
+        position: absolute; inset: 0;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        gap: 16px; color: rgba(0,242,255,0.25);
+        font-size: 0.85rem; font-weight: 600;
+        background: linear-gradient(135deg, #0d1a1a, #0a1010);
+    }
+    .ct-img-fallback span { color: var(--text-dim); }
+    .ct-card-badge-featured {
+        position: absolute; top: 20px; left: 20px;
+        background: var(--cyan); color: #000;
+        font-size: 0.65rem; font-weight: 800;
+        text-transform: uppercase; letter-spacing: 0.1em;
+        padding: 5px 14px; border-radius: 100px;
+        z-index: 2;
+    }
+    .ct-hero-card-body {
+        background: var(--bg-card);
+        padding: 44px 40px;
+        display: flex; flex-direction: column; justify-content: center; gap: 0;
+    }
+    .ct-card-eyebrow {
+        font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+        letter-spacing: 0.14em; color: var(--cyan); margin-bottom: 10px;
+    }
+    .ct-hero-card-name {
+        font-size: 2rem; font-weight: 900; color: #fff;
+        letter-spacing: -0.02em; margin-bottom: 16px;
+    }
+
+    /* Marcas pills */
+    .ct-card-marcas { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
+    .ct-marca-pill {
+        font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
+        letter-spacing: 0.09em; color: var(--cyan);
+        background: rgba(0,242,255,0.08);
+        border: 1px solid rgba(0,242,255,0.2);
+        border-radius: 100px; padding: 4px 12px;
+    }
+
+    /* Info rows */
+    .ct-card-info-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px; }
+    .ct-info-row {
+        display: flex; align-items: flex-start; gap: 10px;
+        font-size: 0.85rem; color: var(--text-dim); line-height: 1.5;
+    }
+    .ct-info-icon {
+        width: 28px; height: 28px; flex-shrink: 0;
+        background: rgba(0,242,255,0.06);
+        border: 1px solid rgba(0,242,255,0.15);
+        border-radius: 8px;
+        display: grid; place-items: center;
+        color: var(--cyan);
+    }
+
+    /* Botão direções */
+    .ct-btn-dir {
+        display: inline-flex; align-items: center; gap: 8px;
+        background: var(--cyan); color: #000;
+        font-weight: 800; font-size: 0.85rem;
+        padding: 12px 24px; border-radius: var(--radius-sm);
+        align-self: flex-start;
+        transition: all 0.25s;
+    }
+    .ct-btn-dir:hover { background: var(--cyan-bright); transform: translateY(-2px); box-shadow: 0 8px 24px var(--cyan-glow); }
+    .ct-btn-sm { padding: 9px 18px; font-size: 0.78rem; }
+
+    /* Grid dos 4 cards */
+    .ct-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+    }
+    .ct-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        overflow: hidden;
+        transition: border-color 0.3s, box-shadow 0.3s, transform 0.3s;
+    }
+    .ct-card:hover {
+        border-color: var(--border-c);
+        box-shadow: 0 0 28px var(--cyan-glow);
+        transform: translateY(-5px);
+    }
+    .ct-card-img-wrap {
+        position: relative; height: 180px;
+        background: var(--bg-card2); overflow: hidden;
+    }
+    .ct-card-img-wrap img {
+        width: 100%; height: 100%; object-fit: cover;
+        transition: transform 0.6s cubic-bezier(0.22,1,0.36,1);
+    }
+    .ct-card:hover .ct-card-img-wrap img { transform: scale(1.08); }
+    .ct-card-overlay-grad {
+        position: absolute; inset: 0;
+        background: linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 60%);
+    }
+    .ct-card-year {
+        position: absolute; bottom: 12px; right: 14px;
+        font-size: 0.65rem; font-weight: 800; color: var(--cyan);
+        text-transform: uppercase; letter-spacing: 0.1em;
+        background: rgba(0,0,0,0.7);
+        border: 1px solid rgba(0,242,255,0.2);
+        padding: 3px 10px; border-radius: 100px;
+    }
+    .ct-card-body { padding: 22px 20px; display: flex; flex-direction: column; gap: 0; }
+    .ct-card-name { font-size: 1.1rem; font-weight: 800; color: #fff; margin-bottom: 10px; }
+
+    /* Stagger */
+    .ct-grid .anim-reveal:nth-child(1) { transition-delay: 0.00s; }
+    .ct-grid .anim-reveal:nth-child(2) { transition-delay: 0.08s; }
+    .ct-grid .anim-reveal:nth-child(3) { transition-delay: 0.16s; }
+    .ct-grid .anim-reveal:nth-child(4) { transition-delay: 0.24s; }
+
+    /* ════════════ FORMULÁRIO ════════════ */
+    .ct-form-layout {
+        display: grid;
+        grid-template-columns: 400px 1fr;
+        gap: 80px;
+        align-items: start;
+    }
+    .ct-form-title {
+        font-size: clamp(2rem, 3vw, 2.8rem); font-weight: 900; color: #fff;
+        line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 16px; margin-top: 10px;
+    }
+    .ct-form-desc { font-size: 0.9rem; color: var(--text-dim); line-height: 1.7; margin-bottom: 32px; }
+
+    .ct-promise-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 36px; }
+    .ct-promise-item { display: flex; align-items: center; gap: 12px; font-size: 0.88rem; color: var(--text); }
+    .ct-promise-icon {
+        width: 30px; height: 30px; flex-shrink: 0;
+        background: rgba(0,242,255,0.1); border: 1px solid rgba(0,242,255,0.25);
+        border-radius: 8px; display: grid; place-items: center; color: var(--cyan);
+    }
+
+    .ct-direct-contact {
+        padding: 20px;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+    }
+    .ct-dc-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-dim); margin-bottom: 10px; }
+    .ct-dc-phone {
+        display: block; font-size: 1rem; font-weight: 700; color: var(--cyan);
+        margin-bottom: 4px; transition: color 0.2s;
+    }
+    .ct-dc-phone:hover { color: var(--cyan-bright); }
+
+    /* Card do formulário */
+    .ct-form-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        overflow: hidden;
+    }
+    .ct-form-card-header {
+        padding: 16px 28px;
+        border-bottom: 1px solid var(--border);
+        background: rgba(0,242,255,0.03);
+        display: flex; align-items: center;
+    }
+    .ct-sms-indicator {
+        display: inline-flex; align-items: center; gap: 8px;
+        font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+        letter-spacing: 0.1em; color: var(--cyan);
+    }
+    .ct-form-fields { padding: 32px 28px; display: flex; flex-direction: column; gap: 20px; }
+
+    .ct-field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .ct-field { display: flex; flex-direction: column; gap: 7px; }
+    .ct-label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; color: var(--text-dim); }
+
+    .ct-input {
+        width: 100%; background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        color: var(--text); font-size: 0.9rem;
+        padding: 12px 16px; outline: none;
+        transition: border-color 0.2s, box-shadow 0.2s;
+        font-family: inherit;
+    }
+    .ct-input:focus {
+        border-color: var(--border-c);
+        box-shadow: 0 0 0 3px rgba(0,242,255,0.08);
+    }
+    .ct-input::placeholder { color: rgba(153,153,153,0.5); }
+
+    .ct-field-error .ct-input { border-color: rgba(255,80,80,0.5); }
+    .ct-field-error .ct-input:focus { box-shadow: 0 0 0 3px rgba(255,80,80,0.1); }
+    .ct-error-msg { font-size: 0.72rem; color: #ff6b6b; }
+
+    .ct-select-wrap { position: relative; }
+    .ct-select { appearance: none; padding-right: 40px; cursor: pointer; }
+    .ct-select option { background: #111; color: var(--text); }
+    .ct-select-arrow {
+        position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+        color: var(--text-dim); pointer-events: none;
+    }
+
+    .ct-textarea { resize: vertical; min-height: 100px; }
+
+    .ct-alert-error {
+        background: rgba(255,80,80,0.08);
+        border: 1px solid rgba(255,80,80,0.25);
+        border-radius: var(--radius-sm);
+        padding: 12px 16px;
+        font-size: 0.85rem; color: #ff8a8a;
+    }
+
+    .ct-btn-enviar {
+        display: flex; align-items: center; justify-content: center; gap: 10px;
+        background: var(--cyan); color: #000;
+        font-weight: 800; font-size: 0.92rem;
+        padding: 15px 28px; border-radius: var(--radius-sm);
+        width: 100%; transition: all 0.25s;
+    }
+    .ct-btn-enviar:hover:not(:disabled) { background: var(--cyan-bright); box-shadow: 0 8px 28px var(--cyan-glow); }
+    .ct-btn-enviar:disabled { opacity: 0.6; cursor: not-allowed; }
+    .ct-btn-loading { background: rgba(0,242,255,0.4) !important; }
+
+    .ct-spinner {
+        width: 16px; height: 16px; border-radius: 50%;
+        border: 2px solid rgba(0,0,0,0.3); border-top-color: #000;
+        animation: spin 0.7s linear infinite;
+    }
+
+    /* Estado de sucesso */
+    .ct-success-state {
+        padding: 60px 28px;
+        display: flex; flex-direction: column;
+        align-items: center; text-align: center; gap: 16px;
+    }
+    .ct-success-icon {
+        width: 72px; height: 72px;
+        background: rgba(0,242,255,0.1);
+        border: 2px solid rgba(0,242,255,0.4);
+        border-radius: 50%;
+        display: grid; place-items: center;
+        color: var(--cyan);
+        animation: successPop 0.5s cubic-bezier(0.22,1,0.36,1) both;
+    }
+    .ct-success-title { font-size: 1.4rem; font-weight: 900; color: #fff; }
+    .ct-success-desc { font-size: 0.88rem; color: var(--text-dim); line-height: 1.7; max-width: 320px; }
+    .ct-btn-novo {
+        margin-top: 8px;
+        background: transparent; color: var(--cyan);
+        border: 1px solid var(--border-c);
+        font-size: 0.85rem; font-weight: 700;
+        padding: 10px 22px; border-radius: var(--radius-sm);
+        transition: all 0.2s;
+    }
+    .ct-btn-novo:hover { background: rgba(0,242,255,0.08); }
+
+    /* ── RESPONSIVE ── */
+    @@media (max-width: 1200px) {
+        .ct-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @@media (max-width: 1100px) {
+        .ct-hero-card  { grid-template-columns: 1fr; }
+        .ct-hero-card-img { min-height: 260px; }
+        .ct-form-layout { grid-template-columns: 1fr; gap: 48px; }
+    }
+    @@media (max-width: 768px) {
+        .sv-hero-content { padding: 120px 24px 60px; }
+        .sv-container    { padding: 0 20px; }
+        .sv-hero-stats   { flex-wrap: wrap; gap: 20px; }
+        .sv-stat-sep     { display: none; }
+        .ct-grid         { grid-template-columns: 1fr; }
+        .ct-field-row    { grid-template-columns: 1fr; }
+        .ct-hero-card-body { padding: 28px 24px; }
+    }
+</style>
+
+@code {
+    record Showroom(string Nome, string Endereco, string Telefone, string Imagem, string Ano, List<string> Marcas);
+
+    List<Showroom> showrooms = new()
+    {
+        new("Viana",
+            "Estrada de Viana, Luanda",
+            "+244 959 288 882",
+            "img/showroom-viana.jpg",
+            "Desde 2007",
+            new() { "BAIC", "Multimarca" }),
+
+        new("Samba",
+            "Rua da Samba, Luanda",
+            "+244 959 288 883",
+            "img/showroom-samba.jpg",
+            "Desde 2018",
+            new() { "Suzuki" }),
+
+        new("Talatona",
+            "Via Expressa Sul, Talatona",
+            "+244 959 288 884",
+            "img/showroom-talatona.jpg",
+            "Desde 2021",
+            new() { "BAIC", "Forthing" }),
+
+        new("Kilamba",
+            "Cidade do Kilamba, Luanda Sul",
+            "+244 959 288 885",
+            "img/showroom-kilamba.jpg",
+            "Recente",
+            new() { "Multimarca" }),
+    };
+
+    class ContactForm
+    {
+        public string Nome      { get; set; } = "";
+        public string Telefone  { get; set; } = "";
+        public string Assunto   { get; set; } = "";
+        public string Showroom  { get; set; } = "";
+        public string Mensagem  { get; set; } = "";
+    }
+
+    ContactForm form    = new();
+    bool enviando       = false;
+    bool enviado        = false;
+    string erroGeral    = "";
+    Dictionary<string, string> erros = new();
+
+    bool Validar()
+    {
+        erros.Clear();
+        if (string.IsNullOrWhiteSpace(form.Nome))
+            erros["Nome"] = "O nome é obrigatório.";
+        if (string.IsNullOrWhiteSpace(form.Telefone))
+            erros["Telefone"] = "O telefone é obrigatório.";
+        if (string.IsNullOrWhiteSpace(form.Assunto))
+            erros["Assunto"] = "Selecione um assunto.";
+        if (string.IsNullOrWhiteSpace(form.Mensagem))
+            erros["Mensagem"] = "Escreva a sua mensagem.";
+        return erros.Count == 0;
+    }
+
+    async Task EnviarSMS()
+    {
+        erroGeral = "";
+        if (!Validar()) return;
+
+        enviando = true;
+        StateHasChanged();
+
+        try
+        {
+            // Formata a mensagem SMS
+            var showroomTexto = string.IsNullOrEmpty(form.Showroom) ? "Qualquer" : form.Showroom;
+            var smsBody = $"[Target Comex]\nNome: {form.Nome}\nTel: {form.Telefone}\nAssunto: {form.Assunto}\nShowroom: {showroomTexto}\nMensagem: {form.Mensagem}";
+
+            // Envia via API SMS — adapte o endpoint e token à sua plataforma (ex: Africa's Talking, Twilio, etc.)
+            var payload = new
+            {
+                to      = "+244959288888",   // número de destino (backoffice Target Comex)
+                message = smsBody
+            };
+
+            var json    = JsonSerializer.Serialize(payload);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            // Substitua o URL abaixo pelo endpoint real da sua plataforma SMS
+            var http     = HttpFactory.CreateClient();
+            var response = await http.PostAsync("/api/sms/enviar", content);
+
+            if (response.IsSuccessStatusCode)
+            {
+                enviado = true;
+            }
+            else
+            {
+                erroGeral = "Não foi possível enviar a mensagem. Tente ligar diretamente.";
+            }
+        }
+        catch
+        {
+            erroGeral = "Erro de ligação. Por favor tente novamente ou ligue-nos.";
+        }
+        finally
+        {
+            enviando = false;
+            StateHasChanged();
+        }
+    }
+
+    void ResetForm()
+    {
+        form    = new();
+        enviado = false;
+        erros.Clear();
+        erroGeral = "";
+    }
+}
+
+<!-- Scroll Reveal -->
+<script>
+(function () {
+    var io = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) {
+            if (e.isIntersecting) { e.target.classList.add('visible'); io.unobserve(e.target); }
+        });
+    }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+
+    function observe() {
+        document.querySelectorAll('.anim-reveal').forEach(function(el) { io.observe(el); });
+    }
+
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', observe);
+    else observe();
+
+    new MutationObserver(observe).observe(document.body, { childList: true, subtree: true });
+})();
+</script>
