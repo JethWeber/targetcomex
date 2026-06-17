@@ -1,6 +1,7 @@
 @page "/admin"
 @rendermode InteractiveServer
 @layout EmptyLayout
+@using Microsoft.AspNetCore.Components.Forms
 @inject ApiClient Api
 @inject AuthService AuthService
 @inject NavigationManager Nav
@@ -379,107 +380,178 @@
             @if (CarroEdit != null)
             {
                 <div class="adm-modal-body">
-                    <!-- Linha 1: Marca + Modelo -->
-                    <div class="adm-row2">
-                        <div class="adm-field">
-                            <label>Marca <span class="req">*</span></label>
-                            <input class="adm-inp" type="text" @bind="CarroEdit.Marca" placeholder="Toyota" />
-                        </div>
-                        <div class="adm-field">
-                            <label>Modelo <span class="req">*</span></label>
-                            <input class="adm-inp" type="text" @bind="CarroEdit.Modelo" placeholder="Corolla" />
-                        </div>
+
+                    <!-- Progresso do wizard -->
+                    <div class="adm-wiz-progtext">Passo @CarroStep de @CarroTotalSteps</div>
+                    <div class="adm-wiz-progbar">
+                        <div class="adm-wiz-progfill" style="width: @(CarroStep * 100 / CarroTotalSteps)%"></div>
                     </div>
-                    <!-- Linha 2: Ano + Preço -->
-                    <div class="adm-row2">
-                        <div class="adm-field">
-                            <label>Ano <span class="req">*</span></label>
-                            <input class="adm-inp" type="number" @bind="CarroEdit.Ano" min="2000" max="2026" />
-                        </div>
-                        <div class="adm-field">
-                            <label>Preço (AOA) <span class="req">*</span></label>
-                            <input class="adm-inp" type="number" @bind="CarroEdit.Preco" />
-                        </div>
+                    <div class="adm-wiz-steps">
+                        @for (int i = 1; i <= CarroTotalSteps; i++)
+                        {
+                            int idx = i;
+                            <div class="adm-wiz-dot @(idx < CarroStep ? "done" : idx == CarroStep ? "active" : "")">
+                                @if (idx < CarroStep) { <span>✓</span> } else { <span>@idx</span> }
+                            </div>
+                            @if (i < CarroTotalSteps)
+                            {
+                                <div class="adm-wiz-line @(idx < CarroStep ? "done" : "")"></div>
+                            }
+                        }
                     </div>
-                    <!-- Linha 3: Combustível + Transmissão -->
-                    <div class="adm-row2">
-                        <div class="adm-field">
-                            <label>Combustível</label>
-                            <select class="adm-inp" @bind="CarroEdit.Combustivel">
-                                <option>Gasolina</option>
-                                <option>Gasóleo</option>
-                                <option>Híbrido</option>
-                                <option>Eléctrico</option>
-                            </select>
+
+                    <!-- PASSO 1: IDENTIFICAÇÃO -->
+                    @if (CarroStep == 1)
+                    {
+                        <h3 class="adm-wiz-title">IDENTIFICAÇÃO</h3>
+                        <p class="adm-wiz-sub">Dados básicos do veículo</p>
+
+                        <div class="adm-row2">
+                            <div class="adm-field">
+                                <label>Marca <span class="req">*</span></label>
+                                <input class="adm-inp" type="text" @bind="CarroEdit.Marca" placeholder="Toyota" />
+                            </div>
+                            <div class="adm-field">
+                                <label>Modelo <span class="req">*</span></label>
+                                <input class="adm-inp" type="text" @bind="CarroEdit.Modelo" placeholder="Corolla" />
+                            </div>
                         </div>
-                        <div class="adm-field">
-                            <label>Transmissão</label>
-                            <select class="adm-inp" @bind="CarroEdit.Transmissao">
-                                <option>Automática</option>
-                                <option>Manual</option>
-                            </select>
+                        <div class="adm-row2">
+                            <div class="adm-field">
+                                <label>Ano <span class="req">*</span></label>
+                                <input class="adm-inp" type="number" @bind="CarroEdit.Ano" min="2000" max="2026" />
+                            </div>
+                            <div class="adm-field">
+                                <label>Estilo</label>
+                                <select class="adm-inp" @bind="CarroEdit.Estilo">
+                                    <option value="">— Seleccionar —</option>
+                                    <option>Sedan</option>
+                                    <option>SUV</option>
+                                    <option>Pick-up</option>
+                                    <option>Hatchback</option>
+                                    <option>Coupé</option>
+                                    <option>Monovolume</option>
+                                </select>
+                            </div>
                         </div>
-                    </div>
-                    <!-- Linha 4: Cor + Estilo -->
-                    <div class="adm-row2">
-                        <div class="adm-field">
-                            <label>Cor</label>
-                            <input class="adm-inp" type="text" @bind="CarroEdit.Cor" placeholder="Preto" />
+                    }
+
+                    <!-- PASSO 2: ESPECIFICAÇÕES -->
+                    @if (CarroStep == 2)
+                    {
+                        <h3 class="adm-wiz-title">ESPECIFICAÇÕES TÉCNICAS</h3>
+                        <p class="adm-wiz-sub">Motor, transmissão e estado de uso</p>
+
+                        <div class="adm-row2">
+                            <div class="adm-field">
+                                <label>Combustível</label>
+                                <select class="adm-inp" @bind="CarroEdit.Combustivel">
+                                    <option>Gasolina</option>
+                                    <option>Gasóleo</option>
+                                    <option>Híbrido</option>
+                                    <option>Eléctrico</option>
+                                </select>
+                            </div>
+                            <div class="adm-field">
+                                <label>Transmissão</label>
+                                <select class="adm-inp" @bind="CarroEdit.Transmissao">
+                                    <option>Automática</option>
+                                    <option>Manual</option>
+                                </select>
+                            </div>
                         </div>
-                        <div class="adm-field">
-                            <label>Estilo</label>
-                            <select class="adm-inp" @bind="CarroEdit.Estilo">
-                                <option value="">— Seleccionar —</option>
-                                <option>Sedan</option>
-                                <option>SUV</option>
-                                <option>Pick-up</option>
-                                <option>Hatchback</option>
-                                <option>Coupé</option>
-                                <option>Monovolume</option>
-                            </select>
+                        <div class="adm-row2">
+                            <div class="adm-field">
+                                <label>Motor</label>
+                                <input class="adm-inp" type="text" @bind="CarroEdit.Motor" placeholder="2.0 TDI" />
+                            </div>
+                            <div class="adm-field">
+                                <label>Potência (CV)</label>
+                                <input class="adm-inp" type="number" @bind="CarroEdit.Potencia" placeholder="150" />
+                            </div>
                         </div>
-                    </div>
-                    <!-- Linha 5: Motor + Potência -->
-                    <div class="adm-row2">
-                        <div class="adm-field">
-                            <label>Motor</label>
-                            <input class="adm-inp" type="text" @bind="CarroEdit.Motor" placeholder="2.0 TDI" />
+                        <div class="adm-row2">
+                            <div class="adm-field">
+                                <label>Cor</label>
+                                <input class="adm-inp" type="text" @bind="CarroEdit.Cor" placeholder="Preto" />
+                            </div>
+                            <div class="adm-field">
+                                <label>Quilometragem (km)</label>
+                                <input class="adm-inp" type="number" @bind="CarroEdit.Quilometragem" placeholder="0" />
+                            </div>
                         </div>
-                        <div class="adm-field">
-                            <label>Potência (CV)</label>
-                            <input class="adm-inp" type="number" @bind="CarroEdit.Potencia" placeholder="150" />
-                        </div>
-                    </div>
-                    <!-- Linha 6: Quilometragem + Localização -->
-                    <div class="adm-row2">
-                        <div class="adm-field">
-                            <label>Quilometragem (km)</label>
-                            <input class="adm-inp" type="number" @bind="CarroEdit.Quilometragem" placeholder="0" />
-                        </div>
+                    }
+
+                    <!-- PASSO 3: LOCALIZAÇÃO & DESCRIÇÃO -->
+                    @if (CarroStep == 3)
+                    {
+                        <h3 class="adm-wiz-title">LOCALIZAÇÃO &amp; DESCRIÇÃO</h3>
+                        <p class="adm-wiz-sub">Onde está e o que o torna especial</p>
+
                         <div class="adm-field">
                             <label>Localização</label>
                             <input class="adm-inp" type="text" @bind="CarroEdit.Localizacao" placeholder="Luanda · Talatona" />
                         </div>
-                    </div>
-                    <!-- URL da Imagem -->
-                    <div class="adm-field">
-                        <label>URL da Imagem</label>
-                        <input class="adm-inp" type="text" @bind="CarroEdit.ImagemUrl" placeholder="https://..." />
-                    </div>
-                    <!-- Descrição -->
-                    <div class="adm-field">
-                        <label>Descrição</label>
-                        <textarea class="adm-inp adm-textarea" @bind="CarroEdit.Descricao" placeholder="Descrição do veículo..."></textarea>
-                    </div>
-                    <!-- Estado -->
-                    <div class="adm-field">
-                        <label>Estado</label>
-                        <select class="adm-inp" @bind="CarroEdit.Estado">
-                            <option>Disponível</option>
-                            <option>Reservado</option>
-                            <option>Vendido</option>
-                        </select>
-                    </div>
+                        <div class="adm-field">
+                            <label>Descrição</label>
+                            <textarea class="adm-inp adm-textarea" @bind="CarroEdit.Descricao" placeholder="Descrição do veículo..."></textarea>
+                        </div>
+                        <div class="adm-field">
+                            <label>Estado</label>
+                            <select class="adm-inp" @bind="CarroEdit.Estado">
+                                <option>Disponível</option>
+                                <option>Reservado</option>
+                                <option>Vendido</option>
+                            </select>
+                        </div>
+                    }
+
+                    <!-- PASSO 4: IMAGEM & PREÇO -->
+                    @if (CarroStep == 4)
+                    {
+                        <h3 class="adm-wiz-title">IMAGEM &amp; PREÇO</h3>
+                        <p class="adm-wiz-sub">Última etapa antes de publicar</p>
+
+                        <div class="adm-field">
+                            <label>Fotografia do Veículo</label>
+                            <div class="adm-upload-zone @(string.IsNullOrEmpty(ImagemPreviewUrl) ? "" : "has-image")">
+                                @if (!string.IsNullOrEmpty(ImagemPreviewUrl))
+                                {
+                                    <img src="@ImagemPreviewUrl" alt="Pré-visualização" class="adm-upload-preview" />
+                                    <button type="button" class="adm-upload-remove" @onclick="RemoverImagem" @onclick:stopPropagation>
+                                        ✕ Remover
+                                    </button>
+                                }
+                                else
+                                {
+                                    <div class="adm-upload-placeholder">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" width="30" height="30">
+                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                            <polyline points="7 9 12 4 17 9" />
+                                            <line x1="12" y1="4" x2="12" y2="16" />
+                                        </svg>
+                                        <span class="adm-upload-title">Clique ou arraste uma imagem</span>
+                                        <span class="adm-upload-hint">PNG ou JPG · até 5MB</span>
+                                    </div>
+                                }
+                                <InputFile class="adm-upload-input" OnChange="OnImagemSelecionada" accept="image/*" />
+                            </div>
+                            @if (UploadEmProgresso)
+                            {
+                                <div class="adm-upload-status">A carregar imagem...</div>
+                            }
+                            @if (!string.IsNullOrEmpty(UploadErro))
+                            {
+                                <div class="adm-erro">@UploadErro</div>
+                            }
+                        </div>
+
+                        <div class="adm-field">
+                            <label>Preço (AOA) <span class="req">*</span></label>
+                            <input class="adm-inp" type="number" @bind="CarroEdit.Preco" />
+                        </div>
+                    }
+
                     @if (!string.IsNullOrEmpty(ModalErro))
                     {
                         <div class="adm-erro">@ModalErro</div>
@@ -487,9 +559,22 @@
                 </div>
                 <div class="adm-modal-foot">
                     <button class="adm-btn-ghost" @onclick="FecharModalCarro">Cancelar</button>
-                    <button class="adm-btn-primary" @onclick="async () => await SalvarCarro()">
-                        @(CarroEdit.Id == 0 ? "Adicionar" : "Guardar")
-                    </button>
+                    <div class="adm-modal-foot-right">
+                        @if (CarroStep > 1)
+                        {
+                            <button class="adm-btn-back-step" @onclick="VoltarCarroStep">← Voltar</button>
+                        }
+                        @if (CarroStep < CarroTotalSteps)
+                        {
+                            <button class="adm-btn-primary" @onclick="AvancarCarroStep">Continuar →</button>
+                        }
+                        else
+                        {
+                            <button class="adm-btn-primary" @onclick="async () => await SalvarCarro()">
+                                @(CarroEdit.Id == 0 ? "Adicionar" : "Guardar")
+                            </button>
+                        }
+                    </div>
                 </div>
             }
         </div>
@@ -511,6 +596,16 @@
     private bool ModalCarroAberto = false;
     private Carro? CarroEdit;
     private string ModalErro = "";
+
+    /* ── Wizard de passos do carro ────────── */
+    private int CarroStep = 1;
+    private const int CarroTotalSteps = 4;
+
+    /* ── Upload de imagem ─────────────────── */
+    private string? ImagemPreviewUrl;
+    private bool UploadEmProgresso = false;
+    private string UploadErro = "";
+    private const long TamanhoMaxImagemBytes = 5 * 1024 * 1024;
 
     /* ══ NAV ══ */
     private List<NavItem> NavItems = new()
@@ -591,6 +686,9 @@
             Quilometragem = null
         };
         ModalErro = "";
+        CarroStep = 1;
+        ImagemPreviewUrl = null;
+        UploadErro = "";
         ModalCarroAberto = true;
     }
 
@@ -616,6 +714,9 @@
             Quilometragem = c.Quilometragem
         };
         ModalErro = "";
+        CarroStep = 1;
+        ImagemPreviewUrl = c.ImagemUrl;
+        UploadErro = "";
         ModalCarroAberto = true;
     }
 
@@ -698,6 +799,82 @@
         ModalCarroAberto = false;
         CarroEdit = null;
         ModalErro = "";
+        CarroStep = 1;
+        ImagemPreviewUrl = null;
+        UploadErro = "";
+    }
+
+    /* ── Navegação do wizard ──────────────── */
+    private void AvancarCarroStep()
+    {
+        ModalErro = "";
+        if (!ValidarCarroStep()) return;
+        if (CarroStep < CarroTotalSteps) CarroStep++;
+    }
+
+    private void VoltarCarroStep()
+    {
+        ModalErro = "";
+        if (CarroStep > 1) CarroStep--;
+    }
+
+    private bool ValidarCarroStep()
+    {
+        if (CarroEdit == null) return false;
+
+        if (CarroStep == 1)
+        {
+            if (string.IsNullOrWhiteSpace(CarroEdit.Marca) || string.IsNullOrWhiteSpace(CarroEdit.Modelo))
+            { ModalErro = "Marca e Modelo são obrigatórios."; return false; }
+            if (CarroEdit.Ano < 2000 || CarroEdit.Ano > 2026)
+            { ModalErro = "Insira um ano válido."; return false; }
+        }
+
+        return true;
+    }
+
+    /* ── Upload de imagem ─────────────────── */
+    private async Task OnImagemSelecionada(InputFileChangeEventArgs e)
+    {
+        UploadErro = "";
+        var arquivo = e.File;
+        if (arquivo == null) return;
+
+        if (arquivo.Size > TamanhoMaxImagemBytes)
+        {
+            UploadErro = "A imagem deve ter no máximo 5MB.";
+            return;
+        }
+
+        UploadEmProgresso = true;
+        StateHasChanged();
+
+        try
+        {
+            using var stream = arquivo.OpenReadStream(TamanhoMaxImagemBytes);
+            using var memoria = new MemoryStream();
+            await stream.CopyToAsync(memoria);
+            var base64 = Convert.ToBase64String(memoria.ToArray());
+            var dataUrl = $"data:{arquivo.ContentType};base64,{base64}";
+
+            ImagemPreviewUrl = dataUrl;
+            if (CarroEdit != null) CarroEdit.ImagemUrl = dataUrl;
+        }
+        catch (Exception)
+        {
+            UploadErro = "Não foi possível carregar a imagem. Tente novamente.";
+        }
+        finally
+        {
+            UploadEmProgresso = false;
+            StateHasChanged();
+        }
+    }
+
+    private void RemoverImagem()
+    {
+        ImagemPreviewUrl = null;
+        if (CarroEdit != null) CarroEdit.ImagemUrl = null;
     }
 
     private async Task EliminarCarro(int id)
@@ -938,6 +1115,11 @@
 
 <style>
 /* ════════════════════════════════════════════════════
+   FONTES — Sora (texto) · Rajdhani (destaques) · mono (códigos)
+════════════════════════════════════════════════════ */
+@@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Sora:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap');
+
+/* ════════════════════════════════════════════════════
    TOKENS — Cyberpunk Target
 ════════════════════════════════════════════════════ */
 :root {
@@ -958,13 +1140,15 @@
     --bg2:      #0c0c14;
     --bg3:      #12121e;
     --brd:      rgba(255,255,255,.06);
-    --txt:      #dde0f0;
-    --dim:      #5a5a7a;
+    --txt:      #eef0fa;
+    --dim:      #9b9bc4;
     --r:        10px;
     --side-w:   240px;
     --top-h:    56px;
     --ease:     cubic-bezier(.4,0,.2,1);
-    --font:     'Courier New', 'Consolas', monospace;
+    --font:       'Sora', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-disp:  'Rajdhani', 'Sora', sans-serif;
+    --font-mono:  'JetBrains Mono', 'Consolas', monospace;
 }
 
 /* ════════ RESET ════════ */
@@ -1513,7 +1697,7 @@ a { text-decoration: none; color: inherit; }
     border: 1px solid var(--c-brd);
     border-radius: 16px;
     width: 100%;
-    max-width: 560px;
+    max-width: 600px;
     max-height: 90vh;
     overflow-y: auto;
     box-shadow: 0 0 40px rgba(0,242,255,.15);
@@ -1543,7 +1727,8 @@ a { text-decoration: none; color: inherit; }
 .adm-modal-body { padding: 24px; }
 .adm-modal-foot {
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
+    align-items: center;
     gap: 10px;
     padding: 16px 24px;
     border-top: 1px solid var(--brd);
@@ -1551,6 +1736,17 @@ a { text-decoration: none; color: inherit; }
     position: sticky;
     bottom: 0;
 }
+.adm-modal-foot-right { display: flex; gap: 10px; }
+.adm-btn-back-step {
+    background: transparent;
+    border: 1px solid var(--brd);
+    color: var(--dim);
+    font-size: .78rem;
+    padding: 10px 16px;
+    border-radius: var(--r);
+    transition: all .18s;
+}
+.adm-btn-back-step:hover { border-color: var(--c-brd); color: var(--c); }
 
 .adm-field { margin-bottom: 16px; }
 .adm-field label { display: block; font-size: .72rem; color: var(--dim); letter-spacing: .06em; margin-bottom: 7px; }
@@ -1585,12 +1781,132 @@ select.adm-inp { appearance: none; cursor: pointer; }
 }
 
 /* ════════ MISC ════════ */
-.adm-mono       { font-family: var(--font); }
+.adm-mono       { font-family: var(--font-mono); }
 .adm-cyan       { color: var(--c); }
 .adm-dim        { color: var(--dim); }
 .adm-cell-title { font-weight: 600; color: var(--txt); }
 .adm-empty      { text-align: center; color: var(--dim); padding: 40px; font-size: .85rem; }
 .req            { color: var(--c); }
+
+/* ════════════════════════════════════════════════════
+   TIPOGRAFIA — destaques em Rajdhani, leitura em Sora
+════════════════════════════════════════════════════ */
+.adm-logo-name, .adm-logo-sub, .adm-nav-group, .adm-nav-lbl, .adm-admin-role,
+.adm-bc-root, .adm-bc-cur, .adm-page-title, .adm-panel-title, .adm-kpi-lbl,
+.adm-car-badge, .adm-modal-title, .adm-btn-primary, .adm-btn-ghost,
+.adm-btn-back-step, .adm-pill, .adm-badge, .adm-car-ano, .adm-car-transm,
+.adm-btn-estado, .adm-wiz-title, .adm-wiz-dot, .adm-wiz-progtext,
+.adm-upload-title {
+    font-family: var(--font-disp);
+}
+.adm-page-title  { letter-spacing: .07em; }
+.adm-nav-group   { letter-spacing: .1em; }
+.adm-bc-root,
+.adm-bc-cur      { letter-spacing: .05em; }
+.adm-modal-title { letter-spacing: .07em; }
+.adm-logo-sub    { letter-spacing: .08em; }
+.adm-nav-item    { font-weight: 500; }
+
+/* ════════════════════════════════════════════════════
+   WIZARD — passos do formulário de veículo
+════════════════════════════════════════════════════ */
+.adm-wiz-progtext { text-align: right; font-size: .72rem; color: var(--dim); margin-bottom: 8px; }
+.adm-wiz-progbar {
+    height: 3px;
+    background: rgba(255,255,255,.07);
+    border-radius: 3px;
+    margin-bottom: 22px;
+    overflow: hidden;
+}
+.adm-wiz-progfill {
+    height: 100%;
+    background: linear-gradient(90deg, #00d9ff, var(--c));
+    border-radius: 3px;
+    transition: width .35s var(--ease);
+}
+.adm-wiz-steps { display: flex; align-items: center; margin-bottom: 26px; }
+.adm-wiz-dot {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .72rem;
+    font-weight: 700;
+    flex-shrink: 0;
+    border: 1.5px solid var(--brd);
+    color: var(--dim);
+    background: rgba(255,255,255,.03);
+    transition: all .25s var(--ease);
+}
+.adm-wiz-dot.active {
+    border-color: var(--c);
+    color: var(--c);
+    background: var(--c-dim);
+    box-shadow: 0 0 10px rgba(0,242,255,.25);
+}
+.adm-wiz-dot.done { border-color: var(--c); background: var(--c); color: #001417; }
+.adm-wiz-line { flex: 1; height: 1px; background: var(--brd); transition: background .25s; }
+.adm-wiz-line.done { background: var(--c); opacity: .5; }
+.adm-wiz-title { font-size: 1.05rem; font-weight: 700; letter-spacing: .06em; color: var(--txt); margin-bottom: 4px; }
+.adm-wiz-sub   { font-size: .8rem; color: var(--dim); margin-bottom: 22px; }
+
+/* ════════════════════════════════════════════════════
+   UPLOAD DE IMAGEM
+════════════════════════════════════════════════════ */
+.adm-upload-zone {
+    position: relative;
+    min-height: 180px;
+    border: 2px dashed var(--brd);
+    border-radius: var(--r);
+    background: var(--bg);
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color .2s, background .2s;
+}
+.adm-upload-zone:hover { border-color: var(--c-brd); background: var(--c-dim); }
+.adm-upload-zone.has-image { border-style: solid; }
+.adm-upload-input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+}
+.adm-upload-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    color: var(--dim);
+    pointer-events: none;
+    padding: 24px;
+    text-align: center;
+}
+.adm-upload-title { font-size: .85rem; color: var(--txt); }
+.adm-upload-hint  { font-size: .72rem; color: var(--dim); }
+.adm-upload-preview {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    display: block;
+}
+.adm-upload-remove {
+    position: absolute;
+    top: 10px; right: 10px;
+    background: rgba(0,0,0,.65);
+    border: 1px solid rgba(255,60,92,.4);
+    color: var(--red);
+    font-size: .72rem;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 100px;
+    z-index: 2;
+    transition: background .2s;
+}
+.adm-upload-remove:hover { background: var(--red); color: #fff; }
+.adm-upload-status { font-size: .75rem; color: var(--c); margin-top: 8px; }
 
 /* ════════ RESPONSIVE ════════ */
 @@media (max-width: 900px) {
