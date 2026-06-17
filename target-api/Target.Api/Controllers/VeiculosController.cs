@@ -21,7 +21,9 @@ public class VeiculosController : ControllerBase
     }
 
     // GET: api/veiculos
+    // Público — utilizado na página /produtos antes do login
     [HttpGet]
+    [AllowAnonymous]
     [SwaggerOperation(Summary = "Lista todos os veículos")]
     public IActionResult GetAll()
     {
@@ -30,7 +32,9 @@ public class VeiculosController : ControllerBase
     }
 
     // GET: api/veiculos/{id}
+    // Público — utilizado na página de detalhe antes do login
     [HttpGet("{id:int}")]
+    [AllowAnonymous]
     [SwaggerOperation(Summary = "Obtém um veículo por id")]
     public IActionResult GetById(int id)
     {
@@ -40,7 +44,7 @@ public class VeiculosController : ControllerBase
         return Ok(v);
     }
 
-    // POST: api/veiculos
+    // POST: api/veiculos — requer autenticação (herdado da classe)
     [HttpPost]
     [SwaggerOperation(Summary = "Cria um veículo")]
     public IActionResult Create([FromBody] Veiculo body)
@@ -51,39 +55,37 @@ public class VeiculosController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = body.Id }, body);
     }
 
-    // PUT: api/veiculos/{id}
+    // PUT: api/veiculos/{id} — requer autenticação
     [HttpPut("{id:int}")]
     [SwaggerOperation(Summary = "Atualiza um veículo")]
     public IActionResult Update(int id, [FromBody] Veiculo updated)
     {
         var v = _context.Veiculos.Find(id);
-        if (v == null)
-            return NotFound();
+        if (v == null) return NotFound();
 
-        v.Marca = updated.Marca;
-        v.Modelo = updated.Modelo;
-        v.Ano = updated.Ano;
-        v.Descricao = updated.Descricao;
-        v.ImagemUrl = updated.ImagemUrl;
-        v.Cor = updated.Cor;
-        v.Estilo = updated.Estilo;
-        v.Combustivel = updated.Combustivel;
+        v.Marca         = updated.Marca;
+        v.Modelo        = updated.Modelo;
+        v.Ano           = updated.Ano;
+        v.Descricao     = updated.Descricao;
+        v.ImagemUrl     = updated.ImagemUrl;
+        v.Cor           = updated.Cor;
+        v.Estilo        = updated.Estilo;
+        v.Combustivel   = updated.Combustivel;
         v.Quilometragem = updated.Quilometragem;
-        v.Preco = updated.Preco;
-        v.Disponivel = updated.Disponivel;
+        v.Preco         = updated.Preco;
+        v.Disponivel    = updated.Disponivel;
 
         _context.SaveChanges();
         return Ok(v);
     }
 
-    // DELETE: api/veiculos/{id}
+    // DELETE: api/veiculos/{id} — requer autenticação
     [HttpDelete("{id:int}")]
     [SwaggerOperation(Summary = "Remove um veículo")]
     public IActionResult Delete(int id)
     {
         var v = _context.Veiculos.Find(id);
-        if (v == null)
-            return NotFound();
+        if (v == null) return NotFound();
 
         try
         {
@@ -92,7 +94,7 @@ public class VeiculosController : ControllerBase
         }
         catch (DbUpdateException)
         {
-            return Conflict("Não é possível remover o veículo: existem registos relacionados (avaliações, histórico, features, etc.).");
+            return Conflict("Não é possível remover o veículo: existem registos relacionados.");
         }
 
         return Ok("Veículo removido com sucesso");

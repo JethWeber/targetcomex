@@ -1,6 +1,8 @@
 @page "/produtos"
+@rendermode InteractiveServer
 @using System.Linq
 @inject NavigationManager Nav
+@inject ApiClient Api
 
 <!-- ══════════════════════════════════════════════════════
      HERO SECTION
@@ -57,6 +59,44 @@
                 <span class="stat-label">Resultados actuais</span>
             </div>
         </div>
+    </div>
+</section>
+
+<section class="products-highlight">
+    <div class="products-highlight-header">
+        <div>
+            <h2>🔥 Os Mais Comprados</h2>
+            <p>Top veículos com maior procura no Target Comex, alimentado pelo histórico de compras.</p>
+        </div>
+        <span class="products-highlight-count">@maisComprados.Count</span>
+    </div>
+    <div class="products-highlight-grid">
+        @if (maisComprados.Any())
+        {
+            @foreach (var item in maisComprados)
+            {
+                <div class="highlight-card">
+                    <img src="@item.ImagemUrl" alt="@item.Marca @item.Modelo" loading="lazy" />
+                    <div class="highlight-body">
+                        <div class="highlight-meta">
+                            <span>@item.Marca</span>
+                            <span>@item.Ano</span>
+                        </div>
+                        <h3>@item.Modelo</h3>
+                        <div class="highlight-footer">
+                            <span>AOA @item.Preco.ToString("N0").Replace(",", ".")</span>
+                            <span>@item.TotalCompras compras</span>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="highlight-empty">
+                Ainda a carregar os veículos mais procurados.
+            </div>
+        }
     </div>
 </section>
 
@@ -859,27 +899,67 @@
     List<string> opcoesMarca  = new() { "BMW", "Mercedes", "Toyota", "Audi", "Tesla", "Hyundai" };
     List<string> opcoesTransm = new() { "Automática", "Manual" };
 
-    // ── Dados hardcoded ──────────────────────────────────
-    List<Veiculo> veiculos = new()
-    {
-        new(1, "BMW M4 Competition",      "BMW",      "Gasolina",  "Automática", "3.0L Twin-Turbo", 510, 2023, 420_000_000, 97, "Luanda",    "img/cars/bmw-m4.jpg"),
-        new(2, "Tesla Model S Plaid",     "Tesla",    "Elétrico",  "Automática", "Tri-Motor",        1020, 2024, 650_000_000, 99, "Luanda",    "img/cars/tesla-ms.jpg"),
-        new(3, "Mercedes-AMG C63",        "Mercedes", "Híbrido",   "Automática", "2.0L Turbo-Híb",  680, 2024, 580_000_000, 95, "Benguela",  "img/cars/amg-c63.jpg"),
-        new(4, "Toyota GR Supra 3.0",     "Toyota",   "Gasolina",  "Manual",     "3.0L Turbo",       382, 2022, 280_000_000, 88, "Luanda",    "img/cars/supra.jpg"),
-        new(5, "Audi RS6 Avant",          "Audi",     "Gasolina",  "Automática", "4.0L V8 Turbo",    600, 2023, 510_000_000, 94, "Lubango",   "img/cars/rs6.jpg"),
-        new(6, "Hyundai IONIQ 6",         "Hyundai",  "Elétrico",  "Automática", "Dual Motor",       320, 2024, 210_000_000, 91, "Luanda",    "img/cars/ioniq6.jpg"),
-        new(7, "BMW iX M60",              "BMW",      "Elétrico",  "Automática", "Dual Motor",       619, 2024, 720_000_000, 96, "Luanda",    "img/cars/bmw-ix.jpg"),
-        new(8, "Mercedes EQS 450+",       "Mercedes", "Elétrico",  "Automática", "Single Motor",     329, 2023, 480_000_000, 93, "Benguela",  "img/cars/eqs.jpg"),
-        new(9, "Audi Q8 e-tron",          "Audi",     "Elétrico",  "Automática", "Dual Motor",       408, 2024, 550_000_000, 92, "Luanda",    "img/cars/q8-etron.jpg"),
-        new(10,"Toyota bZ4X",             "Toyota",   "Elétrico",  "Automática", "Dual Motor",       218, 2023, 180_000_000, 85, "Luanda",    "img/cars/bz4x.jpg"),
-        new(11,"BMW 330e",                "BMW",      "Híbrido",   "Automática", "2.0L Turbo-Híb",  293, 2022, 260_000_000, 87, "Malanje",   "img/cars/330e.jpg"),
-        new(12,"Mercedes C 300 e",        "Mercedes", "Híbrido",   "Automática", "2.0L Turbo-Híb",  313, 2023, 370_000_000, 89, "Luanda",    "img/cars/c300e.jpg"),
-    };
-
-    // ── Lista filtrada ───────────────────────────────────
+    // ── Dados carregados da API ───────────────────────────
+    List<Veiculo> veiculos = new();
     List<Veiculo> veiculosFiltrados = new();
+    List<MaisComprado> maisComprados = new();
 
-    protected override void OnInitialized() => AplicarFiltros();
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadVeiculosAsync();
+        await LoadMaisCompradosAsync();
+        AplicarFiltros();
+    }
+
+    async Task LoadMaisCompradosAsync()
+    {
+        var result = await Api.GetMaisCompradosAsync(6);
+        if (result.Success)
+        {
+            maisComprados = result.Data.Select(v => new MaisComprado(
+                v.Id,
+                v.Marca ?? string.Empty,
+                v.Modelo ?? string.Empty,
+                v.Ano,
+                v.ImagemUrl ?? "img/cars/default.jpg",
+                v.Preco,
+                v.TotalCompras
+            )).ToList();
+        }
+        else
+        {
+            maisComprados = new();
+        }
+    }
+
+    async Task LoadVeiculosAsync()
+    {
+        var result = await Api.GetVeiculosAsync();
+        if (result.Success)
+        {
+            veiculos = result.Data.Select(MapVeiculo).ToList();
+        }
+        else
+        {
+            veiculos = new();
+        }
+    }
+
+    static Veiculo MapVeiculo(VeiculoDto v)
+        => new(
+            v.Id,
+            $"{v.Marca} {v.Modelo}",
+            v.Marca,
+            v.Combustivel ?? "N/A",
+            v.Transmissao ?? "N/A",
+            v.Motor ?? "N/A",
+            v.Potencia ?? 0,
+            v.Ano,
+            (long)Math.Round(v.Preco),
+            v.Disponivel ? 92 : 74,
+            v.Localizacao ?? "Localização não disponível",
+            v.ImagemUrl ?? "img/cars/default.jpg"
+        );
 
     void AplicarFiltros()
     {
@@ -947,6 +1027,17 @@
     {
         if (!favoritos.Add(id)) favoritos.Remove(id);
     }
+
+    record MaisComprado
+    (
+        int Id,
+        string Marca,
+        string Modelo,
+        int Ano,
+        string ImagemUrl,
+        decimal Preco,
+        int TotalCompras
+    );
 
     // Scroll reveal via JS interop (inicializado uma vez)
     protected override async Task OnAfterRenderAsync(bool firstRender)

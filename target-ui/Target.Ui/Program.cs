@@ -1,24 +1,42 @@
 using Target.Ui.Components;
+using Target.Ui.Services;
+using Microsoft.AspNetCore.DataProtection;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// ── Razor / Server ──────────────────────────────────────────────
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
-    
-builder.Services.AddHttpClient();
 
+// ── Data Protection ─────────────────────────────────────────────
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(
+        Path.Combine(builder.Environment.ContentRootPath, "DataProtection-Keys")));
+
+// ── Auth Service (apenas UMA vez) ───────────────────────────────
+builder.Services.AddScoped<AuthService>();
+
+// ── HttpClient apontando para a API (apenas UM registo) ─────────
+var apiUrl = (builder.Configuration["ApiServiceUrl"] ?? "http://localhost:5000").TrimEnd('/');
+
+builder.Services.AddTransient<ApiAuthorizationMessageHandler>();
+
+builder.Services.AddHttpClient<ApiClient>(client =>
+{
+    client.BaseAddress = new Uri(apiUrl);
+})
+.AddHttpMessageHandler<ApiAuthorizationMessageHandler>();
+
+// ────────────────────────────────────────────────────────────────
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
+    app.UseHttpsRedirection();
 }
 
-app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseAntiforgery();
 

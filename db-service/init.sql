@@ -25,6 +25,7 @@ CREATE TABLE Usuarios (
     SenhaHash            VARCHAR(255)      NOT NULL DEFAULT 'changeme',
     Role                 VARCHAR(20)       NOT NULL DEFAULT 'cliente'
                                            CHECK (Role IN ('cliente', 'admin', 'vendedor')),
+    Telefone             VARCHAR(20)       NULL,                          -- ✅ adicionado
     DataNascimento       DATE              NULL,
     Genero               CHAR(1)           NULL CHECK (Genero IN ('M','F')),
     EstadoCivil          VARCHAR(50)       NULL,
@@ -61,6 +62,10 @@ CREATE TABLE Veiculos (
     Cor           VARCHAR(50)     NULL,
     Estilo        VARCHAR(50)     NULL,  -- Pick-up | Hatchback | SUV | Sedan
     Combustivel   VARCHAR(30)     NULL,
+    Motor         VARCHAR(100)    NULL,
+    Potencia      INT             NULL,
+    Transmissao   VARCHAR(30)     NULL,
+    Localizacao   VARCHAR(100)    NULL,
     Quilometragem INT             NULL DEFAULT 0,
     Preco         DECIMAL(18,2)   NOT NULL,
     Disponivel    BIT             DEFAULT 1
@@ -83,6 +88,18 @@ CREATE TABLE HistoricoCompras (
     VeiculoId  INT           NOT NULL REFERENCES Veiculos(Id),
     DataCompra DATETIME      DEFAULT GETDATE(),
     ValorPago  DECIMAL(18,2) NOT NULL
+);
+GO
+
+-- ================== RESERVAS ==================
+CREATE TABLE Reservas (
+    Id          INT IDENTITY(1,1) PRIMARY KEY,
+    UsuarioId   INT           NOT NULL REFERENCES Usuarios(Id),
+    VeiculoId   INT           NOT NULL REFERENCES Veiculos(Id),
+    TipoPedido  VARCHAR(50)   NULL,
+    Showroom    VARCHAR(100)  NULL,
+    Estado      VARCHAR(30)   NOT NULL DEFAULT 'Pendente',
+    DataReserva DATETIME      DEFAULT GETDATE()
 );
 GO
 

@@ -24,6 +24,14 @@ namespace Target.Api.Models
 
         public string? Combustivel { get; set; }
 
+        public string? Motor { get; set; }
+
+        public int? Potencia { get; set; }
+
+        public string? Transmissao { get; set; }
+
+        public string? Localizacao { get; set; }
+
         public int? Quilometragem { get; set; }
 
         public decimal Preco { get; set; }

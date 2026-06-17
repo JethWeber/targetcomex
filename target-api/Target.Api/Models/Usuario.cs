@@ -12,6 +12,8 @@ namespace Target.Api.Models
         [Required]
         public string Email { get; set; }
 
+        public string? Telefone { get; set; }
+
         [Required]
         public string SenhaHash { get; set; }
 
@@ -33,6 +35,8 @@ namespace Target.Api.Models
         public string? InteressesPrincipais { get; set; }
 
         public string? TipoDeUsoPretendido { get; set; }
+
+        public Endereco? Endereco { get; set; }
 
         public DateTime DataCadastro { get; set; }
     }

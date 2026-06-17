@@ -1,5 +1,8 @@
 @page "/detalhes-veiculo/{VeiculoId:int}"
+@rendermode InteractiveServer
 @using System.Linq
+@inject ApiClient Api
+@inject AuthService AuthService
 
 <!-- ══════════════════════════════════════════════════════
      DETALHE DO VEÍCULO
@@ -16,10 +19,15 @@ else
 {
 <!-- ── HERO IMAGEM PRINCIPAL ── -->
 <section class="dv-hero">
-    <div class="dv-hero-img-wrap">
+    <div class="dv-hero-img-wrap" @onclick="() => AbrirPopup(fotoPrincipal)" style="cursor: pointer;">
         <img src="@fotoPrincipal" alt="@veiculo.Nome" class="dv-hero-img" />
         <div class="dv-hero-overlay"></div>
         <div class="dv-scan-line"></div>
+        <div class="dv-hero-fullscreen-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+            </svg>
+        </div>
     </div>
 
     <div class="dv-hero-content">
@@ -78,9 +86,14 @@ else
                 {
                     var idx = i;
                     <div class="dv-thumb @(fotoPrincipal == fotos[idx] ? "active" : "")"
-                         @onclick="() => fotoPrincipal = fotos[idx]">
+                         @onclick="() => { fotoPrincipal = fotos[idx]; AbrirPopup(fotos[idx]); }">
                         <img src="@fotos[idx]" alt="Foto @(idx+1)" />
                         <div class="dv-thumb-overlay"></div>
+                        <div class="dv-thumb-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                            </svg>
+                        </div>
                     </div>
                 }
             </div>
@@ -359,6 +372,57 @@ else
 
     </aside>
 </div>
+}
+
+<!-- ══════════════════════════════════════════════════════
+     MODAL POPUP DE IMAGEM
+══════════════════════════════════════════════════════ -->
+@if (mostrarPopup)
+{
+    <div class="dv-modal-overlay" @onclick="FecharPopup"></div>
+    <div class="dv-modal-popup">
+        <div class="dv-popup-container">
+            <!-- Botão Fechar -->
+            <button class="dv-popup-close" @onclick="FecharPopup">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+
+            <!-- Navegação -->
+            <button class="dv-popup-nav dv-popup-prev" @onclick="FotoAnterior" disabled="@(indiceAtual == 0)">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="15 18 9 12 15 6"/>
+                </svg>
+            </button>
+
+            <button class="dv-popup-nav dv-popup-next" @onclick="ProximaFoto" disabled="@(indiceAtual == fotos.Count - 1)">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="9 18 15 12 9 6"/>
+                </svg>
+            </button>
+
+            <!-- Imagem -->
+            <div class="dv-popup-content">
+                <img src="@imagemPopup" alt="Visualizar" class="dv-popup-img" />
+            </div>
+
+            <!-- Indicador de página -->
+            <div class="dv-popup-counter">@(indiceAtual + 1) / @fotos.Count</div>
+
+            <!-- Miniaturas inferiores -->
+            <div class="dv-popup-thumbnails">
+                @for (int i = 0; i < fotos.Count; i++)
+                {
+                    var idx = i;
+                    <div class="dv-popup-thumb @(indiceAtual == idx ? "active" : "")"
+                         @onclick="() => SelecionarFoto(idx)">
+                        <img src="@fotos[idx]" alt="Foto @(idx+1)" />
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
 }
 
 <!-- ══════════════════════════════════════════════════════
@@ -813,6 +877,153 @@ else
     .dv-score-ring { width: 80px; height: 80px; }
     .dv-score-desc { font-size: 0.75rem; color: var(--text-dim); line-height: 1.5; }
 
+    /* ══════════════════════════════
+       POPUP DE IMAGEM
+    ══════════════════════════════ */
+    .dv-modal-overlay {
+        position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.92);
+        backdrop-filter: blur(8px);
+        z-index: 9998;
+        animation: fadeIn 0.3s ease-out;
+    }
+
+    .dv-modal-popup {
+        position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+        z-index: 9999;
+        display: flex; align-items: center; justify-content: center;
+        animation: slideUp 0.35s cubic-bezier(0.22,1,0.36,1);
+    }
+
+    .dv-popup-container {
+        position: relative;
+        width: 90%; height: 90vh;
+        max-width: 900px; max-height: 800px;
+        background: var(--bg-dark);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        display: flex; flex-direction: column;
+        overflow: hidden;
+    }
+
+    .dv-popup-content {
+        flex: 1;
+        display: flex; align-items: center; justify-content: center;
+        overflow: hidden;
+        background: rgba(0,0,0,0.5);
+    }
+
+    .dv-popup-img {
+        max-width: 100%; max-height: 100%;
+        object-fit: contain;
+        animation: zoomIn 0.4s cubic-bezier(0.22,1,0.36,1);
+    }
+
+    .dv-popup-close {
+        position: absolute; top: 16px; right: 16px;
+        width: 42px; height: 42px;
+        background: rgba(0,242,255,0.1);
+        border: 1px solid rgba(0,242,255,0.3);
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        color: var(--cyan);
+        cursor: pointer;
+        z-index: 10;
+        transition: all 0.2s;
+    }
+    .dv-popup-close:hover { background: rgba(0,242,255,0.2); border-color: var(--cyan); }
+
+    .dv-popup-nav {
+        position: absolute; top: 50%; transform: translateY(-50%);
+        width: 48px; height: 48px;
+        background: rgba(0,242,255,0.12);
+        border: 1px solid rgba(0,242,255,0.25);
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        color: var(--cyan);
+        cursor: pointer;
+        z-index: 10;
+        transition: all 0.2s;
+    }
+    .dv-popup-nav:hover:not([disabled]) { background: rgba(0,242,255,0.25); border-color: var(--cyan); }
+    .dv-popup-nav[disabled] { opacity: 0.3; cursor: not-allowed; }
+    .dv-popup-prev { left: 16px; }
+    .dv-popup-next { right: 16px; }
+
+    .dv-popup-counter {
+        position: absolute; top: 16px; left: 16px;
+        font-size: 0.82rem; font-weight: 700;
+        color: var(--text-dim);
+        background: rgba(0,0,0,0.6);
+        padding: 8px 14px;
+        border-radius: 100px;
+        border: 1px solid rgba(0,242,255,0.2);
+        z-index: 10;
+    }
+
+    .dv-popup-thumbnails {
+        display: flex; gap: 8px; padding: 12px; justify-content: center;
+        background: var(--bg-card);
+        border-top: 1px solid var(--border);
+        overflow-x: auto;
+    }
+
+    .dv-popup-thumb {
+        width: 60px; height: 50px; flex-shrink: 0;
+        border: 2px solid transparent;
+        border-radius: var(--radius-sm);
+        overflow: hidden;
+        cursor: pointer;
+        opacity: 0.6;
+        transition: all 0.2s;
+    }
+    .dv-popup-thumb:hover { opacity: 0.85; }
+    .dv-popup-thumb.active { opacity: 1; border-color: var(--cyan); }
+    .dv-popup-thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+    /* Icon de fullscreen na hero -->
+    .dv-hero-fullscreen-icon {
+        position: absolute; bottom: 16px; right: 16px;
+        width: 36px; height: 36px;
+        background: rgba(0,242,255,0.12);
+        border: 1px solid rgba(0,242,255,0.3);
+        border-radius: 8px;
+        display: flex; align-items: center; justify-content: center;
+        color: var(--cyan);
+        opacity: 0;
+        transition: all 0.3s;
+        z-index: 5;
+    }
+    .dv-hero-img-wrap:hover .dv-hero-fullscreen-icon { opacity: 1; }
+
+    /* Icon de download nas miniaturas -->
+    .dv-thumb-icon {
+        position: absolute; bottom: 8px; right: 8px;
+        width: 28px; height: 28px;
+        background: rgba(0,242,255,0.15);
+        border: 1px solid rgba(0,242,255,0.35);
+        border-radius: 6px;
+        display: flex; align-items: center; justify-content: center;
+        color: var(--cyan);
+        opacity: 0;
+        transition: all 0.25s;
+    }
+    .dv-thumb:hover .dv-thumb-icon { opacity: 1; }
+
+    /* Animações -->
+    @@keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    @@keyframes slideUp {
+        from { transform: translateY(60px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+    @@keyframes zoomIn {
+        from { transform: scale(0.92); opacity: 0; }
+        to { transform: scale(1); opacity: 1; }
+    }
+
     /* ── RESPONSIVE ── */
     @@media (max-width: 1100px) {
         .dv-body { grid-template-columns: 1fr; }
@@ -854,35 +1065,23 @@ else
 
     record Comentario(string Autor, string Texto, int Avaliacao, DateTime Data, bool IsNew = false);
 
-    // ── Dados ─────────────────────────────────────────────
-    List<Veiculo> todos = new()
-    {
-        new(1,  "BMW M4 Competition",    "BMW",      "Gasolina", "Automática", "3.0L Twin-Turbo",  510,  2023, 420_000_000, 97, "Luanda",   "img/cars/bmw-m4.jpg"),
-        new(2,  "Tesla Model S Plaid",   "Tesla",    "Elétrico", "Automática", "Tri-Motor",        1020, 2024, 650_000_000, 99, "Luanda",   "img/cars/tesla-ms.jpg"),
-        new(3,  "Mercedes-AMG C63",      "Mercedes", "Híbrido",  "Automática", "2.0L Turbo-Híb",  680,  2024, 580_000_000, 95, "Benguela", "img/cars/amg-c63.jpg"),
-        new(4,  "Toyota GR Supra 3.0",   "Toyota",   "Gasolina", "Manual",     "3.0L Turbo",       382,  2022, 280_000_000, 88, "Luanda",   "img/cars/supra.jpg"),
-        new(5,  "Audi RS6 Avant",        "Audi",     "Gasolina", "Automática", "4.0L V8 Turbo",    600,  2023, 510_000_000, 94, "Lubango",  "img/cars/rs6.jpg"),
-        new(6,  "Hyundai IONIQ 6",       "Hyundai",  "Elétrico", "Automática", "Dual Motor",       320,  2024, 210_000_000, 91, "Luanda",   "img/cars/ioniq6.jpg"),
-        new(7,  "BMW iX M60",            "BMW",      "Elétrico", "Automática", "Dual Motor",       619,  2024, 720_000_000, 96, "Luanda",   "img/cars/bmw-ix.jpg"),
-        new(8,  "Mercedes EQS 450+",     "Mercedes", "Elétrico", "Automática", "Single Motor",     329,  2023, 480_000_000, 93, "Benguela", "img/cars/eqs.jpg"),
-        new(9,  "Audi Q8 e-tron",        "Audi",     "Elétrico", "Automática", "Dual Motor",       408,  2024, 550_000_000, 92, "Luanda",   "img/cars/q8-etron.jpg"),
-        new(10, "Toyota bZ4X",           "Toyota",   "Elétrico", "Automática", "Dual Motor",       218,  2023, 180_000_000, 85, "Luanda",   "img/cars/bz4x.jpg"),
-        new(11, "BMW 330e",              "BMW",      "Híbrido",  "Automática", "2.0L Turbo-Híb",  293,  2022, 260_000_000, 87, "Malanje",  "img/cars/330e.jpg"),
-        new(12, "Mercedes C 300 e",      "Mercedes", "Híbrido",  "Automática", "2.0L Turbo-Híb",  313,  2023, 370_000_000, 89, "Luanda",   "img/cars/c300e.jpg"),
-    };
+    // ── Modal Popup ─────────────────────────────────────
+    bool mostrarPopup = false;
+    string imagemPopup = "";
+    int indiceAtual = 0;
 
+    // ── Dados ─────────────────────────────────────────────
+    List<Veiculo> todos = new();
     Veiculo? veiculo;
     List<Veiculo> outrosVeiculos = new();
     List<string> fotos = new();
     string fotoPrincipal = "";
+    string apiError = string.Empty;
+    bool isLoading = true;
     bool isFav = false;
 
     // ── Comentários ─────────────────────────────────────
-    List<Comentario> comentarios = new()
-    {
-        new("Carlos M.",   "Testei este carro e fiquei impressionado com a resposta do motor. Vale cada kwanza!", 5, DateTime.Now.AddDays(-3)),
-        new("Ana Ferreira","Relação custo-benefício excelente para o mercado angolano. Recomendo vivamente.", 4, DateTime.Now.AddDays(-7)),
-    };
+    List<Comentario> comentarios = new();
 
     string novoAutor  = "";
     string novoTexto  = "";
@@ -893,31 +1092,167 @@ else
                       && !string.IsNullOrWhiteSpace(novoTexto)
                       && novaAvaliacao > 0;
 
-    protected override void OnParametersSet()
+    protected override async Task OnParametersSetAsync()
     {
-        Console.WriteLine($"VeiculoId recebido: {VeiculoId}");
-        veiculo = todos.FirstOrDefault(v => v.Id == VeiculoId) ?? todos[0];
-        outrosVeiculos = todos.Where(v => v.Id != veiculo!.Id).OrderByDescending(v => v.ScoreIA).ToList();
+        isLoading = true;
+        apiError = string.Empty;
+        await LoadVeiculoAsync();
+        await LoadAvaliacoesAsync();
+        await RegistrarHistoricoAsync();
+        isLoading = false;
+    }
 
-        // Simula múltiplas fotos reutilizando a imagem principal
-        fotos = new List<string> {
-            veiculo!.Imagem,
+    async Task LoadVeiculoAsync()
+    {
+        var result = await Api.GetVeiculoAsync(VeiculoId);
+        if (!result.Success || result.Data == null)
+        {
+            apiError = "Não foi possível carregar os detalhes do veículo.";
+            veiculo = null;
+            return;
+        }
+
+        veiculo = MapVeiculo(result.Data);
+
+        var allResult = await Api.GetVeiculosAsync();
+        todos = allResult.Success ? allResult.Data.Select(MapVeiculo).ToList() : new List<Veiculo>();
+        outrosVeiculos = todos.Where(v => v.Id != veiculo.Id).OrderByDescending(v => v.ScoreIA).ToList();
+
+        fotos = new List<string>
+        {
+            veiculo.Imagem,
             outrosVeiculos.ElementAtOrDefault(0)?.Imagem ?? veiculo.Imagem,
             outrosVeiculos.ElementAtOrDefault(1)?.Imagem ?? veiculo.Imagem,
             outrosVeiculos.ElementAtOrDefault(2)?.Imagem ?? veiculo.Imagem,
+            outrosVeiculos.ElementAtOrDefault(3)?.Imagem ?? veiculo.Imagem,
         };
         fotoPrincipal = fotos[0];
     }
 
+    static Veiculo MapVeiculo(VeiculoDto v)
+        => new(
+            v.Id,
+            $"{v.Marca} {v.Modelo}",
+            v.Marca,
+            v.Combustivel ?? "N/A",
+            v.Transmissao ?? "N/A",
+            v.Motor ?? "N/A",
+            v.Potencia ?? 0,
+            v.Ano,
+            (long)Math.Round(v.Preco),
+            v.Disponivel ? 94 : 78,
+            v.Localizacao ?? "Localização não disponível",
+            v.ImagemUrl ?? "img/cars/default.jpg"
+        );
+
+    async Task LoadAvaliacoesAsync()
+    {
+        if (veiculo == null)
+        {
+            comentarios = new();
+            return;
+        }
+
+        var result = await Api.GetAvaliacoesPorVeiculoAsync(veiculo.Id);
+        comentarios = result.Success
+            ? result.Data.Select(MapComentario).ToList()
+            : new List<Comentario>();
+    }
+
+    static Comentario MapComentario(AvaliacaoDto dto)
+        => new(
+            $"Cliente #{dto.UsuarioId}",
+            dto.Comentario ?? "Comentário não disponível.",
+            dto.Nota,
+            dto.DataAvaliacao.ToLocalTime()
+        );
+
+    async Task RegistrarHistoricoAsync()
+    {
+        if (veiculo == null)
+            return;
+
+        var userId = await AuthService.GetUserIdAsync();
+        if (userId == null)
+            return;
+
+        await Api.RegistrarHistoricoNavegacaoAsync(userId.Value, veiculo.Id);
+    }
+
+    // ── Métodos do Popup ────────────────────────────────
+    void AbrirPopup(string imagem)
+    {
+        imagemPopup = imagem;
+        indiceAtual = fotos.IndexOf(imagem);
+        mostrarPopup = true;
+    }
+
+    void FecharPopup()
+    {
+        mostrarPopup = false;
+        imagemPopup = "";
+        indiceAtual = 0;
+    }
+
+    void ProximaFoto()
+    {
+        if (indiceAtual < fotos.Count - 1)
+        {
+            indiceAtual++;
+            imagemPopup = fotos[indiceAtual];
+            fotoPrincipal = fotos[indiceAtual];
+        }
+    }
+
+    void FotoAnterior()
+    {
+        if (indiceAtual > 0)
+        {
+            indiceAtual--;
+            imagemPopup = fotos[indiceAtual];
+            fotoPrincipal = fotos[indiceAtual];
+        }
+    }
+
+    void SelecionarFoto(int indice)
+    {
+        indiceAtual = indice;
+        imagemPopup = fotos[indice];
+        fotoPrincipal = fotos[indice];
+    }
+
     async Task SubmeterComentario()
     {
-        if (!PodeSubmeter) return;
+        if (!PodeSubmeter || veiculo == null) return;
 
-        var novo = new Comentario(novoAutor.Trim(), novoTexto.Trim(), novaAvaliacao, DateTime.Now, true);
-        comentarios.Add(novo);
+        var userId = await AuthService.GetUserIdAsync();
+        var request = new AvaliacaoCreateRequest
+        {
+            VeiculoId = veiculo.Id,
+            UsuarioId = userId ?? 0,
+            Nota = novaAvaliacao,
+            Comentario = novoTexto.Trim()
+        };
 
-        novoAutor     = "";
-        novoTexto     = "";
+        if (userId != null)
+        {
+            var result = await Api.CriarAvaliacaoAsync(request);
+            if (result.Success && result.Data != null)
+            {
+                comentarios.Insert(0, MapComentario(result.Data));
+            }
+            else
+            {
+                comentarios.Insert(0, new Comentario("Cliente", novoTexto.Trim(), novaAvaliacao, DateTime.Now, true));
+            }
+        }
+        else
+        {
+            comentarios.Insert(0, new Comentario("Cliente Anônimo", novoTexto.Trim(), novaAvaliacao, DateTime.Now, true));
+        }
+
+        novoAutor = "";
+        novoTexto = "";
         novaAvaliacao = 0;
         mostrarSucesso = true;
 

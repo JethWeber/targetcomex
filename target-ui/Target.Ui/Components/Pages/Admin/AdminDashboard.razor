@@ -1,0 +1,1619 @@
+@page "/admin"
+@rendermode InteractiveServer
+@layout EmptyLayout
+@inject ApiClient Api
+@inject AuthService AuthService
+@inject NavigationManager Nav
+
+<h2 class="sr-only">Painel de Administração — Target Comex</h2>
+
+<!-- ═══════════════════════════════════════════════════
+     ADMIN DASHBOARD — TARGET COMEX
+     Identidade: Cyberpunk / Ciano · Preto · Roxo
+═══════════════════════════════════════════════════ -->
+
+<div class="adm-shell">
+
+    <!-- ══ SIDEBAR ══ -->
+    <aside class="adm-side @(SideOpen ? "open" : "")">
+        <div class="adm-logo">
+            <span class="adm-logo-t">T</span>
+            <div>
+                <div class="adm-logo-name">TARGET</div>
+                <div class="adm-logo-sub">ADMIN CORE</div>
+            </div>
+        </div>
+
+        <nav class="adm-nav">
+            <div class="adm-nav-group">SISTEMA</div>
+            @foreach (var item in NavItems)
+            {
+                var it = item;
+                <button class="adm-nav-item @(ActiveTab == it.Id ? "on" : "")"
+                        @onclick="() => { ActiveTab = it.Id; SideOpen = false; }">
+                    <span class="adm-nav-ico">@((MarkupString)it.Icon)</span>
+                    <span class="adm-nav-lbl">@it.Label</span>
+                    @if (it.Badge > 0)
+                    {
+                        <span class="adm-badge">@it.Badge</span>
+                    }
+                </button>
+            }
+
+            <div class="adm-nav-group" style="margin-top:18px">SESSÃO</div>
+            <button class="adm-nav-item adm-nav-danger" @onclick="Logout">
+                <span class="adm-nav-ico">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                        <polyline points="16 17 21 12 16 7"/>
+                        <line x1="21" y1="12" x2="9" y2="12"/>
+                    </svg>
+                </span>
+                <span class="adm-nav-lbl">Terminar Sessão</span>
+            </button>
+        </nav>
+
+        <div class="adm-side-foot">
+            <div class="adm-admin-av">AD</div>
+            <div>
+                <div class="adm-admin-name">Admin Root</div>
+                <div class="adm-admin-role">Nível 5 · Acesso Total</div>
+            </div>
+            <div class="adm-status-dot"></div>
+        </div>
+    </aside>
+
+    <!-- ══ MAIN ══ -->
+    <main class="adm-main">
+
+        <!-- Top bar -->
+        <header class="adm-topbar">
+            <button class="adm-menu-btn" @onclick="() => SideOpen = !SideOpen">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                    <line x1="3" y1="6" x2="21" y2="6"/>
+                    <line x1="3" y1="12" x2="21" y2="12"/>
+                    <line x1="3" y1="18" x2="21" y2="18"/>
+                </svg>
+            </button>
+            <div class="adm-breadcrumb">
+                <span class="adm-bc-root">TARGET / ADMIN</span>
+                <span class="adm-bc-sep">›</span>
+                <span class="adm-bc-cur">@NavItems.FirstOrDefault(n => n.Id == ActiveTab)?.Label</span>
+            </div>
+            <div class="adm-topbar-right">
+                <div class="adm-topbar-time">@DateTime.Now.ToString("HH:mm")</div>
+                <div class="adm-notif">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                    </svg>
+                    <span class="adm-notif-dot"></span>
+                </div>
+            </div>
+        </header>
+
+        <!-- ══════ OVERVIEW ══════ -->
+        @if (ActiveTab == "overview")
+        {
+            <div class="adm-content">
+                <div class="adm-page-hdr">
+                    <h1 class="adm-page-title">VISÃO GERAL</h1>
+                    <p class="adm-page-sub">Sistema operacional · Todos os módulos activos</p>
+                </div>
+
+                <!-- KPI cards -->
+                <div class="adm-kpis">
+                    @foreach (var kpi in Kpis)
+                    {
+                        <div class="adm-kpi @kpi.Color">
+                            <div class="adm-kpi-top">
+                                <span class="adm-kpi-lbl">@kpi.Label</span>
+                                <span class="adm-kpi-ico">@((MarkupString)kpi.Icon)</span>
+                            </div>
+                            <div class="adm-kpi-val">@kpi.Value</div>
+                            <div class="adm-kpi-delta @(kpi.DeltaUp ? "up" : "down")">
+                                @(kpi.DeltaUp ? "▲" : "▼") @kpi.Delta este mês
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <!-- Reservas recentes + actividade -->
+                <div class="adm-grid2">
+                    <div class="adm-panel">
+                        <div class="adm-panel-hdr">
+                            <span class="adm-panel-title">RESERVAS RECENTES</span>
+                            <button class="adm-btn-ghost" @onclick='() => ActiveTab = "reservas"'>Ver todas</button>
+                        </div>
+                        <table class="adm-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th><th>Cliente</th><th>Veículo</th><th>Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var r in Reservas.Take(5))
+                                {
+                                    <tr>
+                                        <td class="adm-mono">#@r.Id</td>
+                                        <td>@r.Cliente</td>
+                                        <td class="adm-dim">@r.Veiculo</td>
+                                        <td><span class="adm-pill @EstadoClass(r.Estado)">@r.Estado</span></td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="adm-panel">
+                        <div class="adm-panel-hdr">
+                            <span class="adm-panel-title">LOG DE ACTIVIDADE</span>
+                        </div>
+                        <div class="adm-log">
+                            @foreach (var log in Logs)
+                            {
+                                <div class="adm-log-item">
+                                    <span class="adm-log-dot @log.Type"></span>
+                                    <div>
+                                        <div class="adm-log-msg">@log.Msg</div>
+                                        <div class="adm-log-time">@log.Time</div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- ══════ CARROS ══════ -->
+        @if (ActiveTab == "carros")
+        {
+            <div class="adm-content">
+                <div class="adm-page-hdr">
+                    <div>
+                        <h1 class="adm-page-title">GESTÃO DE CARROS</h1>
+                        <p class="adm-page-sub">@Carros.Count veículos no sistema</p>
+                    </div>
+                    <button class="adm-btn-primary" @onclick="AbrirModalCarro">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        Novo Veículo
+                    </button>
+                </div>
+
+                <!-- Filtros -->
+                <div class="adm-filters">
+                    <input class="adm-search" type="text" placeholder="Pesquisar marca, modelo..." @bind="FiltroCarros" @bind:event="oninput" />
+                    <select class="adm-select" @bind="FiltroEstadoCarro">
+                        <option value="">Todos os estados</option>
+                        <option>Disponível</option>
+                        <option>Reservado</option>
+                        <option>Vendido</option>
+                    </select>
+                </div>
+
+                <!-- Cards de veículos -->
+                <div class="adm-car-grid">
+                    @foreach (var c in CarrosFiltrados)
+                    {
+                        var carro = c;
+                        <div class="adm-car-card">
+                            <div class="adm-car-img-wrap">
+                                <img src="@(string.IsNullOrEmpty(carro.ImagemUrl) ? "img/cars/default.jpg" : carro.ImagemUrl)"
+                                     alt="@carro.Marca @carro.Modelo"
+                                     class="adm-car-img"
+                                     loading="lazy" />
+                                <div class="adm-car-badge">@carro.Combustivel</div>
+                                <span class="adm-pill @EstadoCarroClass(carro.Estado) adm-car-estado-pill">@carro.Estado</span>
+                                <div class="adm-car-id adm-mono">#@carro.Id</div>
+                            </div>
+                            <div class="adm-car-body">
+                                <div class="adm-car-meta">
+                                    <span class="adm-car-ano">@carro.Ano</span>
+                                    <span class="adm-car-transm">@carro.Transmissao</span>
+                                </div>
+                                <h4 class="adm-car-name">@carro.Marca @carro.Modelo</h4>
+                                <div class="adm-car-specs">
+                                    @if (!string.IsNullOrEmpty(carro.Motor))
+                                    {
+                                        <span>⚙ @carro.Motor</span>
+                                    }
+                                    @if (carro.Potencia.HasValue && carro.Potencia > 0)
+                                    {
+                                        <span>🏎 @carro.Potencia cv</span>
+                                    }
+                                    @if (!string.IsNullOrEmpty(carro.Localizacao))
+                                    {
+                                        <span>📍 @carro.Localizacao</span>
+                                    }
+                                </div>
+                                <div class="adm-car-footer">
+                                    <div class="adm-car-price adm-cyan adm-mono">AOA @carro.Preco.ToString("N0")</div>
+                                    <div class="adm-actions">
+                                        <button class="adm-act-btn" title="Editar" @onclick="() => EditarCarro(carro)">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                        </button>
+                                        <button class="adm-act-btn adm-act-danger" title="Eliminar" @onclick="() => EliminarCarro(carro.Id)">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                @if (!CarrosFiltrados.Any())
+                {
+                    <div class="adm-empty">Nenhum veículo encontrado</div>
+                }
+            </div>
+        }
+
+        <!-- ══════ UTILIZADORES ══════ -->
+        @if (ActiveTab == "users")
+        {
+            <div class="adm-content">
+                <div class="adm-page-hdr">
+                    <div>
+                        <h1 class="adm-page-title">UTILIZADORES</h1>
+                        <p class="adm-page-sub">@Utilizadores.Count contas registadas</p>
+                    </div>
+                    <button class="adm-btn-primary">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        Novo Utilizador
+                    </button>
+                </div>
+
+                <div class="adm-filters">
+                    <input class="adm-search" type="text" placeholder="Nome, telefone..." @bind="FiltroUsers" @bind:event="oninput" />
+                    <select class="adm-select" @bind="FiltroPerfilUser">
+                        <option value="">Todos os perfis</option>
+                        <option>Admin</option>
+                        <option>Cliente</option>
+                    </select>
+                </div>
+
+                <div class="adm-user-grid">
+                    @foreach (var u in UtilizadoresFiltrados)
+                    {
+                        var user = u;
+                        <div class="adm-user-card">
+                            <div class="adm-user-av">@user.Iniciais</div>
+                            <div class="adm-user-info">
+                                <div class="adm-user-name">@user.Nome</div>
+                                <div class="adm-user-tel">@user.Telefone</div>
+                                <div class="adm-user-meta">
+                                    <span>@user.Provincia</span>
+                                    <span class="adm-pill @(user.Perfil == "Admin" ? "adm-pill-admin" : "adm-pill-info")">@user.Perfil</span>
+                                </div>
+                            </div>
+                            <div class="adm-user-actions">
+                                <button class="adm-act-btn" title="Editar">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                </button>
+                                <button class="adm-act-btn adm-act-danger" title="Eliminar" @onclick="() => EliminarUser(user.Id)">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                @if (!UtilizadoresFiltrados.Any())
+                {
+                    <div class="adm-empty">Nenhum utilizador encontrado</div>
+                }
+            </div>
+        }
+
+        <!-- ══════ RESERVAS ══════ -->
+        @if (ActiveTab == "reservas")
+        {
+            <div class="adm-content">
+                <div class="adm-page-hdr">
+                    <div>
+                        <h1 class="adm-page-title">RESERVAS</h1>
+                        <p class="adm-page-sub">@Reservas.Count reservas no sistema</p>
+                    </div>
+                </div>
+
+                <div class="adm-filters">
+                    <select class="adm-select" @bind="FiltroEstadoReserva">
+                        <option value="">Todos os estados</option>
+                        <option>Pendente</option>
+                        <option>Confirmada</option>
+                        <option>Cancelada</option>
+                        <option>Concluída</option>
+                    </select>
+                </div>
+
+                <div class="adm-reservas">
+                    @foreach (var r in ReservasFiltradas)
+                    {
+                        var res = r;
+                        <div class="adm-res-card">
+                            <div class="adm-res-id adm-mono">#@res.Id</div>
+                            <div class="adm-res-info">
+                                <div class="adm-res-cliente">@res.Cliente</div>
+                                <div class="adm-res-veiculo">@res.Veiculo</div>
+                                <div class="adm-res-data adm-dim">@res.Data</div>
+                            </div>
+                            <div class="adm-res-preco adm-cyan adm-mono">@res.Preco.ToString("N0") AOA</div>
+                            <div class="adm-res-estado">
+                                <span class="adm-pill @EstadoClass(res.Estado)">@res.Estado</span>
+                            </div>
+                            <div class="adm-res-actions">
+                                @foreach (var s in EstadosSeguintes(res.Estado))
+                                {
+                                    var estado = s;
+                                    <button class="adm-btn-estado @EstadoBtnClass(estado)"
+                                            @onclick="() => MudarEstadoReserva(res.Id, estado)">
+                                        @estado
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                @if (!ReservasFiltradas.Any())
+                {
+                    <div class="adm-empty">Nenhuma reserva encontrada</div>
+                }
+            </div>
+        }
+
+    </main>
+</div>
+
+<!-- ══ MODAL CARRO ══ -->
+@if (ModalCarroAberto)
+{
+    <div class="adm-modal-bg" @onclick="FecharModalCarro">
+        <div class="adm-modal" @onclick:stopPropagation>
+            <div class="adm-modal-hdr">
+                <h2 class="adm-modal-title">@(CarroEdit?.Id == 0 ? "NOVO VEÍCULO" : "EDITAR VEÍCULO")</h2>
+                <button class="adm-modal-close" @onclick="FecharModalCarro">✕</button>
+            </div>
+            @if (CarroEdit != null)
+            {
+                <div class="adm-modal-body">
+                    <!-- Linha 1: Marca + Modelo -->
+                    <div class="adm-row2">
+                        <div class="adm-field">
+                            <label>Marca <span class="req">*</span></label>
+                            <input class="adm-inp" type="text" @bind="CarroEdit.Marca" placeholder="Toyota" />
+                        </div>
+                        <div class="adm-field">
+                            <label>Modelo <span class="req">*</span></label>
+                            <input class="adm-inp" type="text" @bind="CarroEdit.Modelo" placeholder="Corolla" />
+                        </div>
+                    </div>
+                    <!-- Linha 2: Ano + Preço -->
+                    <div class="adm-row2">
+                        <div class="adm-field">
+                            <label>Ano <span class="req">*</span></label>
+                            <input class="adm-inp" type="number" @bind="CarroEdit.Ano" min="2000" max="2026" />
+                        </div>
+                        <div class="adm-field">
+                            <label>Preço (AOA) <span class="req">*</span></label>
+                            <input class="adm-inp" type="number" @bind="CarroEdit.Preco" />
+                        </div>
+                    </div>
+                    <!-- Linha 3: Combustível + Transmissão -->
+                    <div class="adm-row2">
+                        <div class="adm-field">
+                            <label>Combustível</label>
+                            <select class="adm-inp" @bind="CarroEdit.Combustivel">
+                                <option>Gasolina</option>
+                                <option>Gasóleo</option>
+                                <option>Híbrido</option>
+                                <option>Eléctrico</option>
+                            </select>
+                        </div>
+                        <div class="adm-field">
+                            <label>Transmissão</label>
+                            <select class="adm-inp" @bind="CarroEdit.Transmissao">
+                                <option>Automática</option>
+                                <option>Manual</option>
+                            </select>
+                        </div>
+                    </div>
+                    <!-- Linha 4: Cor + Estilo -->
+                    <div class="adm-row2">
+                        <div class="adm-field">
+                            <label>Cor</label>
+                            <input class="adm-inp" type="text" @bind="CarroEdit.Cor" placeholder="Preto" />
+                        </div>
+                        <div class="adm-field">
+                            <label>Estilo</label>
+                            <select class="adm-inp" @bind="CarroEdit.Estilo">
+                                <option value="">— Seleccionar —</option>
+                                <option>Sedan</option>
+                                <option>SUV</option>
+                                <option>Pick-up</option>
+                                <option>Hatchback</option>
+                                <option>Coupé</option>
+                                <option>Monovolume</option>
+                            </select>
+                        </div>
+                    </div>
+                    <!-- Linha 5: Motor + Potência -->
+                    <div class="adm-row2">
+                        <div class="adm-field">
+                            <label>Motor</label>
+                            <input class="adm-inp" type="text" @bind="CarroEdit.Motor" placeholder="2.0 TDI" />
+                        </div>
+                        <div class="adm-field">
+                            <label>Potência (CV)</label>
+                            <input class="adm-inp" type="number" @bind="CarroEdit.Potencia" placeholder="150" />
+                        </div>
+                    </div>
+                    <!-- Linha 6: Quilometragem + Localização -->
+                    <div class="adm-row2">
+                        <div class="adm-field">
+                            <label>Quilometragem (km)</label>
+                            <input class="adm-inp" type="number" @bind="CarroEdit.Quilometragem" placeholder="0" />
+                        </div>
+                        <div class="adm-field">
+                            <label>Localização</label>
+                            <input class="adm-inp" type="text" @bind="CarroEdit.Localizacao" placeholder="Luanda · Talatona" />
+                        </div>
+                    </div>
+                    <!-- URL da Imagem -->
+                    <div class="adm-field">
+                        <label>URL da Imagem</label>
+                        <input class="adm-inp" type="text" @bind="CarroEdit.ImagemUrl" placeholder="https://..." />
+                    </div>
+                    <!-- Descrição -->
+                    <div class="adm-field">
+                        <label>Descrição</label>
+                        <textarea class="adm-inp adm-textarea" @bind="CarroEdit.Descricao" placeholder="Descrição do veículo..."></textarea>
+                    </div>
+                    <!-- Estado -->
+                    <div class="adm-field">
+                        <label>Estado</label>
+                        <select class="adm-inp" @bind="CarroEdit.Estado">
+                            <option>Disponível</option>
+                            <option>Reservado</option>
+                            <option>Vendido</option>
+                        </select>
+                    </div>
+                    @if (!string.IsNullOrEmpty(ModalErro))
+                    {
+                        <div class="adm-erro">@ModalErro</div>
+                    }
+                </div>
+                <div class="adm-modal-foot">
+                    <button class="adm-btn-ghost" @onclick="FecharModalCarro">Cancelar</button>
+                    <button class="adm-btn-primary" @onclick="async () => await SalvarCarro()">
+                        @(CarroEdit.Id == 0 ? "Adicionar" : "Guardar")
+                    </button>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    private string ActiveTab = "overview";
+    private bool SideOpen = false;
+
+    /* ── Filtros ─────────────────────────── */
+    private string FiltroCarros = "";
+    private string FiltroEstadoCarro = "";
+    private string FiltroUsers = "";
+    private string FiltroPerfilUser = "";
+    private string FiltroEstadoReserva = "";
+
+    /* ── Modal Carro ─────────────────────── */
+    private bool ModalCarroAberto = false;
+    private Carro? CarroEdit;
+    private string ModalErro = "";
+
+    /* ══ NAV ══ */
+    private List<NavItem> NavItems = new()
+    {
+        new("overview",  "OVERVIEW",     Svg.Dashboard, 0),
+        new("carros",    "CARROS",        Svg.Car,       0),
+        new("users",     "UTILIZADORES",  Svg.Users,     0),
+        new("reservas",  "RESERVAS",      Svg.Reservas,  3),
+    };
+
+    /* ══ KPIs ══ */
+    private List<Kpi> Kpis = new()
+    {
+        new("Total Veículos",  "—",  "+0", true, "kpi-cyan",   Svg.Car),
+        new("Utilizadores",    "—",  "+0", true, "kpi-purple", Svg.Users),
+        new("Reservas Activas","—",  "+0", true, "kpi-green",  Svg.Reservas),
+        new("Receita (AOA)",   "—",  "+0", true, "kpi-gold",   Svg.Money),
+    };
+
+    /* ══ LOGS ══ */
+    private List<LogEntry> Logs = new()
+    {
+        new("Nova reserva #RES-041 criada", "há 2 min",  "info"),
+        new("Carro #C-022 marcado como Vendido", "há 8 min", "success"),
+        new("Utilizador João Malheiro registado", "há 14 min","info"),
+        new("Reserva #RES-038 cancelada pelo cliente", "há 31 min","warn"),
+        new("Carro #C-009 actualizado", "há 1h","info"),
+        new("Login de admin detectado (IP 197.x)", "há 2h","warn"),
+    };
+
+    private bool isLoading = true;
+    private string? apiError;
+
+    /* ══ CARROS ══ */
+    private List<Carro> Carros = new();
+
+    private IEnumerable<Carro> CarrosFiltrados => Carros
+        .Where(c => string.IsNullOrEmpty(FiltroCarros)
+                    || ($"{c.Marca} {c.Modelo}").Contains(FiltroCarros, StringComparison.OrdinalIgnoreCase))
+        .Where(c => string.IsNullOrEmpty(FiltroEstadoCarro) || c.Estado == FiltroEstadoCarro);
+
+    /* ══ UTILIZADORES ══ */
+    private List<UsuarioDto> Utilizadores = new();
+
+    private IEnumerable<UsuarioDto> UtilizadoresFiltrados => Utilizadores
+        .Where(u => string.IsNullOrEmpty(FiltroUsers)
+                    || u.Nome.Contains(FiltroUsers, StringComparison.OrdinalIgnoreCase)
+                    || (u.Telefone?.Contains(FiltroUsers, StringComparison.OrdinalIgnoreCase) ?? false))
+        .Where(u => string.IsNullOrEmpty(FiltroPerfilUser) || u.Perfil == FiltroPerfilUser);
+
+    /* ══ RESERVAS ══ */
+    private List<ReservaUi> Reservas = new();
+
+    private IEnumerable<ReservaUi> ReservasFiltradas => Reservas
+        .Where(r => string.IsNullOrEmpty(FiltroEstadoReserva) || r.Estado == FiltroEstadoReserva)
+        .OrderByDescending(r => r.Id);
+
+    /* ══ ACÇÕES ══ */
+    private void AbrirModalCarro()
+    {
+        CarroEdit = new Carro
+        {
+            Id            = 0,
+            Marca         = "",
+            Modelo        = "",
+            Ano           = DateTime.Now.Year,
+            Preco         = 0,
+            Combustivel   = "Gasolina",
+            Transmissao   = "Automática",
+            Estado        = "Disponível",
+            Cor           = null,
+            Estilo        = null,
+            Motor         = null,
+            Potencia      = null,
+            Descricao     = null,
+            ImagemUrl     = null,
+            Localizacao   = null,
+            Quilometragem = null
+        };
+        ModalErro = "";
+        ModalCarroAberto = true;
+    }
+
+    private void EditarCarro(Carro c)
+    {
+        CarroEdit = new Carro
+        {
+            Id            = c.Id,
+            Marca         = c.Marca,
+            Modelo        = c.Modelo,
+            Ano           = c.Ano,
+            Preco         = c.Preco,
+            Combustivel   = c.Combustivel,
+            Transmissao   = c.Transmissao,
+            Estado        = c.Estado,
+            Cor           = c.Cor,
+            Estilo        = c.Estilo,
+            Motor         = c.Motor,
+            Potencia      = c.Potencia,
+            Descricao     = c.Descricao,
+            ImagemUrl     = c.ImagemUrl,
+            Localizacao   = c.Localizacao,
+            Quilometragem = c.Quilometragem
+        };
+        ModalErro = "";
+        ModalCarroAberto = true;
+    }
+
+    private async Task SalvarCarro()
+    {
+        if (CarroEdit == null) return;
+        if (string.IsNullOrWhiteSpace(CarroEdit.Marca) || string.IsNullOrWhiteSpace(CarroEdit.Modelo))
+        { ModalErro = "Marca e Modelo são obrigatórios."; return; }
+        if (CarroEdit.Preco <= 0)
+        { ModalErro = "Insira um preço válido."; return; }
+
+        var request = new CreateVeiculoRequest
+        {
+            Marca         = CarroEdit.Marca,
+            Modelo        = CarroEdit.Modelo,
+            Ano           = CarroEdit.Ano,
+            Preco         = CarroEdit.Preco,
+            Combustivel   = CarroEdit.Combustivel,
+            Transmissao   = CarroEdit.Transmissao,
+            Cor           = CarroEdit.Cor,
+            Estilo        = CarroEdit.Estilo,
+            Motor         = CarroEdit.Motor,
+            Potencia      = CarroEdit.Potencia,
+            Descricao     = CarroEdit.Descricao,
+            ImagemUrl     = CarroEdit.ImagemUrl,
+            Localizacao   = CarroEdit.Localizacao,
+            Quilometragem = CarroEdit.Quilometragem,
+            Disponivel    = CarroEdit.Estado == "Disponível"
+        };
+
+        if (CarroEdit.Id == 0)
+        {
+            var result = await Api.CreateVeiculoAsync(request);
+            if (result.Success)
+            {
+                Carros.Add(new Carro
+                {
+                    Id            = result.Data!.Id,
+                    Marca         = result.Data.Marca,
+                    Modelo        = result.Data.Modelo,
+                    Ano           = result.Data.Ano,
+                    Preco         = (long)Math.Round(result.Data.Preco),
+                    Combustivel   = result.Data.Combustivel   ?? "",
+                    Transmissao   = result.Data.Transmissao   ?? "",
+                    Estado        = result.Data.Disponivel    ? "Disponível" : "Vendido",
+                    Cor           = result.Data.Cor,
+                    Estilo        = result.Data.Estilo,
+                    Motor         = result.Data.Motor,
+                    Potencia      = result.Data.Potencia,
+                    Descricao     = result.Data.Descricao,
+                    ImagemUrl     = result.Data.ImagemUrl,
+                    Localizacao   = result.Data.Localizacao,
+                    Quilometragem = result.Data.Quilometragem
+                });
+                FecharModalCarro();
+            }
+            else
+            {
+                ModalErro = result.Error ?? "Erro ao criar veículo.";
+            }
+        }
+        else
+        {
+            var result = await Api.UpdateVeiculoAsync(CarroEdit.Id, request);
+            if (result.Success)
+            {
+                var idx = Carros.FindIndex(c => c.Id == CarroEdit.Id);
+                if (idx >= 0) Carros[idx] = CarroEdit;
+                FecharModalCarro();
+            }
+            else
+            {
+                ModalErro = result.Error ?? "Erro ao actualizar veículo.";
+            }
+        }
+    }
+
+    private void FecharModalCarro()
+    {
+        ModalCarroAberto = false;
+        CarroEdit = null;
+        ModalErro = "";
+    }
+
+    private async Task EliminarCarro(int id)
+    {
+        var result = await Api.DeleteVeiculoAsync(id);
+        if (result.Success)
+        {
+            Carros.RemoveAll(c => c.Id == id);
+        }
+    }
+
+    private async Task EliminarUser(int id)
+    {
+        var result = await Api.DeleteUsuarioAsync(id);
+        if (result.Success)
+        {
+            Utilizadores.RemoveAll(u => u.Id == id);
+        }
+    }
+
+    private async Task MudarEstadoReserva(int id, string novoEstado)
+    {
+        var result = await Api.UpdateReservaEstadoAsync(id, novoEstado);
+        if (result.Success)
+        {
+            var r = Reservas.FirstOrDefault(x => x.Id == id);
+            if (r != null) r.Estado = novoEstado;
+        }
+    }
+
+    private string[] EstadosSeguintes(string estado) => estado switch
+    {
+        "Pendente"   => new[] { "Confirmada", "Cancelada" },
+        "Confirmada" => new[] { "Concluída",  "Cancelada" },
+        _            => Array.Empty<string>()
+    };
+
+    /* ══ KPIs calculados ══ */
+    private void AtualizarKpis()
+    {
+        Kpis = new()
+        {
+            new("Total Veículos",
+                Carros.Count.ToString(),
+                "+0", true, "kpi-cyan", Svg.Car),
+
+            new("Utilizadores",
+                Utilizadores.Count.ToString("N0"),
+                "+0", true, "kpi-purple", Svg.Users),
+
+            new("Reservas Activas",
+                Reservas.Count(r => r.Estado == "Pendente" || r.Estado == "Confirmada").ToString(),
+                "+0", true, "kpi-green", Svg.Reservas),
+
+            new("Receita (AOA)",
+                FormatReceita(Reservas.Where(r => r.Estado == "Concluída").Sum(r => r.Preco)),
+                "+0", true, "kpi-gold", Svg.Money),
+        };
+    }
+
+    private static string FormatReceita(long total) =>
+        total >= 1_000_000_000 ? $"{total / 1_000_000_000.0:F1}B"
+        : total >= 1_000_000   ? $"{total / 1_000_000.0:F1}M"
+        : total.ToString("N0");
+
+    /* ══ CSS helpers ══ */
+    private string EstadoClass(string e) => e switch
+    {
+        "Pendente"   => "adm-pill-warn",
+        "Confirmada" => "adm-pill-info",
+        "Concluída"  => "adm-pill-success",
+        "Cancelada"  => "adm-pill-danger",
+        _            => ""
+    };
+    private string EstadoCarroClass(string e) => e switch
+    {
+        "Disponível" => "adm-pill-success",
+        "Reservado"  => "adm-pill-warn",
+        "Vendido"    => "adm-pill-info",
+        _            => ""
+    };
+    private string EstadoBtnClass(string e) => e switch
+    {
+        "Confirmada" => "btn-est-confirm",
+        "Concluída"  => "btn-est-done",
+        "Cancelada"  => "btn-est-cancel",
+        _            => ""
+    };
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        var role = await AuthService.GetRoleAsync();
+        if (role?.ToLower() != "admin")
+        {
+            Nav.NavigateTo("/login", forceLoad: true);
+            return;
+        }
+
+        await LoadAdminDataAsync();
+        StateHasChanged();
+    }
+
+    private async Task LoadAdminDataAsync()
+    {
+        isLoading = true;
+        apiError  = null;
+
+        var carrosResult = await Api.GetVeiculosAsync();
+        if (carrosResult.Success)
+        {
+            Carros = carrosResult.Data.Select(v => new Carro
+            {
+                Id            = v.Id,
+                Marca         = v.Marca,
+                Modelo        = v.Modelo,
+                Ano           = v.Ano,
+                Preco         = (long)Math.Round(v.Preco),
+                Combustivel   = v.Combustivel   ?? string.Empty,
+                Transmissao   = v.Transmissao   ?? string.Empty,
+                Estado        = v.Disponivel    ? "Disponível" : "Vendido",
+                Cor           = v.Cor,
+                Estilo        = v.Estilo,
+                Motor         = v.Motor,
+                Potencia      = v.Potencia,
+                Descricao     = v.Descricao,
+                ImagemUrl     = v.ImagemUrl,
+                Localizacao   = v.Localizacao,
+                Quilometragem = v.Quilometragem
+            }).ToList();
+        }
+        else
+        {
+            apiError = carrosResult.Error;
+        }
+
+        var usersResult = await Api.GetUsuariosAsync();
+        if (usersResult.Success)
+        {
+            Utilizadores = usersResult.Data;
+        }
+        else if (string.IsNullOrEmpty(apiError))
+        {
+            apiError = usersResult.Error;
+        }
+
+        var reservasResult = await Api.GetReservasAsync();
+        if (reservasResult.Success)
+        {
+            var usuariosPorId = Utilizadores.ToDictionary(u => u.Id, u => u);
+            var carrosPorId   = Carros.ToDictionary(c => c.Id, c => c);
+
+            Reservas = reservasResult.Data.Select(r => new ReservaUi(
+                r.Id,
+                r.VeiculoId,
+                usuariosPorId.TryGetValue(r.UsuarioId,  out var user)   ? user.Nome              : $"Usuário #{r.UsuarioId}",
+                carrosPorId  .TryGetValue(r.VeiculoId,  out var carro)  ? $"{carro.Marca} {carro.Modelo}" : $"Veículo #{r.VeiculoId}",
+                r.DataReserva.ToString("dd MMM yyyy"),
+                carrosPorId  .TryGetValue(r.VeiculoId,  out var carro2) ? carro2.Preco           : 0L,
+                string.IsNullOrWhiteSpace(r.Estado) ? "Pendente" : r.Estado
+            )).ToList();
+
+            // Marcar carros com reserva activa como "Reservado"
+            var veiculosReservados = Reservas
+                .Where(r => r.Estado == "Pendente" || r.Estado == "Confirmada")
+                .Select(r => r.VeiculoId)
+                .ToHashSet();
+
+            foreach (var carro in Carros.Where(c => c.Estado == "Vendido" && veiculosReservados.Contains(c.Id)))
+                carro.Estado = "Reservado";
+        }
+        else if (string.IsNullOrEmpty(apiError))
+        {
+            apiError = reservasResult.Error;
+        }
+
+        AtualizarKpis();
+        isLoading = false;
+    }
+
+    private async Task Logout()
+    {
+        await AuthService.LogoutAsync();
+    }
+
+    /* ══ Records ══ */
+    private record NavItem(string Id, string Label, string Icon, int Badge);
+    private record Kpi(string Label, string Value, string Delta, bool DeltaUp, string Color, string Icon);
+    private record LogEntry(string Msg, string Time, string Type);
+    private record ReservaUi(int Id, int VeiculoId, string Cliente, string Veiculo, string Data, long Preco, string Estado)
+    {
+        public string Estado { get; set; } = Estado;
+    }
+
+    private class Carro
+    {
+        public int     Id            { get; set; }
+        public string  Marca         { get; set; } = string.Empty;
+        public string  Modelo        { get; set; } = string.Empty;
+        public int     Ano           { get; set; }
+        public long    Preco         { get; set; }
+        public string  Combustivel   { get; set; } = string.Empty;
+        public string  Transmissao   { get; set; } = string.Empty;
+        public string  Estado        { get; set; } = "Disponível";
+        public string? Cor           { get; set; }
+        public string? Estilo        { get; set; }
+        public string? Motor         { get; set; }
+        public int?    Potencia      { get; set; }
+        public string? Descricao     { get; set; }
+        public string? ImagemUrl     { get; set; }
+        public string? Localizacao   { get; set; }
+        public int?    Quilometragem { get; set; }
+    }
+
+    private class Utilizador
+    {
+        public int    Id        { get; set; }
+        public string Nome      { get; set; } = string.Empty;
+        public string Telefone  { get; set; } = string.Empty;
+        public string Provincia { get; set; } = string.Empty;
+        public string Perfil    { get; set; } = string.Empty;
+        public string Iniciais => string.Join("", Nome.Split(' ').Take(2).Select(p => p[0])).ToUpper();
+        public Utilizador(int id, string n, string t, string p, string perf)
+        { Id=id; Nome=n; Telefone=t; Provincia=p; Perfil=perf; }
+    }
+
+    /* ══ SVG Icons ══ */
+    private static class Svg
+    {
+        public const string Dashboard = """<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>""";
+        public const string Car       = """<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><rect x="1" y="9" width="22" height="9" rx="2"/><path d="M16 9V5a2 2 0 0 0-2-2H10a2 2 0 0 0-2 2v4"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="18" r="2.5"/></svg>""";
+        public const string Users     = """<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>""";
+        public const string Reservas  = """<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>""";
+        public const string Money     = """<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>""";
+    }
+}
+
+<style>
+/* ════════════════════════════════════════════════════
+   TOKENS — Cyberpunk Target
+════════════════════════════════════════════════════ */
+:root {
+    --c:        #00f2ff;
+    --c-dim:    rgba(0,242,255,.1);
+    --c-brd:    rgba(0,242,255,.25);
+    --purple:   #9b5de5;
+    --pur-dim:  rgba(155,93,229,.12);
+    --gold:     #ffc94d;
+    --gold-dim: rgba(255,201,77,.1);
+    --green:    #39ff14;
+    --grn-dim:  rgba(57,255,20,.1);
+    --red:      #ff3c5c;
+    --red-dim:  rgba(255,60,92,.1);
+    --warn:     #ffb800;
+    --warn-dim: rgba(255,184,0,.1);
+    --bg:       #060609;
+    --bg2:      #0c0c14;
+    --bg3:      #12121e;
+    --brd:      rgba(255,255,255,.06);
+    --txt:      #dde0f0;
+    --dim:      #5a5a7a;
+    --r:        10px;
+    --side-w:   240px;
+    --top-h:    56px;
+    --ease:     cubic-bezier(.4,0,.2,1);
+    --font:     'Courier New', 'Consolas', monospace;
+}
+
+/* ════════ RESET ════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+button { border: none; cursor: pointer; font-family: var(--font); }
+input, select, textarea { font-family: var(--font); }
+a { text-decoration: none; color: inherit; }
+.sr-only { position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0); }
+
+/* ════════ SHELL ════════ */
+.adm-shell {
+    display: grid;
+    grid-template-columns: var(--side-w) 1fr;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--txt);
+    font-family: var(--font);
+}
+
+/* ════════ SIDEBAR ════════ */
+.adm-side {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    background: var(--bg2);
+    border-right: 1px solid var(--brd);
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    overflow: hidden;
+    z-index: 100;
+}
+.adm-side::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 2px;
+    background: linear-gradient(to bottom, transparent, var(--c), transparent);
+}
+.adm-logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 20px 20px 16px;
+    border-bottom: 1px solid var(--brd);
+}
+.adm-logo-t {
+    width: 38px; height: 38px;
+    background: var(--c);
+    color: #000;
+    font-size: 1.4rem;
+    font-weight: 900;
+    display: grid; place-items: center;
+    border-radius: 8px;
+    flex-shrink: 0;
+    box-shadow: 0 0 16px rgba(0,242,255,.4);
+}
+.adm-logo-name { font-size: .75rem; font-weight: 700; letter-spacing: .14em; color: var(--txt); }
+.adm-logo-sub  { font-size: .6rem; color: var(--c); letter-spacing: .1em; }
+
+.adm-nav { flex: 1; padding: 16px 10px; overflow-y: auto; }
+.adm-nav-group {
+    font-size: .55rem;
+    letter-spacing: .14em;
+    color: var(--dim);
+    padding: 0 10px;
+    margin-bottom: 8px;
+}
+.adm-nav-item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: var(--r);
+    background: transparent;
+    color: var(--dim);
+    font-size: .78rem;
+    letter-spacing: .04em;
+    text-align: left;
+    transition: all .18s var(--ease);
+    margin-bottom: 2px;
+    position: relative;
+}
+.adm-nav-item:hover { background: var(--c-dim); color: var(--txt); }
+.adm-nav-item.on {
+    background: var(--c-dim);
+    color: var(--c);
+    border: 1px solid var(--c-brd);
+}
+.adm-nav-item.on::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 20%; bottom: 20%;
+    width: 3px;
+    background: var(--c);
+    border-radius: 0 3px 3px 0;
+    box-shadow: 0 0 8px var(--c);
+}
+.adm-nav-danger { color: var(--red) !important; }
+.adm-nav-danger:hover { background: var(--red-dim) !important; }
+.adm-nav-ico { width: 18px; height: 18px; flex-shrink: 0; display: grid; place-items: center; }
+.adm-nav-lbl { flex: 1; }
+.adm-badge {
+    background: var(--warn);
+    color: #000;
+    font-size: .6rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 100px;
+}
+.adm-side-foot {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 16px;
+    border-top: 1px solid var(--brd);
+    background: var(--bg);
+}
+.adm-admin-av {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    background: var(--pur-dim);
+    border: 1px solid var(--purple);
+    display: grid; place-items: center;
+    font-size: .75rem;
+    font-weight: 700;
+    color: var(--purple);
+    flex-shrink: 0;
+}
+.adm-admin-name { font-size: .78rem; color: var(--txt); }
+.adm-admin-role { font-size: .62rem; color: var(--c); }
+.adm-status-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    margin-left: auto;
+    animation: pulse 2s ease-in-out infinite;
+}
+@@keyframes pulse { 0%,100%{opacity:1}50%{opacity:.3} }
+
+/* ════════ MAIN ════════ */
+.adm-main {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* ════════ TOPBAR ════════ */
+.adm-topbar {
+    height: var(--top-h);
+    background: var(--bg2);
+    border-bottom: 1px solid var(--brd);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 0 24px;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+}
+.adm-menu-btn { background: transparent; color: var(--dim); display: none; padding: 4px; }
+.adm-breadcrumb { display: flex; align-items: center; gap: 8px; }
+.adm-bc-root { font-size: .68rem; color: var(--dim); letter-spacing: .08em; }
+.adm-bc-sep  { color: var(--dim); font-size: .8rem; }
+.adm-bc-cur  { font-size: .68rem; color: var(--c); letter-spacing: .08em; }
+.adm-topbar-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+.adm-topbar-time { font-size: .72rem; color: var(--dim); font-variant-numeric: tabular-nums; }
+.adm-notif { position: relative; color: var(--dim); cursor: pointer; transition: color .2s; }
+.adm-notif:hover { color: var(--c); }
+.adm-notif-dot {
+    position: absolute; top: -2px; right: -2px;
+    width: 7px; height: 7px;
+    background: var(--warn);
+    border-radius: 50%;
+    border: 1px solid var(--bg2);
+}
+
+/* ════════ CONTENT ════════ */
+.adm-content {
+    flex: 1;
+    padding: 28px 28px 40px;
+    max-width: 1200px;
+    width: 100%;
+}
+.adm-page-hdr {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 28px;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+.adm-page-title { font-size: 1.3rem; font-weight: 700; letter-spacing: .12em; color: var(--txt); }
+.adm-page-sub   { font-size: .78rem; color: var(--dim); margin-top: 4px; }
+
+/* ════════ KPIs ════════ */
+.adm-kpis {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 28px;
+}
+.adm-kpi {
+    background: var(--bg2);
+    border: 1px solid var(--brd);
+    border-radius: var(--r);
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color .2s, transform .2s;
+}
+.adm-kpi:hover { transform: translateY(-3px); }
+.adm-kpi::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+.kpi-cyan   { border-color: rgba(0,242,255,.2); }
+.kpi-cyan::before   { background: var(--c);      box-shadow: 0 0 8px var(--c); }
+.kpi-purple { border-color: rgba(155,93,229,.2); }
+.kpi-purple::before { background: var(--purple); box-shadow: 0 0 8px var(--purple); }
+.kpi-green  { border-color: rgba(57,255,20,.2); }
+.kpi-green::before  { background: var(--green);  box-shadow: 0 0 8px var(--green); }
+.kpi-gold   { border-color: rgba(255,201,77,.2); }
+.kpi-gold::before   { background: var(--gold);   box-shadow: 0 0 8px var(--gold); }
+.adm-kpi-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+.adm-kpi-lbl { font-size: .65rem; color: var(--dim); letter-spacing: .08em; text-transform: uppercase; }
+.adm-kpi-ico { color: var(--dim); opacity: .6; }
+.adm-kpi-val { font-size: 1.9rem; font-weight: 700; color: var(--txt); margin-bottom: 6px; }
+.adm-kpi-delta      { font-size: .7rem; }
+.adm-kpi-delta.up   { color: var(--green); }
+.adm-kpi-delta.down { color: var(--red); }
+
+/* ════════ GRID 2 ════════ */
+.adm-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+/* ════════ PANEL ════════ */
+.adm-panel {
+    background: var(--bg2);
+    border: 1px solid var(--brd);
+    border-radius: var(--r);
+    overflow: hidden;
+}
+.adm-panel-hdr {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--brd);
+}
+.adm-panel-title { font-size: .68rem; letter-spacing: .1em; color: var(--dim); }
+
+/* ════════ TABLE ════════ */
+.adm-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+.adm-table th {
+    text-align: left;
+    font-size: .62rem;
+    letter-spacing: .08em;
+    color: var(--dim);
+    padding: 10px 18px;
+    border-bottom: 1px solid var(--brd);
+    background: var(--bg);
+}
+.adm-table td {
+    padding: 12px 18px;
+    border-bottom: 1px solid rgba(255,255,255,.03);
+    color: var(--txt);
+    vertical-align: middle;
+}
+.adm-table tr:hover td { background: rgba(0,242,255,.02); }
+
+/* ════════ LOG ════════ */
+.adm-log { padding: 10px 18px; display: flex; flex-direction: column; gap: 14px; }
+.adm-log-item { display: flex; align-items: flex-start; gap: 12px; }
+.adm-log-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+.adm-log-dot.info    { background: var(--c); }
+.adm-log-dot.success { background: var(--green); }
+.adm-log-dot.warn    { background: var(--warn); }
+.adm-log-dot.danger  { background: var(--red); }
+.adm-log-msg  { font-size: .8rem; color: var(--txt); line-height: 1.4; }
+.adm-log-time { font-size: .68rem; color: var(--dim); margin-top: 2px; }
+
+/* ════════ PILLS ════════ */
+.adm-pill {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 100px;
+    font-size: .68rem;
+    font-weight: 600;
+    letter-spacing: .04em;
+}
+.adm-pill-success { background: var(--grn-dim);  color: var(--green);  border: 1px solid rgba(57,255,20,.2); }
+.adm-pill-warn    { background: var(--warn-dim); color: var(--warn);   border: 1px solid rgba(255,184,0,.2); }
+.adm-pill-info    { background: var(--c-dim);    color: var(--c);      border: 1px solid var(--c-brd); }
+.adm-pill-danger  { background: var(--red-dim);  color: var(--red);    border: 1px solid rgba(255,60,92,.2); }
+.adm-pill-admin   { background: var(--pur-dim);  color: var(--purple); border: 1px solid rgba(155,93,229,.2); }
+
+/* ════════ FILTROS ════════ */
+.adm-filters { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+.adm-search {
+    flex: 1;
+    min-width: 200px;
+    height: 40px;
+    background: var(--bg2);
+    border: 1px solid var(--brd);
+    border-radius: var(--r);
+    color: var(--txt);
+    padding: 0 14px;
+    font-size: .82rem;
+    outline: none;
+    transition: border-color .2s;
+}
+.adm-search:focus { border-color: var(--c-brd); box-shadow: 0 0 0 3px rgba(0,242,255,.06); }
+.adm-search::placeholder { color: var(--dim); }
+.adm-select {
+    height: 40px;
+    background: var(--bg2);
+    border: 1px solid var(--brd);
+    border-radius: var(--r);
+    color: var(--txt);
+    padding: 0 14px;
+    font-size: .82rem;
+    outline: none;
+    cursor: pointer;
+    transition: border-color .2s;
+}
+.adm-select:focus { border-color: var(--c-brd); }
+
+/* ════════ ACTIONS ════════ */
+.adm-actions { display: flex; gap: 6px; }
+.adm-act-btn {
+    width: 30px; height: 30px;
+    background: var(--bg3);
+    border: 1px solid var(--brd);
+    border-radius: 7px;
+    color: var(--dim);
+    display: grid; place-items: center;
+    transition: all .18s;
+}
+.adm-act-btn:hover     { border-color: var(--c-brd); color: var(--c); }
+.adm-act-danger:hover  { border-color: rgba(255,60,92,.3); color: var(--red); }
+
+/* ════════ BUTTONS ════════ */
+.adm-btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: var(--c);
+    color: #000;
+    font-size: .8rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+    padding: 10px 20px;
+    border-radius: var(--r);
+    border: none;
+    transition: all .2s;
+}
+.adm-btn-primary:hover { background: #1af6ff; box-shadow: 0 0 16px rgba(0,242,255,.3); }
+.adm-btn-ghost {
+    background: transparent;
+    border: 1px solid var(--brd);
+    color: var(--dim);
+    font-size: .74rem;
+    padding: 7px 14px;
+    border-radius: var(--r);
+    transition: all .18s;
+}
+.adm-btn-ghost:hover { border-color: var(--c-brd); color: var(--c); }
+
+/* ════════ CAR CARDS (admin) ════════ */
+.adm-car-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+    margin-bottom: 20px;
+}
+.adm-car-card {
+    background: var(--bg2);
+    border: 1px solid var(--brd);
+    border-radius: var(--r);
+    overflow: hidden;
+    transition: border-color .3s, box-shadow .3s, transform .3s;
+}
+.adm-car-card:hover {
+    border-color: var(--c-brd);
+    box-shadow: 0 0 28px rgba(0,242,255,.12);
+    transform: translateY(-3px);
+}
+.adm-car-img-wrap {
+    position: relative;
+    height: 180px;
+    background: var(--bg);
+    overflow: hidden;
+}
+.adm-car-img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    transition: transform .5s ease;
+}
+.adm-car-card:hover .adm-car-img { transform: scale(1.05); }
+.adm-car-badge {
+    position: absolute;
+    top: 10px; left: 10px;
+    background: rgba(0,0,0,.65);
+    color: var(--c);
+    font-size: .65rem;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 100px;
+    border: 1px solid var(--c-brd);
+    text-transform: uppercase;
+    letter-spacing: .06em;
+}
+.adm-car-estado-pill {
+    position: absolute;
+    top: 10px; right: 10px;
+}
+.adm-car-id {
+    position: absolute;
+    bottom: 8px; left: 10px;
+    font-size: .65rem;
+    color: var(--dim);
+    background: rgba(0,0,0,.55);
+    padding: 2px 7px;
+    border-radius: 6px;
+}
+.adm-car-body { padding: 16px; }
+.adm-car-meta { display: flex; gap: 8px; margin-bottom: 6px; }
+.adm-car-ano, .adm-car-transm {
+    font-size: .68rem;
+    color: var(--dim);
+    background: rgba(255,255,255,.05);
+    padding: 2px 8px;
+    border-radius: 6px;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+}
+.adm-car-name {
+    font-size: .95rem;
+    font-weight: 700;
+    color: var(--txt);
+    margin-bottom: 8px;
+    line-height: 1.3;
+}
+.adm-car-specs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    margin-bottom: 14px;
+    min-height: 20px;
+}
+.adm-car-specs span { font-size: .75rem; color: var(--dim); }
+.adm-car-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.adm-car-price { font-size: 1rem; font-weight: 800; }
+
+/* ════════ USER CARDS ════════ */
+.adm-user-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+}
+.adm-user-card {
+    background: var(--bg2);
+    border: 1px solid var(--brd);
+    border-radius: var(--r);
+    padding: 18px;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    transition: border-color .2s, transform .2s;
+}
+.adm-user-card:hover { border-color: rgba(0,242,255,.18); transform: translateY(-2px); }
+.adm-user-av {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    background: var(--c-dim);
+    border: 1px solid var(--c-brd);
+    display: grid; place-items: center;
+    font-size: .78rem;
+    font-weight: 700;
+    color: var(--c);
+    flex-shrink: 0;
+}
+.adm-user-info { flex: 1; }
+.adm-user-name { font-size: .88rem; font-weight: 600; color: var(--txt); margin-bottom: 3px; }
+.adm-user-tel  { font-size: .75rem; color: var(--dim); margin-bottom: 8px; }
+.adm-user-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.adm-user-meta > span:first-child { font-size: .7rem; color: var(--dim); }
+.adm-user-actions { display: flex; flex-direction: column; gap: 6px; }
+
+/* ════════ RESERVAS ════════ */
+.adm-reservas { display: flex; flex-direction: column; gap: 12px; }
+.adm-res-card {
+    background: var(--bg2);
+    border: 1px solid var(--brd);
+    border-radius: var(--r);
+    padding: 18px 20px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    transition: border-color .2s;
+    flex-wrap: wrap;
+}
+.adm-res-card:hover { border-color: rgba(0,242,255,.15); }
+.adm-res-id      { font-size: .8rem; color: var(--dim); min-width: 54px; }
+.adm-res-info    { flex: 1; min-width: 180px; }
+.adm-res-cliente { font-size: .9rem; font-weight: 600; color: var(--txt); }
+.adm-res-veiculo { font-size: .78rem; color: var(--dim); margin-top: 2px; }
+.adm-res-data    { font-size: .72rem; color: var(--dim); margin-top: 3px; }
+.adm-res-preco   { font-size: .85rem; min-width: 160px; }
+.adm-res-estado  { min-width: 90px; }
+.adm-res-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.adm-btn-estado {
+    font-size: .7rem;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: 7px;
+    border: 1px solid;
+    cursor: pointer;
+    transition: all .18s;
+    letter-spacing: .03em;
+}
+.btn-est-confirm { background: var(--c-dim);    border-color: var(--c-brd);             color: var(--c); }
+.btn-est-confirm:hover { background: var(--c); color: #000; }
+.btn-est-done    { background: var(--grn-dim);  border-color: rgba(57,255,20,.2);        color: var(--green); }
+.btn-est-done:hover    { background: var(--green); color: #000; }
+.btn-est-cancel  { background: var(--red-dim);  border-color: rgba(255,60,92,.2);        color: var(--red); }
+.btn-est-cancel:hover  { background: var(--red); color: #fff; }
+
+/* ════════ MODAL ════════ */
+.adm-modal-bg {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.7);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    padding: 20px;
+}
+.adm-modal {
+    background: var(--bg2);
+    border: 1px solid var(--c-brd);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 560px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 0 40px rgba(0,242,255,.15);
+}
+.adm-modal-hdr {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--brd);
+    background: var(--bg);
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+.adm-modal-title { font-size: .9rem; font-weight: 700; letter-spacing: .1em; color: var(--c); }
+.adm-modal-close {
+    background: transparent;
+    color: var(--dim);
+    font-size: 1rem;
+    width: 28px; height: 28px;
+    display: grid; place-items: center;
+    border-radius: 6px;
+    transition: all .15s;
+}
+.adm-modal-close:hover { background: var(--red-dim); color: var(--red); }
+.adm-modal-body { padding: 24px; }
+.adm-modal-foot {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 16px 24px;
+    border-top: 1px solid var(--brd);
+    background: var(--bg);
+    position: sticky;
+    bottom: 0;
+}
+
+.adm-field { margin-bottom: 16px; }
+.adm-field label { display: block; font-size: .72rem; color: var(--dim); letter-spacing: .06em; margin-bottom: 7px; }
+.adm-inp {
+    width: 100%;
+    height: 44px;
+    background: var(--bg);
+    border: 1px solid var(--brd);
+    border-radius: var(--r);
+    color: var(--txt);
+    padding: 0 14px;
+    font-size: .85rem;
+    outline: none;
+    transition: border-color .2s;
+}
+.adm-inp:focus { border-color: var(--c-brd); box-shadow: 0 0 0 3px rgba(0,242,255,.06); }
+select.adm-inp { appearance: none; cursor: pointer; }
+.adm-textarea {
+    height: 80px !important;
+    padding-top: 10px !important;
+    resize: vertical;
+}
+.adm-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.adm-erro {
+    background: var(--red-dim);
+    border: 1px solid rgba(255,60,92,.25);
+    border-radius: var(--r);
+    padding: 10px 14px;
+    color: var(--red);
+    font-size: .8rem;
+    margin-top: 4px;
+}
+
+/* ════════ MISC ════════ */
+.adm-mono       { font-family: var(--font); }
+.adm-cyan       { color: var(--c); }
+.adm-dim        { color: var(--dim); }
+.adm-cell-title { font-weight: 600; color: var(--txt); }
+.adm-empty      { text-align: center; color: var(--dim); padding: 40px; font-size: .85rem; }
+.req            { color: var(--c); }
+
+/* ════════ RESPONSIVE ════════ */
+@@media (max-width: 900px) {
+    .adm-shell { grid-template-columns: 1fr; }
+    .adm-side {
+        position: fixed;
+        left: -240px;
+        top: 0;
+        transition: left .25s var(--ease);
+        box-shadow: 4px 0 30px rgba(0,0,0,.6);
+    }
+    .adm-side.open { left: 0; }
+    .adm-menu-btn  { display: block; }
+    .adm-grid2     { grid-template-columns: 1fr; }
+    .adm-content   { padding: 20px 16px 32px; }
+}
+@@media (max-width: 600px) {
+    .adm-kpis     { grid-template-columns: 1fr 1fr; }
+    .adm-row2     { grid-template-columns: 1fr; }
+    .adm-res-card { flex-direction: column; align-items: flex-start; }
+    .adm-car-grid { grid-template-columns: 1fr; }
+}
+@@media (max-width: 400px) {
+    .adm-kpis { grid-template-columns: 1fr; }
+}
+</style>

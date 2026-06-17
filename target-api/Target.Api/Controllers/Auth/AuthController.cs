@@ -22,27 +22,64 @@ namespace Target.Api.Controllers.Auth
 
         // ================= REGISTER =================
         [HttpPost("register")]
-        public IActionResult Register([FromBody] Usuario user)
+        [HttpPost("registrar")]
+        public IActionResult Register([FromBody] RegisterRequest request)
         {
-            if (_context.Usuarios.Any(u => u.Email == user.Email))
+            if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Senha))
+                return BadRequest("Email e senha são obrigatórios.");
+
+            if (_context.Usuarios.Any(u => u.Email == request.Email))
                 return BadRequest("Email já existe");
 
-            user.SenhaHash = BCrypt.Net.BCrypt.HashPassword(user.SenhaHash);
-            user.DataCadastro = DateTime.Now;
+            var user = new Usuario
+            {
+                Nome = request.Nome?.Trim() ?? string.Empty,
+                Email = request.Email.Trim(),
+                SenhaHash = BCrypt.Net.BCrypt.HashPassword(request.Senha),
+                Telefone = request.Telefone?.Trim(),
+                Role = "Cliente",
+                DataCadastro = DateTime.UtcNow,
+                DataNascimento = request.DataNascimento,
+                Genero = request.Genero,
+                EstadoCivil = request.EstadoCivil,
+                NumeroFilhos = request.NumeroFilhos,
+                Profissao = request.Profissao,
+                FaixaRendaMensal = request.FaixaRendaMensal,
+                TipoDeUsoPretendido = request.TiposUso != null ? string.Join(",", request.TiposUso) : null,
+                InteressesPrincipais = request.InteressesPrincipais != null ? string.Join(",", request.InteressesPrincipais) : null,
+            };
 
             _context.Usuarios.Add(user);
             _context.SaveChanges();
 
-            return Ok("Usuário criado com sucesso");
+            if (!string.IsNullOrWhiteSpace(request.Provincia) ||
+                !string.IsNullOrWhiteSpace(request.Municipio) ||
+                !string.IsNullOrWhiteSpace(request.Bairro) ||
+                !string.IsNullOrWhiteSpace(request.RuaComplemento))
+            {
+                var endereco = new Endereco
+                {
+                    UsuarioId = user.Id,
+                    Provincia = request.Provincia,
+                    Municipio = request.Municipio,
+                    Bairro = request.Bairro,
+                    RuaComplemento = request.RuaComplemento
+                };
+
+                _context.Enderecos.Add(endereco);
+                _context.SaveChanges();
+            }
+
+            return Ok(new { message = "Usuário criado com sucesso" });
         }
 
         // ================= LOGIN =================
         [HttpPost("login")]
-        public IActionResult Login([FromBody] Usuario login)
+        public IActionResult Login([FromBody] LoginRequest login)
         {
             var user = _context.Usuarios.FirstOrDefault(u => u.Email == login.Email);
 
-            if (user == null || !BCrypt.Net.BCrypt.Verify(login.SenhaHash, user.SenhaHash))
+            if (user == null || !BCrypt.Net.BCrypt.Verify(login.Senha, user.SenhaHash))
                 return Unauthorized("Credenciais inválidas");
 
             var token = GenerateJwtToken(user);

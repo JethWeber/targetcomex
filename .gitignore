@@ -22,3 +22,8 @@ obj/
 tokenGitHub.txt
 log01.txt
 logdb.txt
+
+# Chaves
+./Keys/*.xml
+Keys/*.xml
+target-ui/keys/*.xml

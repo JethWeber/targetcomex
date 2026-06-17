@@ -1,0 +1,490 @@
+@page "/login"
+@rendermode InteractiveServer
+@layout EmptyLayout
+@inject ApiClient Api
+@inject AuthService AuthService
+@inject NavigationManager Nav
+
+<section class="login-page">
+
+    <!-- Fundo -->
+    <div class="bg-overlay"></div>
+    <div class="bg-grid"></div>
+    <div class="bg-glow"></div>
+
+    <!-- Logo T -->
+    <div class="bg-logo">
+        T
+    </div>
+
+    <!-- Carro -->
+    <img src="1img/car-login.png"
+         alt="Carro"
+         class="bg-car" />
+
+    <!-- Card -->
+    <div class="login-card rgb-light">
+
+        <h1>LOGIN</h1>
+
+        @if (!string.IsNullOrWhiteSpace(loginError))
+        {
+            <div class="login-error">@loginError</div>
+        }
+
+        <!-- Email -->
+        <div class="input-group">
+
+            <div class="input-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2
+                             19.79 19.79 0 0 1-8.63-3.07
+                             19.5 19.5 0 0 1-6-6
+                             19.79 19.79 0 0 1-3.07-8.67
+                             A2 2 0 0 1 4.11 2h3
+                             a2 2 0 0 1 2 1.72
+                             c.12.81.37 1.6.72 2.34
+                             a2 2 0 0 1-.45 2.11L8.09 9.91
+                             a16 16 0 0 0 6 6l1.74-1.29
+                             a2 2 0 0 1 2.11-.45
+                             c.74.35 1.53.6 2.34.72
+                             A2 2 0 0 1 22 16.92z" />
+                </svg>
+            </div>
+
+            <InputText class="form-input"
+                       @bind-Value="email"
+                       placeholder="email@exemplo.com" />
+        </div>
+
+        <!-- Senha -->
+        <div class="input-group">
+
+            <div class="input-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="11" width="18" height="11" rx="2" />
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+            </div>
+
+            <input class="form-input"
+                   type="@(mostrarSenha ? "text" : "password")"
+                   placeholder="Digite sua senha"
+                   @bind="senha" />
+
+            <!-- Mostrar senha -->
+            <button type="button" class="toggle-password" @onclick="AlternarSenha">
+
+                @if (mostrarSenha)
+                {
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20
+                                 c-7 0-11-8-11-8
+                                 a21.77 21.77 0 0 1 5.06-5.94" />
+                        <path d="M1 1l22 22" />
+                        <path d="M9.9 4.24A10.94 10.94 0 0 1 12 4
+                                 c7 0 11 8 11 8
+                                 a21.8 21.8 0 0 1-4.87 5.87" />
+                    </svg>
+                }
+                else
+                {
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                        <circle cx="12" cy="12" r="3" />
+                    </svg>
+                }
+
+            </button>
+        </div>
+
+        <!-- Remember -->
+        <label class="remember-box">
+            <InputCheckbox @bind-Value="relembrar" />
+            <span>Relembrar</span>
+        </label>
+
+        <!-- Login -->
+        <button class="login-btn1" @onclick="SubmitLogin" disabled="@isSubmitting">
+            @(isSubmitting ? "A iniciar sessão..." : "Login")
+        </button>
+
+        <!-- Registrar -->
+        <a href="/registrar" class="register-link">
+            Registrar
+        </a>
+
+    </div>
+
+</section>
+
+@code {
+
+    private string email        = "";
+    private string senha        = "";
+    private string loginError   = "";
+    private bool   relembrar;
+    private bool   mostrarSenha;
+    private bool   isSubmitting;
+
+    private async Task SubmitLogin()
+    {
+        loginError = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(senha))
+        {
+            loginError = "Por favor, preencha email e senha.";
+            return;
+        }
+
+        isSubmitting = true;
+
+        try
+        {
+            var result = await Api.LoginAsync(new LoginRequest
+            {
+                Email = email.Trim(),
+                Senha = senha
+            });
+
+            if (!result.Success || result.Data?.Token is null)
+            {
+                loginError = result.Error ?? "Credenciais inválidas ou erro de autenticação.";
+                return;
+            }
+
+            await AuthService.SetTokenAsync(result.Data.Token, relembrar);
+
+            var role = await AuthService.GetRoleAsync();
+
+            if (string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase))
+                Nav.NavigateTo("/admin", forceLoad: true);
+            else
+                Nav.NavigateTo("/", forceLoad: true);
+        }
+        catch
+        {
+            loginError = "Erro ao conectar ao servidor. Tente novamente mais tarde.";
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    private void AlternarSenha() => mostrarSenha = !mostrarSenha;
+
+    private sealed class LoginResponse
+    {
+        public string? Token { get; set; }
+    }
+}
+
+
+<script>
+document.addEventListener("mousemove", (e) => {
+    const card = document.querySelector(".login-card");
+    if (!card) return;
+
+    const rect    = card.getBoundingClientRect();
+    const x       = e.clientX - rect.left;
+    const y       = e.clientY - rect.top;
+    const rotateY = ((x / rect.width)  - 0.5) *  6;
+    const rotateX = ((y / rect.height) - 0.5) * -6;
+
+    card.style.transform =
+        `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+});
+
+document.addEventListener("mouseleave", () => {
+    const card = document.querySelector(".login-card");
+    if (card)
+        card.style.transform = "perspective(1000px) rotateX(0deg) rotateY(0deg)";
+});
+</script>
+
+<style>
+:root {
+    --c:       #00f2ff;
+    --c-dim:   rgba(0,242,255,.13);
+    --c-glow:  rgba(0,242,255,.28);
+
+    --bg:      #060609;
+    --bg-card: #0d0d12;
+    --bg-svc:  #0a0a0f;
+
+    --brd:     rgba(255,255,255,.07);
+    --brd-a:   rgba(0,242,255,.4);
+
+    --txt:     #e6e6f0;
+    --txt-dim: #686882;
+
+    --r:       14px;
+    --rs:      8px;
+
+    --ease:    cubic-bezier(.4,0,.2,1);
+}
+
+/* ── PAGE ── */
+.login-page {
+    position: relative;
+    min-height: 100vh;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 170px 20px 80px;
+    isolation: isolate;
+    background:
+        radial-gradient(circle at top, var(--c-dim), transparent 30%),
+        linear-gradient(180deg, #050507 0%, #090910 55%, #050507 100%);
+}
+
+/* ── BG ── */
+.bg-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, rgba(0,0,0,.12), rgba(0,0,0,.45));
+}
+
+.bg-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+        linear-gradient(rgba(255,255,255,.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.02) 1px, transparent 1px);
+    background-size: 40px 40px;
+}
+
+.bg-glow {
+    position: absolute;
+    width: 700px;
+    height: 700px;
+    background: var(--c);
+    opacity: .12;
+    filter: blur(180px);
+    top: -260px;
+    right: -140px;
+}
+
+/* ── T LOGO ── */
+.bg-logo {
+    position: absolute;
+    top: 9%;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 18rem;
+    font-weight: 900;
+    color: rgba(0,242,255,.05);
+    user-select: none;
+    letter-spacing: -18px;
+}
+
+/* ── CAR ── */
+.bg-car {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 720px;
+    max-width: 90%;
+    pointer-events: none;
+    opacity: .92;
+}
+
+/* ── CARD ── */
+.login-card {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    max-width: 430px;
+    padding: 42px;
+    border-radius: calc(var(--r) + 6px);
+    background: linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.015));
+    border: 1px solid rgba(255,255,255,.05);
+    backdrop-filter: blur(20px);
+    overflow: hidden;
+    box-shadow:
+        0 20px 60px rgba(0,0,0,.45),
+        inset 0 1px 1px rgba(255,255,255,.04),
+        0 0 30px rgba(0,242,255,.05);
+    transform: translateZ(0);
+}
+
+.login-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(135deg, rgba(0,242,255,.9), transparent 20%, transparent 80%, rgba(0,242,255,.4));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    z-index: -1;
+}
+
+/* ── RGB LIGHT ── */
+.login-card .rgb-light {
+    position: absolute;
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(0,242,255,.35), transparent 70%);
+    filter: blur(20px);
+    pointer-events: none;
+    z-index: -1;
+    animation: rgbMove 8s ease-in-out infinite;
+}
+
+.login-card h1 {
+    color: var(--txt);
+    text-align: center;
+    font-size: 2rem;
+    font-weight: 800;
+    margin-bottom: 34px;
+    letter-spacing: 2px;
+}
+
+/* ── ERROR ── */
+.login-error {
+    background: rgba(255, 60, 60, .12);
+    border: 1px solid rgba(255, 60, 60, .35);
+    color: #ff6b6b;
+    border-radius: var(--rs);
+    padding: 12px 16px;
+    font-size: .9rem;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+/* ── ANIMATIONS ── */
+@@keyframes rgbMove {
+    0%   { top: -40px; left: -40px; }
+    25%  { top: -40px; left: 70%;   }
+    50%  { top:  65%;  left: 70%;   }
+    75%  { top:  65%;  left: -40px; }
+    100% { top: -40px; left: -40px; }
+}
+
+/* ── INPUTS ── */
+.input-group {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.form-input {
+    width: 100%;
+    height: 60px;
+    border: none;
+    outline: none;
+    border-radius: var(--r);
+    background: rgba(255,255,255,.03);
+    border: 1px solid var(--brd);
+    padding: 0 56px;
+    color: var(--txt);
+    font-size: .97rem;
+    transition:
+        border-color .25s var(--ease),
+        box-shadow   .25s var(--ease),
+        background   .25s var(--ease);
+}
+
+.form-input:focus {
+    border-color: var(--brd-a);
+    background: rgba(255,255,255,.045);
+    box-shadow: 0 0 0 4px rgba(0,242,255,.08), 0 0 20px rgba(0,242,255,.08);
+}
+
+.form-input::placeholder { color: var(--txt-dim); }
+
+/* ── ICONS ── */
+.input-icon {
+    position: absolute;
+    left: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 21px;
+    height: 21px;
+    color: var(--c);
+    z-index: 5;
+    opacity: .9;
+}
+
+.input-icon svg { width: 100%; height: 100%; }
+
+/* ── TOGGLE PASSWORD ── */
+.toggle-password {
+    position: absolute;
+    right: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: none;
+    color: var(--txt-dim);
+    cursor: pointer;
+    transition: color .2s var(--ease);
+}
+
+.toggle-password:hover { color: var(--c); }
+.toggle-password svg   { width: 100%; height: 100%; }
+
+/* ── REMEMBER ── */
+.remember-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 6px 0 26px;
+    color: var(--txt-dim);
+    font-size: .95rem;
+}
+
+/* ── BUTTON ── */
+.login-btn1 {
+    width: 100%;
+    height: 60px;
+    border: none;
+    outline: none;
+    border-radius: var(--r);
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #001417;
+    background: linear-gradient(135deg, #00d9ff, var(--c));
+    box-shadow: 0 10px 30px rgba(0,242,255,.22);
+    transition: transform .25s var(--ease), box-shadow .25s var(--ease);
+}
+
+.login-btn1:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 36px rgba(0,242,255,.3);
+}
+
+.login-btn1:disabled {
+    opacity: .6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* ── REGISTER ── */
+.register-link {
+    display: block;
+    text-align: center;
+    margin-top: 24px;
+    color: var(--txt-dim);
+    text-decoration: none;
+    transition: color .2s var(--ease);
+}
+
+.register-link:hover { color: var(--c); }
+
+/* ── RESPONSIVE ── */
+@@media (max-width: 768px) {
+    .login-page  { padding: 120px 16px 40px; }
+    .login-card  { padding: 34px 24px; }
+    .bg-logo     { font-size: 10rem; }
+    .bg-car      { width: 500px; opacity: .75; }
+}
+</style>

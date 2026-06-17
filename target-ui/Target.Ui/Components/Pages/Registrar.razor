@@ -1,0 +1,742 @@
+@page "/registrar"
+@rendermode InteractiveServer
+@layout EmptyLayout
+
+@inject ApiClient Api
+@inject NavigationManager Nav
+
+<section class="reg-page">
+
+    <div class="bg-overlay"></div>
+    <div class="bg-grid"></div>
+    <div class="bg-glow"></div>
+    <div class="bg-logo">T</div>
+
+    <div class="reg-card">
+        <div class="rgb-light"></div>
+
+        <!-- Barra de progresso -->
+        <div class="prog-text">Passo @StepAtual de @TotalSteps</div>
+        <div class="prog-bar">
+            <div class="prog-fill" style="width: @(StepAtual * 100 / TotalSteps)%"></div>
+        </div>
+
+        <!-- Indicadores de steps -->
+        <div class="steps-bar">
+            @for (int i = 1; i <= TotalSteps; i++)
+            {
+                int idx = i;
+                <div class="step-dot @(idx < StepAtual ? "done" : idx == StepAtual ? "active" : "")">
+                    @if (idx < StepAtual) { <span>✓</span> } else { <span>@idx</span> }
+                </div>
+                @if (i < TotalSteps)
+                {
+                    <div class="step-line @(idx < StepAtual ? "done" : "")"></div>
+                }
+            }
+        </div>
+
+        <!-- ===== STEP 1: CONTA ===== -->
+        @if (StepAtual == 1)
+        {
+            <h2 class="step-title">CRIAR CONTA</h2>
+            <p class="step-sub">Dados de acesso à plataforma</p>
+
+            <div class="field">
+                <label>Nome Completo <span class="req">*</span></label>
+                <div class="inp-wrap">
+                    <div class="inp-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="8" r="4" />
+                            <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+                        </svg>
+                    </div>
+                    <InputText class="form-input" @bind-Value="Conta.NomeCompleto" placeholder="Ex: João Manuel da Silva" />
+                </div>
+            </div>
+
+            <div class="field">
+                <label>Email <span class="req">*</span></label>
+                <div class="inp-wrap">
+                    <div class="inp-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M4 4h16v16H4z" />
+                            <path d="M22 6l-10 7L2 6" />
+                        </svg>
+                    </div>
+                    <InputText class="form-input" @bind-Value="Conta.Email" placeholder="seu@email.com" />
+                </div>
+            </div>
+
+            <div class="field">
+                <label>Telefone <span class="req">*</span></label>
+                <div class="inp-wrap">
+                    <div class="inp-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07
+                                     19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67
+                                     A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72
+                                     c.12.81.37 1.6.72 2.34a2 2 0 0 1-.45 2.11L8.09 9.91
+                                     a16 16 0 0 0 6 6l1.74-1.29a2 2 0 0 1 2.11-.45
+                                     c.74.35 1.53.6 2.34.72A2 2 0 0 1 22 16.92z" />
+                        </svg>
+                    </div>
+                    <InputText class="form-input" @bind-Value="Conta.Telefone" placeholder="923 000 000" />
+                </div>
+            </div>
+
+            <div class="field">
+                <label>Senha <span class="req">*</span></label>
+                <div class="inp-wrap">
+                    <div class="inp-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="11" width="18" height="11" rx="2" />
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                        </svg>
+                    </div>
+                    <input class="form-input"
+                           type="@(MostrarSenha ? "text" : "password")"
+                           placeholder="Mínimo 8 caracteres"
+                           @bind="Conta.Senha"
+                           @bind:event="oninput" />
+                    <button type="button" class="toggle-pw" @onclick="() => MostrarSenha = !MostrarSenha">
+                        @if (MostrarSenha)
+                        {
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a21.77 21.77 0 0 1 5.06-5.94" />
+                                <path d="M1 1l22 22" />
+                                <path d="M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a21.8 21.8 0 0 1-4.87 5.87" />
+                            </svg>
+                        }
+                        else
+                        {
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                <circle cx="12" cy="12" r="3" />
+                            </svg>
+                        }
+                    </button>
+                </div>
+            </div>
+        }
+
+        <!-- ===== STEP 2: PERFIL PESSOAL ===== -->
+        @if (StepAtual == 2)
+        {
+            <h2 class="step-title">PERFIL PESSOAL</h2>
+            <p class="step-sub">Ajuda-nos a conhecer melhor</p>
+
+            <div class="row2">
+                <div class="field">
+                    <label>Data de Nascimento <span class="req">*</span></label>
+                    <InputDate class="form-input no-icon" @bind-Value="Perfil.DataNascimento" />
+                </div>
+                <div class="field">
+                    <label>Género <span class="req">*</span></label>
+                    <div class="sel-wrap">
+                        <InputSelect class="form-input no-icon" @bind-Value="Perfil.Genero">
+                            <option value="">Selecionar</option>
+                            <option value="M">Masculino</option>
+                            <option value="F">Feminino</option>
+                        </InputSelect>
+                        <span class="sel-arrow">▾</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="field">
+                <label>Estado Civil <span class="req">*</span></label>
+                <div class="sel-wrap">
+                    <InputSelect class="form-input no-icon" @bind-Value="Perfil.EstadoCivil">
+                        <option value="">Selecionar</option>
+                        <option>Solteiro(a)</option>
+                        <option>Casado(a)</option>
+                        <option>Divorciado(a)</option>
+                        <option>Viúvo(a)</option>
+                    </InputSelect>
+                    <span class="sel-arrow">▾</span>
+                </div>
+            </div>
+
+            <div class="field">
+                <label>
+                    Número de Filhos
+                    <span class="opt-badge">opcional</span>
+                </label>
+                <InputNumber class="form-input no-icon" @bind-Value="Perfil.NumeroFilhos" min="0" placeholder="0" />
+            </div>
+        }
+
+        <!-- ===== STEP 3: PERFIL ECONÓMICO ===== -->
+        @if (StepAtual == 3)
+        {
+            <h2 class="step-title">PERFIL ECONÓMICO</h2>
+            <p class="step-sub">Informação confidencial e segura</p>
+
+            <div class="field">
+                <label>Profissão <span class="req">*</span></label>
+                <div class="inp-wrap">
+                    <div class="inp-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="7" width="20" height="14" rx="2" />
+                            <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" />
+                        </svg>
+                    </div>
+                    <InputText class="form-input" @bind-Value="Economico.Profissao" placeholder="Ex: Engenheiro, Professor..." />
+                </div>
+            </div>
+
+            <div class="field">
+                <label>
+                    Faixa de Renda Mensal
+                    <span class="opt-badge">opcional</span>
+                </label>
+                <div class="sel-wrap">
+                    <InputSelect class="form-input no-icon" @bind-Value="Economico.FaixaRendaMensal">
+                        <option value="">Prefiro não informar</option>
+                        <option>Até 50.000 AOA</option>
+                        <option>50.000 – 150.000 AOA</option>
+                        <option>150.000 – 300.000 AOA</option>
+                        <option>300.000 – 600.000 AOA</option>
+                        <option>Acima de 600.000 AOA</option>
+                    </InputSelect>
+                    <span class="sel-arrow">▾</span>
+                </div>
+            </div>
+        }
+
+        <!-- ===== STEP 4: PREFERÊNCIAS ===== -->
+        @if (StepAtual == 4)
+        {
+            <h2 class="step-title">PREFERÊNCIAS</h2>
+            <p class="step-sub">A IA usará isto para recomendar a viatura ideal</p>
+
+            <div class="field">
+                <label>Tipo de Uso Pretendido <span class="req">*</span></label>
+                <div class="chips">
+                    @foreach (var op in OpcoesUso)
+                    {
+                        var local = op;
+                        <div class="chip @(Preferencias.TiposUso.Contains(local) ? "on" : "")"
+                             @onclick="() => ToggleChip(Preferencias.TiposUso, local)">
+                            @local
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="field" style="margin-top:20px">
+                <label>Interesses Principais <span class="req">*</span></label>
+                <div class="chips">
+                    @foreach (var op in OpcoesInteresses)
+                    {
+                        var local = op;
+                        <div class="chip @(Preferencias.Interesses.Contains(local) ? "on" : "")"
+                             @onclick="() => ToggleChip(Preferencias.Interesses, local)">
+                            @local
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
+        <!-- ===== STEP 5: ENDEREÇO ===== -->
+        @if (StepAtual == 5)
+        {
+            <h2 class="step-title">ENDEREÇO</h2>
+            <p class="step-sub">Para personalizar ainda mais as recomendações</p>
+
+            <div class="row2">
+                <div class="field">
+                    <label>Província <span class="req">*</span></label>
+                    <div class="sel-wrap">
+                        <InputSelect class="form-input no-icon" @bind-Value="Endereco.Provincia">
+                            <option value="">Selecionar</option>
+                            <option>Luanda</option>
+                            <option>Benguela</option>
+                            <option>Huambo</option>
+                            <option>Cabinda</option>
+                            <option>Namibe</option>
+                            <option>Huíla</option>
+                            <option>Malanje</option>
+                            <option>Kwanza Norte</option>
+                            <option>Kwanza Sul</option>
+                            <option>Moxico</option>
+                            <option>Cunene</option>
+                            <option>Cuando Cubango</option>
+                            <option>Zaire</option>
+                            <option>Uíge</option>
+                            <option>Lunda Norte</option>
+                            <option>Lunda Sul</option>
+                            <option>Bié</option>
+                            <option>Bengo</option>
+                        </InputSelect>
+                        <span class="sel-arrow">▾</span>
+                    </div>
+                </div>
+                <div class="field">
+                    <label>Município <span class="req">*</span></label>
+                    <InputText class="form-input no-icon" @bind-Value="Endereco.Municipio" placeholder="Ex: Viana" />
+                </div>
+            </div>
+
+            <div class="field">
+                <label>
+                    Bairro
+                    <span class="opt-badge">opcional</span>
+                </label>
+                <InputText class="form-input no-icon" @bind-Value="Endereco.Bairro" placeholder="Ex: Talatona" />
+            </div>
+
+            <div class="field">
+                <label>
+                    Rua / Complemento
+                    <span class="opt-badge">opcional</span>
+                </label>
+                <InputText class="form-input no-icon" @bind-Value="Endereco.RuaComplemento" placeholder="Ex: Rua 14, Casa 7" />
+            </div>
+        }
+
+        <!-- Mensagem de erro -->
+        @if (!string.IsNullOrEmpty(ErroMensagem))
+        {
+            <div class="erro-box">@ErroMensagem</div>
+        }
+
+        <!-- Botões de navegação -->
+        <div class="nav-btns">
+            @if (StepAtual > 1)
+            {
+                <button type="button" class="btn-back" @onclick="Voltar">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M19 12H5M12 5l-7 7 7 7" />
+                    </svg>
+                </button>
+            }
+            <button type="button" class="btn-next" @onclick="Avancar" disabled="@Carregando">
+                @if (Carregando)
+                {
+                    <span>A processar...</span>
+                }
+                else if (StepAtual == TotalSteps)
+                {
+                    <span>Concluir ✓</span>
+                }
+                else
+                {
+                    <span>Continuar →</span>
+                }
+            </button>
+        </div>
+
+        <a href="/login" class="login-link">Já tem conta? Entrar</a>
+
+    </div>
+</section>
+
+@code {
+    private int StepAtual = 1;
+    private const int TotalSteps = 5;
+
+    private bool MostrarSenha = false;
+    private bool Carregando   = false;
+    private string ErroMensagem = "";
+
+    // ── Modelos de cada step ─────────────────────────────────────
+
+    private StepConta        Conta        = new();
+    private StepPerfil       Perfil       = new();
+    private StepEconomico    Economico    = new();
+    private StepPreferencias Preferencias = new();
+    private StepEndereco     Endereco     = new();
+
+    // ── Opções dos chips ─────────────────────────────────────────
+
+    private List<string> OpcoesUso = new()
+    {
+        "Uso pessoal", "Uso familiar", "Trabalho / negócios",
+        "Transporte escolar", "Lazer / aventura"
+    };
+
+    private List<string> OpcoesInteresses = new()
+    {
+        "Baixo consumo", "Conforto", "Potência", "Design",
+        "4x4 / Offroad", "Espaço / carga", "Elétrico / híbrido"
+    };
+
+    // ── Navegação ────────────────────────────────────────────────
+
+    private async Task Avancar()
+    {
+        ErroMensagem = "";
+        if (!ValidarStep()) return;
+
+        if (StepAtual < TotalSteps)
+            StepAtual++;
+        else
+            await Submeter();
+    }
+
+    private void Voltar()
+    {
+        ErroMensagem = "";
+        if (StepAtual > 1) StepAtual--;
+    }
+
+    private void ToggleChip(List<string> lista, string valor)
+    {
+        if (lista.Contains(valor)) lista.Remove(valor);
+        else lista.Add(valor);
+    }
+
+    // ── Validação por step ───────────────────────────────────────
+
+    private bool ValidarStep() => StepAtual switch
+    {
+        1 => ValidarStep1(),
+        2 => ValidarStep2(),
+        3 => ValidarStep3(),
+        4 => ValidarStep4(),
+        5 => ValidarStep5(),
+        _ => true
+    };
+
+    private bool ValidarStep1()
+    {
+        if (string.IsNullOrWhiteSpace(Conta.NomeCompleto))
+        { ErroMensagem = "Por favor, insira o seu nome completo."; return false; }
+        if (string.IsNullOrWhiteSpace(Conta.Email))
+        { ErroMensagem = "Por favor, indique o seu email."; return false; }
+        if (string.IsNullOrWhiteSpace(Conta.Telefone))
+        { ErroMensagem = "Por favor, insira o seu número de telefone."; return false; }
+        if (string.IsNullOrWhiteSpace(Conta.Senha) || Conta.Senha.Length < 8)
+        { ErroMensagem = "A senha deve ter pelo menos 8 caracteres."; return false; }
+        return true;
+    }
+
+    private bool ValidarStep2()
+    {
+        if (Perfil.DataNascimento == default)
+        { ErroMensagem = "Por favor, indique a sua data de nascimento."; return false; }
+        if (string.IsNullOrWhiteSpace(Perfil.Genero))
+        { ErroMensagem = "Por favor, selecione o género."; return false; }
+        if (string.IsNullOrWhiteSpace(Perfil.EstadoCivil))
+        { ErroMensagem = "Por favor, selecione o estado civil."; return false; }
+        return true;
+    }
+
+    private bool ValidarStep3()
+    {
+        if (string.IsNullOrWhiteSpace(Economico.Profissao))
+        { ErroMensagem = "Por favor, indique a sua profissão."; return false; }
+        return true;
+    }
+
+    private bool ValidarStep4()
+    {
+        if (!Preferencias.TiposUso.Any())
+        { ErroMensagem = "Selecione pelo menos um tipo de uso."; return false; }
+        if (!Preferencias.Interesses.Any())
+        { ErroMensagem = "Selecione pelo menos um interesse."; return false; }
+        return true;
+    }
+
+    private bool ValidarStep5()
+    {
+        if (string.IsNullOrWhiteSpace(Endereco.Provincia))
+        { ErroMensagem = "Por favor, selecione a sua província."; return false; }
+        if (string.IsNullOrWhiteSpace(Endereco.Municipio))
+        { ErroMensagem = "Por favor, indique o município."; return false; }
+        return true;
+    }
+
+    // ── Submissão via ApiClient ──────────────────────────────────
+
+    private async Task Submeter()
+    {
+        Carregando = true;
+        StateHasChanged();
+
+        var request = new RegisterRequest
+        {
+            Nome                 = Conta.NomeCompleto?.Trim(),
+            Email                = Conta.Email?.Trim(),
+            Senha                = Conta.Senha,
+            Telefone             = Conta.Telefone?.Trim(),
+            DataNascimento       = Perfil.DataNascimento.ToDateTime(TimeOnly.MinValue),
+            Genero               = Perfil.Genero,
+            EstadoCivil          = Perfil.EstadoCivil,
+            NumeroFilhos         = Perfil.NumeroFilhos,
+            Profissao            = Economico.Profissao,
+            FaixaRendaMensal     = Economico.FaixaRendaMensal,
+            TiposUso             = Preferencias.TiposUso,
+            InteressesPrincipais = Preferencias.Interesses,
+            Provincia            = Endereco.Provincia,
+            Municipio            = Endereco.Municipio,
+            Bairro               = Endereco.Bairro,
+            RuaComplemento       = Endereco.RuaComplemento
+        };
+
+        var result = await Api.RegisterAsync(request);
+
+        if (!result.Success)
+        {
+            ErroMensagem = string.IsNullOrWhiteSpace(result.Error)
+                ? "Não foi possível registar a conta. Tente novamente."
+                : result.Error.Trim('"');
+            Carregando = false;
+            StateHasChanged();
+            return;
+        }
+
+        Carregando = false;
+        Nav.NavigateTo("/login");
+    }
+
+    // ── DTOs internos ────────────────────────────────────────────
+
+    private class StepConta
+    {
+        public string NomeCompleto { get; set; } = "";
+        public string Email        { get; set; } = "";
+        public string Telefone     { get; set; } = "";
+        public string Senha        { get; set; } = "";
+    }
+
+    private class StepPerfil
+    {
+        public DateOnly DataNascimento { get; set; }
+        public string   Genero         { get; set; } = "";
+        public string   EstadoCivil    { get; set; } = "";
+        public int?     NumeroFilhos   { get; set; }
+    }
+
+    private class StepEconomico
+    {
+        public string Profissao        { get; set; } = "";
+        public string FaixaRendaMensal { get; set; } = "";
+    }
+
+    private class StepPreferencias
+    {
+        public List<string> TiposUso   { get; set; } = new();
+        public List<string> Interesses { get; set; } = new();
+    }
+
+    private class StepEndereco
+    {
+        public string Provincia      { get; set; } = "";
+        public string Municipio      { get; set; } = "";
+        public string Bairro         { get; set; } = "";
+        public string RuaComplemento { get; set; } = "";
+    }
+}
+
+<style>
+:root {
+    --c:       #00f2ff;
+    --c-dim:   rgba(0,242,255,.13);
+    --bg:      #060609;
+    --brd:     rgba(255,255,255,.07);
+    --brd-a:   rgba(0,242,255,.4);
+    --txt:     #e6e6f0;
+    --txt-dim: #686882;
+    --r:       14px;
+    --ease:    cubic-bezier(.4,0,.2,1);
+}
+
+/* PAGE */
+.reg-page {
+    position: relative;
+    min-height: 100vh;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    isolation: isolate;
+    background:
+        radial-gradient(circle at top, var(--c-dim), transparent 30%),
+        linear-gradient(180deg, #050507 0%, #090910 55%, #050507 100%);
+}
+
+/* BG */
+.bg-overlay { position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(0,0,0,.12), rgba(0,0,0,.45)); }
+.bg-grid {
+    position: absolute; inset: 0;
+    background-image:
+        linear-gradient(rgba(255,255,255,.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.02) 1px, transparent 1px);
+    background-size: 40px 40px;
+}
+.bg-glow {
+    position: absolute; width: 700px; height: 700px;
+    background: var(--c); opacity: .12; filter: blur(180px);
+    top: -260px; right: -140px;
+}
+.bg-logo {
+    position: absolute; top: 5%; left: 50%; transform: translateX(-50%);
+    font-size: 16rem; font-weight: 900;
+    color: rgba(0,242,255,.04); user-select: none; letter-spacing: -16px;
+}
+
+/* CARD */
+.reg-card {
+    position: relative; z-index: 10;
+    width: 100%; max-width: 480px;
+    padding: 38px 42px;
+    border-radius: calc(var(--r) + 6px);
+    background: linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.015));
+    border: 1px solid rgba(255,255,255,.05);
+    backdrop-filter: blur(20px);
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,.45), inset 0 1px 1px rgba(255,255,255,.04), 0 0 30px rgba(0,242,255,.05);
+}
+.reg-card::after {
+    content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1px;
+    background: linear-gradient(135deg, rgba(0,242,255,.9), transparent 20%, transparent 80%, rgba(0,242,255,.4));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+    pointer-events: none; z-index: -1;
+}
+.rgb-light {
+    position: absolute; width: 160px; height: 160px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(0,242,255,.3), transparent 70%);
+    filter: blur(18px); pointer-events: none; z-index: 0;
+    animation: rgbMove 8s ease-in-out infinite;
+}
+
+/* PROGRESS */
+.prog-text { text-align: right; font-size: .78rem; color: var(--txt-dim); margin-bottom: 8px; }
+.prog-bar { height: 3px; background: rgba(255,255,255,.06); border-radius: 3px; margin-bottom: 24px; overflow: hidden; }
+.prog-fill { height: 100%; background: linear-gradient(90deg, #00d9ff, var(--c)); border-radius: 3px; transition: width .4s var(--ease); }
+
+/* STEPS BAR */
+.steps-bar { display: flex; align-items: center; margin-bottom: 28px; position: relative; z-index: 1; }
+.step-dot {
+    width: 32px; height: 32px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; flex-shrink: 0;
+    border: 1.5px solid var(--brd); color: var(--txt-dim);
+    background: rgba(255,255,255,.03); transition: all .3s var(--ease);
+}
+.step-dot.active { border-color: var(--c); color: var(--c); background: rgba(0,242,255,.08); box-shadow: 0 0 12px rgba(0,242,255,.2); }
+.step-dot.done   { border-color: var(--c); background: var(--c); color: #001417; }
+.step-line { flex: 1; height: 1px; background: var(--brd); transition: background .3s; }
+.step-line.done  { background: var(--c); opacity: .5; }
+
+/* TITLES */
+.step-title { color: var(--txt); font-size: 1.45rem; font-weight: 800; letter-spacing: 1.5px; margin-bottom: 6px; position: relative; z-index: 1; }
+.step-sub   { color: var(--txt-dim); font-size: .875rem; margin-bottom: 26px; position: relative; z-index: 1; }
+
+/* FIELDS */
+.field { position: relative; margin-bottom: 18px; z-index: 1; }
+.field label { display: block; color: var(--txt-dim); font-size: .8rem; letter-spacing: .5px; margin-bottom: 8px; }
+.req { color: var(--c); margin-left: 2px; }
+.opt-badge {
+    font-size: .7rem; color: var(--txt-dim);
+    background: rgba(255,255,255,.05); border: 1px solid var(--brd);
+    border-radius: 6px; padding: 2px 8px; margin-left: 6px; vertical-align: middle;
+}
+
+.inp-wrap { position: relative; }
+.form-input {
+    width: 100%; height: 56px;
+    border: 1px solid var(--brd); border-radius: var(--r);
+    background: rgba(255,255,255,.03);
+    color: var(--txt); font-size: .95rem;
+    padding: 0 52px;
+    outline: none;
+    transition: border-color .25s var(--ease), box-shadow .25s var(--ease), background .25s var(--ease);
+}
+.form-input.no-icon { padding: 0 16px; }
+.form-input:focus {
+    border-color: var(--brd-a);
+    background: rgba(255,255,255,.045);
+    box-shadow: 0 0 0 4px rgba(0,242,255,.08), 0 0 20px rgba(0,242,255,.08);
+}
+.form-input::placeholder { color: var(--txt-dim); }
+select.form-input { appearance: none; cursor: pointer; }
+
+.inp-icon {
+    position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
+    width: 20px; height: 20px; color: var(--c); opacity: .85; z-index: 2; pointer-events: none;
+}
+.inp-icon svg { width: 100%; height: 100%; }
+
+.sel-wrap { position: relative; }
+.sel-arrow { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); color: var(--txt-dim); font-size: 12px; pointer-events: none; }
+
+.toggle-pw {
+    position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
+    width: 22px; height: 22px; border: none; background: none;
+    color: var(--txt-dim); cursor: pointer; transition: color .2s var(--ease);
+}
+.toggle-pw:hover { color: var(--c); }
+.toggle-pw svg { width: 100%; height: 100%; }
+
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+/* CHIPS */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.chip {
+    padding: 8px 16px; border-radius: 50px;
+    border: 1px solid var(--brd); color: var(--txt-dim);
+    font-size: .82rem; cursor: pointer;
+    transition: all .2s var(--ease);
+    background: rgba(255,255,255,.02); user-select: none;
+}
+.chip:hover { border-color: rgba(0,242,255,.3); color: var(--txt); }
+.chip.on    { border-color: var(--c); color: var(--c); background: rgba(0,242,255,.08); }
+
+/* ERRO */
+.erro-box {
+    background: rgba(255,60,60,.08); border: 1px solid rgba(255,80,80,.25);
+    border-radius: var(--r); padding: 12px 16px;
+    color: #ff8080; font-size: .875rem; margin-bottom: 14px;
+}
+
+/* BUTTONS */
+.nav-btns { display: flex; gap: 12px; margin-top: 28px; position: relative; z-index: 1; }
+.btn-back {
+    flex: 0 0 auto; width: 56px; height: 56px;
+    border-radius: var(--r); border: 1px solid var(--brd);
+    background: rgba(255,255,255,.03); color: var(--txt-dim);
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: all .2s var(--ease);
+}
+.btn-back:hover { border-color: var(--brd-a); color: var(--txt); }
+.btn-next {
+    flex: 1; height: 56px; border: none; border-radius: var(--r);
+    cursor: pointer; font-size: .95rem; font-weight: 700;
+    color: #001417;
+    background: linear-gradient(135deg, #00d9ff, var(--c));
+    box-shadow: 0 8px 24px rgba(0,242,255,.2);
+    transition: all .25s var(--ease);
+}
+.btn-next:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(0,242,255,.3); }
+.btn-next:disabled { opacity: .6; cursor: not-allowed; }
+
+.login-link {
+    display: block; text-align: center; margin-top: 20px;
+    color: var(--txt-dim); text-decoration: none; font-size: .9rem;
+    transition: color .2s var(--ease); position: relative; z-index: 1;
+}
+.login-link:hover { color: var(--c); }
+
+/* ANIMATIONS */
+@@keyframes rgbMove {
+    0%   { top: -40px; left: -40px; }
+    25%  { top: -40px; left: 70%; }
+    50%  { top: 65%;   left: 70%; }
+    75%  { top: 65%;   left: -40px; }
+    100% { top: -40px; left: -40px; }
+}
+
+/* RESPONSIVE */
+@@media (max-width: 520px) {
+    .reg-card  { padding: 30px 22px; }
+    .row2      { grid-template-columns: 1fr; gap: 0; }
+    .bg-logo   { font-size: 9rem; }
+}
+</style>

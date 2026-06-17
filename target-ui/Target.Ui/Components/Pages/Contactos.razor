@@ -916,8 +916,8 @@
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
             // Substitua o URL abaixo pelo endpoint real da sua plataforma SMS
-            var http     = HttpFactory.CreateClient();
-            var response = await http.PostAsync("/api/sms/enviar", content);
+            var http     = HttpFactory.CreateClient("Api");
+            var response = await http.PostAsync("api/sms/enviar", content);
 
             if (response.IsSuccessStatusCode)
             {
