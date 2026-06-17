@@ -13,19 +13,26 @@ builder.Services.AddDataProtection()
     .PersistKeysToFileSystem(new DirectoryInfo(
         Path.Combine(builder.Environment.ContentRootPath, "DataProtection-Keys")));
 
-// ── Auth Service (apenas UMA vez) ───────────────────────────────
+// ── Token Store + Auth Service ──────────────────────────────────
+// TokenStore DEVE ser Scoped (mesmo ciclo de vida que AuthService e ApiClient)
+builder.Services.AddScoped<TokenStore>();
 builder.Services.AddScoped<AuthService>();
 
-// ── HttpClient apontando para a API (apenas UM registo) ─────────
+// ── HttpClient apontando para a API ─────────────────────────────
+// NOTA: já não usamos ApiAuthorizationMessageHandler aqui. Handlers
+// registados via .AddHttpMessageHandler<T>() são construídos pelo
+// IHttpClientFactory num scope interno (derivado do contentor raiz),
+// que NÃO é o mesmo scope do circuito Blazor — por isso o TokenStore
+// Scoped injectado nesse handler nunca correspondia ao TokenStore
+// preenchido pelo AuthService, e os pedidos autenticados (ex: api/Users)
+// saíam sempre sem o cabeçalho Authorization. O ApiClient agora recebe o
+// TokenStore directamente no seu próprio construtor, partilhando assim o
+// mesmo scope do AuthService.
 var apiUrl = (builder.Configuration["ApiServiceUrl"] ?? "http://localhost:5000").TrimEnd('/');
-
-builder.Services.AddTransient<ApiAuthorizationMessageHandler>();
-
 builder.Services.AddHttpClient<ApiClient>(client =>
 {
     client.BaseAddress = new Uri(apiUrl);
-})
-.AddHttpMessageHandler<ApiAuthorizationMessageHandler>();
+});
 
 // ────────────────────────────────────────────────────────────────
 var app = builder.Build();

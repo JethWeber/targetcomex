@@ -607,6 +607,7 @@
     private string UploadErro = "";
     private const long TamanhoMaxImagemBytes = 5 * 1024 * 1024;
 
+
     /* ══ NAV ══ */
     private List<NavItem> NavItems = new()
     {
@@ -964,9 +965,12 @@
         _            => ""
     };
 
+    // ── ALTERAÇÃO PRINCIPAL: InitAsync antes de LoadAdminDataAsync ────────────
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
+
+        await AuthService.InitAsync();  // popula TokenStore via JS (contexto seguro)
 
         var role = await AuthService.GetRoleAsync();
         if (role?.ToLower() != "admin")
@@ -1088,18 +1092,6 @@
         public string? ImagemUrl     { get; set; }
         public string? Localizacao   { get; set; }
         public int?    Quilometragem { get; set; }
-    }
-
-    private class Utilizador
-    {
-        public int    Id        { get; set; }
-        public string Nome      { get; set; } = string.Empty;
-        public string Telefone  { get; set; } = string.Empty;
-        public string Provincia { get; set; } = string.Empty;
-        public string Perfil    { get; set; } = string.Empty;
-        public string Iniciais => string.Join("", Nome.Split(' ').Take(2).Select(p => p[0])).ToUpper();
-        public Utilizador(int id, string n, string t, string p, string perf)
-        { Id=id; Nome=n; Telefone=t; Provincia=p; Perfil=perf; }
     }
 
     /* ══ SVG Icons ══ */

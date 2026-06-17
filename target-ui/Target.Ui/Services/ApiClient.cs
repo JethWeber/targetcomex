@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -207,7 +208,8 @@ public class ApiResult<T>
 
 public class ApiClient
 {
-    private readonly HttpClient _http;
+    private readonly HttpClient  _http;
+    private readonly TokenStore  _tokenStore;
 
     private static readonly JsonSerializerOptions _json = new()
     {
@@ -215,9 +217,31 @@ public class ApiClient
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };
 
-    public ApiClient(HttpClient http)
+    // NOTA: o TokenStore é recebido directamente aqui (em vez de via
+    // ApiAuthorizationMessageHandler) para garantir que partilha sempre o
+    // MESMO scope/instância do AuthService. Handlers registados com
+    // .AddHttpMessageHandler<T>() são construídos pelo IHttpClientFactory
+    // num scope interno derivado do contentor raiz — não do scope do
+    // circuito Blazor — pelo que um TokenStore Scoped injectado nesse
+    // handler nunca é o mesmo objecto que o AuthService preenche. Resolver
+    // o TokenStore aqui, no construtor do próprio ApiClient, evita esse
+    // problema porque o ApiClient é resolvido a partir do scope correcto.
+    public ApiClient(HttpClient http, TokenStore tokenStore)
     {
-        _http = http;
+        _http       = http;
+        _tokenStore = tokenStore;
+    }
+
+    /// <summary>
+    /// Aplica (ou remove) o cabeçalho Authorization com base no valor actual
+    /// do TokenStore. É chamado no início de cada pedido para garantir que
+    /// lê sempre o token mais recente (definido por AuthService.InitAsync).
+    /// </summary>
+    private void AplicarToken()
+    {
+        _http.DefaultRequestHeaders.Authorization = string.IsNullOrWhiteSpace(_tokenStore.Token)
+            ? null
+            : new AuthenticationHeaderValue("Bearer", _tokenStore.Token);
     }
 
     // ══════════════════════════════════════════════════════════════════════════
@@ -229,6 +253,7 @@ public class ApiClient
     {
         try
         {
+            AplicarToken();
             var response = await _http.PostAsJsonAsync("api/Auth/login", request, _json);
             if (response.IsSuccessStatusCode)
             {
@@ -249,6 +274,7 @@ public class ApiClient
     {
         try
         {
+            AplicarToken();
             var response = await _http.PostAsJsonAsync("api/Auth/register", request, _json);
             var body = await response.Content.ReadAsStringAsync();
             return response.IsSuccessStatusCode
@@ -270,6 +296,7 @@ public class ApiClient
     {
         try
         {
+            AplicarToken();
             var data = await _http.GetFromJsonAsync<List<UsuarioDto>>("api/Users", _json);
             return ApiResult<List<UsuarioDto>>.Ok(data ?? []);
         }
@@ -284,6 +311,7 @@ public class ApiClient
     {
         try
         {
+            AplicarToken();
             var data = await _http.GetFromJsonAsync<UsuarioDto>($"api/Users/{id}", _json);
             return ApiResult<UsuarioDto>.Ok(data!);
         }
@@ -298,6 +326,7 @@ public class ApiClient
     {
         try
         {
+            AplicarToken();
             var response = await _http.PutAsJsonAsync($"api/Users/{id}", request, _json);
             var body = await response.Content.ReadAsStringAsync();
             return response.IsSuccessStatusCode
@@ -315,6 +344,7 @@ public class ApiClient
     {
         try
         {
+            AplicarToken();
             var response = await _http.DeleteAsync($"api/Users/{id}");
             var body = await response.Content.ReadAsStringAsync();
             return response.IsSuccessStatusCode
@@ -336,6 +366,7 @@ public class ApiClient
     {
         try
         {
+            AplicarToken();
             var data = await _http.GetFromJsonAsync<List<VeiculoDto>>("api/Veiculos", _json);
             return ApiResult<List<VeiculoDto>>.Ok(data ?? []);
         }
@@ -350,6 +381,7 @@ public class ApiClient
     {
         try
         {
+            AplicarToken();
             var data = await _http.GetFromJsonAsync<VeiculoDto>($"api/Veiculos/{id}", _json);
             return ApiResult<VeiculoDto>.Ok(data!);
         }
@@ -364,6 +396,7 @@ public class ApiClient
     {
         try
         {
+            AplicarToken();
             var response = await _http.PostAsJsonAsync("api/Veiculos", request, _json);
             if (response.IsSuccessStatusCode)
             {
@@ -384,6 +417,7 @@ public class ApiClient
     {
         try
         {
+            AplicarToken();
             var response = await _http.PutAsJsonAsync($"api/Veiculos/{id}", request, _json);
             var body = await response.Content.ReadAsStringAsync();
             return response.IsSuccessStatusCode
@@ -401,6 +435,7 @@ public class ApiClient
     {
         try
         {
+            AplicarToken();
             var response = await _http.DeleteAsync($"api/Veiculos/{id}");
             var body = await response.Content.ReadAsStringAsync();
             return response.IsSuccessStatusCode
@@ -418,6 +453,7 @@ public class ApiClient
     {
         try
         {
+            AplicarToken();
             var data = await _http.GetFromJsonAsync<List<AvaliacaoDto>>($"api/Avaliacoes/veiculo/{veiculoId}", _json);
             return ApiResult<List<AvaliacaoDto>>.Ok(data ?? []);
         }
@@ -432,6 +468,7 @@ public class ApiClient
     {
         try
         {
+            AplicarToken();
             var response = await _http.PostAsJsonAsync("api/Avaliacoes", request, _json);
             if (response.IsSuccessStatusCode)
             {
@@ -452,6 +489,7 @@ public class ApiClient
     {
         try
         {
+            AplicarToken();
             var data = await _http.GetFromJsonAsync<List<HistoricoCompraDto>>($"api/HistoricoCompras/usuario/{usuarioId}", _json);
             return ApiResult<List<HistoricoCompraDto>>.Ok(data ?? []);
         }
@@ -466,6 +504,7 @@ public class ApiClient
     {
         try
         {
+            AplicarToken();
             var data = await _http.GetFromJsonAsync<List<ReservaDto>>("api/Reservas", _json);
             return ApiResult<List<ReservaDto>>.Ok(data ?? []);
         }
@@ -480,6 +519,7 @@ public class ApiClient
     {
         try
         {
+            AplicarToken();
             var response = await _http.PutAsJsonAsync($"api/Reservas/{id}/estado", novoEstado, _json);
             var body = await response.Content.ReadAsStringAsync();
             return response.IsSuccessStatusCode
@@ -497,6 +537,7 @@ public class ApiClient
     {
         try
         {
+            AplicarToken();
             var response = await _http.PostAsJsonAsync("api/HistoricoNavegacao", new { UsuarioId = usuarioId, VeiculoId = veiculoId }, _json);
             var body = await response.Content.ReadAsStringAsync();
             return response.IsSuccessStatusCode
@@ -518,6 +559,7 @@ public class ApiClient
     {
         try
         {
+            AplicarToken();
             var data = await _http.GetFromJsonAsync<List<RecomendacaoDto>>(
                 $"api/Recomendacao/usuario/{usuarioId}", _json);
             return ApiResult<List<RecomendacaoDto>>.Ok(data ?? []);
@@ -540,6 +582,7 @@ public class ApiClient
     {
         try
         {
+            AplicarToken();
             var data = await _http.GetFromJsonAsync<List<MaisCompradosDto>>(
                 $"api/HistoricoCompras/mais-comprados?top={top}", _json);
             return ApiResult<List<MaisCompradosDto>>.Ok(data ?? []);
@@ -559,6 +602,7 @@ public class ApiClient
     {
         try
         {
+            AplicarToken();
             var response = await _http.PostAsJsonAsync("api/sms/enviar", request, _json);
             var body = await response.Content.ReadAsStringAsync();
             return response.IsSuccessStatusCode

@@ -1,55 +1,25 @@
-using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Components;
 
 namespace Target.Ui.Services;
 
 public class ApiAuthorizationMessageHandler : DelegatingHandler
 {
-    private readonly AuthService _authService;
-    private readonly NavigationManager _navigationManager;
+    private readonly TokenStore _tokenStore;
 
-    public ApiAuthorizationMessageHandler(AuthService authService, NavigationManager navigationManager)
+    public ApiAuthorizationMessageHandler(TokenStore tokenStore)
     {
-        _authService = authService;
-        _navigationManager = navigationManager;
+        _tokenStore = tokenStore;
     }
 
     protected override async Task<HttpResponseMessage> SendAsync(
-        HttpRequestMessage request,
-        CancellationToken cancellationToken)
+        HttpRequestMessage request, CancellationToken cancellationToken)
     {
-        try
+        if (!string.IsNullOrWhiteSpace(_tokenStore.Token))
         {
-            var token = await _authService.GetBearerTokenAsync();
-            if (!string.IsNullOrWhiteSpace(token))
-            {
-                request.Headers.Authorization =
-                    new AuthenticationHeaderValue("Bearer", token);
-            }
-        }
-        catch
-        {
-            // JS interop indisponível durante prerendering — continuar sem token
+            request.Headers.Authorization =
+                new AuthenticationHeaderValue("Bearer", _tokenStore.Token);
         }
 
-        var response = await base.SendAsync(request, cancellationToken);
-
-        if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-        {
-            try
-            {
-                await _authService.RemoveTokenAsync();
-                _navigationManager.NavigateTo("/login", forceLoad: true);
-            }
-            catch
-            {
-                // JS interop indisponível durante prerendering — ignorar
-            }
-        }
-
-        return response;
+        return await base.SendAsync(request, cancellationToken);
     }
 }

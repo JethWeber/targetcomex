@@ -1,7 +1,5 @@
 using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
 using System.Security.Claims;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -9,18 +7,29 @@ namespace Target.Ui.Services;
 
 public class AuthService
 {
-    private const string LocalTokenKey    = "targetcomex_jwt";
-    private const string SessionTokenKey  = "targetcomex_jwt_session";
+    private const string LocalTokenKey   = "targetcomex_jwt";
+    private const string SessionTokenKey = "targetcomex_jwt_session";
+
     private readonly IJSRuntime        _jsRuntime;
     private readonly NavigationManager _navigation;
+    private readonly TokenStore        _tokenStore;
 
-    public AuthService(IJSRuntime jsRuntime, NavigationManager navigation)
+    public AuthService(IJSRuntime jsRuntime, NavigationManager navigation, TokenStore tokenStore)
     {
         _jsRuntime  = jsRuntime;
         _navigation = navigation;
+        _tokenStore = tokenStore;
     }
 
-    // ── Token bruto ───────────────────────────────────────────────────────────
+    // ── Inicializar — chamar no OnAfterRenderAsync de páginas autenticadas ────
+    // Copia o token do localStorage/sessionStorage para o TokenStore em memória.
+    // Deve ser chamado ANTES de qualquer pedido HTTP autenticado.
+    public async Task InitAsync()
+    {
+        _tokenStore.Token = await GetTokenAsync();
+    }
+
+    // ── Token bruto (lê do JS — apenas usar em contexto de renderização) ──────
 
     public async Task<string?> GetTokenAsync()
     {
@@ -34,6 +43,8 @@ public class AuthService
 
     public async Task SetTokenAsync(string token, bool remember)
     {
+        _tokenStore.Token = token; // sincroniza imediatamente após login
+
         if (remember)
         {
             await _jsRuntime.InvokeVoidAsync("localStorage.setItem",     LocalTokenKey,   token);
@@ -86,10 +97,6 @@ public class AuthService
         catch { return null; }
     }
 
-    /// <summary>
-    /// Devolve o Role do utilizador autenticado (ex: "Admin", "Cliente").
-    /// Retorna null se não houver sessão ou se o token for inválido.
-    /// </summary>
     public async Task<string?> GetRoleAsync()
     {
         var token = await GetTokenAsync();
@@ -112,6 +119,7 @@ public class AuthService
 
     public async Task LogoutAsync()
     {
+        _tokenStore.Token = null; // limpa o store imediatamente
         await RemoveTokenAsync();
         _navigation.NavigateTo("/login", forceLoad: true);
     }
