@@ -4,6 +4,7 @@
 @using Microsoft.AspNetCore.Components.Forms
 @inject ApiClient Api
 @inject AuthService AuthService
+@inject IWebHostEnvironment Env
 @inject NavigationManager Nav
 
 <h2 class="sr-only">Painel de Administração — Target Comex</h2>
@@ -260,7 +261,7 @@
                         <h1 class="adm-page-title">UTILIZADORES</h1>
                         <p class="adm-page-sub">@Utilizadores.Count contas registadas</p>
                     </div>
-                    <button class="adm-btn-primary">
+                    <button class="adm-btn-primary" @onclick="AbrirModalUser">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                         Novo Utilizador
                     </button>
@@ -290,10 +291,10 @@
                                 </div>
                             </div>
                             <div class="adm-user-actions">
-                                <button class="adm-act-btn" title="Editar">
+                                <button class="adm-act-btn" title="Editar" @onclick="() => AbrirModalUserEdicao(user)">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                                 </button>
-                                <button class="adm-act-btn adm-act-danger" title="Eliminar" @onclick="() => EliminarUser(user.Id)">
+                                <button class="adm-act-btn adm-act-danger" title="Eliminar" @onclick="() => EliminarUser(user)">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
                                 </button>
                             </div>
@@ -367,6 +368,15 @@
 
     </main>
 </div>
+
+<!-- ══ TOAST ══ -->
+@if (!string.IsNullOrEmpty(ToastMsg))
+{
+    <div class="adm-toast adm-toast-@ToastType">
+        <span class="adm-toast-msg">@ToastMsg</span>
+        <button class="adm-toast-close" @onclick="() => ToastMsg = null">✕</button>
+    </div>
+}
 
 <!-- ══ MODAL CARRO ══ -->
 @if (ModalCarroAberto)
@@ -581,9 +591,187 @@
     </div>
 }
 
+<!-- ══ MODAL UTILIZADOR ══ -->
+@if (ModalUserAberto)
+{
+    <div class="adm-modal-bg" @onclick="FecharModalUser">
+        <div class="adm-modal" @onclick:stopPropagation>
+            <div class="adm-modal-hdr">
+                <h2 class="adm-modal-title">@(UserEdit?.Id == 0 ? "NOVO UTILIZADOR" : "EDITAR UTILIZADOR")</h2>
+                <button class="adm-modal-close" @onclick="FecharModalUser">✕</button>
+            </div>
+            @if (UserEdit != null)
+            {
+                <div class="adm-modal-body">
+
+                    <h3 class="adm-wiz-title">CONTA</h3>
+                    <p class="adm-wiz-sub">
+                        @(UserEdit.Id == 0 ? "Dados de acesso do novo utilizador" : "O e-mail não pode ser alterado depois de criado")
+                    </p>
+
+                    <div class="adm-row2">
+                        <div class="adm-field">
+                            <label>Nome <span class="req">*</span></label>
+                            <input class="adm-inp" type="text" @bind="UserEdit.Nome" placeholder="Nome completo" />
+                        </div>
+                        <div class="adm-field">
+                            <label>Telefone</label>
+                            <input class="adm-inp" type="text" @bind="UserEdit.Telefone" placeholder="9XX XXX XXX" />
+                        </div>
+                    </div>
+
+                    @if (UserEdit.Id == 0)
+                    {
+                        <div class="adm-row2">
+                            <div class="adm-field">
+                                <label>E-mail <span class="req">*</span></label>
+                                <input class="adm-inp" type="email" @bind="UserEdit.Email" placeholder="nome@exemplo.com" />
+                            </div>
+                            <div class="adm-field">
+                                <label>Senha provisória <span class="req">*</span></label>
+                                <input class="adm-inp" type="password" @bind="UserEdit.Senha" placeholder="Mínimo 6 caracteres" />
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="adm-row2">
+                            <div class="adm-field">
+                                <label>E-mail</label>
+                                <input class="adm-inp" type="email" value="@UserEdit.Email" disabled />
+                            </div>
+                            <div class="adm-field">
+                                <label>Perfil</label>
+                                <input class="adm-inp" type="text" value="@UserEdit.Perfil" disabled />
+                            </div>
+                        </div>
+                    }
+
+                    <h3 class="adm-wiz-title" style="margin-top:22px">PERFIL</h3>
+                    <p class="adm-wiz-sub">Dados pessoais (opcionais)</p>
+
+                    <div class="adm-row2">
+                        <div class="adm-field">
+                            <label>Data de Nascimento</label>
+                            <input class="adm-inp" type="date" @bind="UserEdit.DataNascimento" />
+                        </div>
+                        <div class="adm-field">
+                            <label>Género</label>
+                            <select class="adm-inp" @bind="UserEdit.Genero">
+                                <option value="">— Seleccionar —</option>
+                                <option>Masculino</option>
+                                <option>Feminino</option>
+                                <option>Outro</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="adm-row2">
+                        <div class="adm-field">
+                            <label>Estado Civil</label>
+                            <select class="adm-inp" @bind="UserEdit.EstadoCivil">
+                                <option value="">— Seleccionar —</option>
+                                <option>Solteiro(a)</option>
+                                <option>Casado(a)</option>
+                                <option>União de facto</option>
+                                <option>Divorciado(a)</option>
+                                <option>Viúvo(a)</option>
+                            </select>
+                        </div>
+                        <div class="adm-field">
+                            <label>Número de Filhos</label>
+                            <input class="adm-inp" type="number" min="0" @bind="UserEdit.NumeroFilhos" />
+                        </div>
+                    </div>
+                    <div class="adm-row2">
+                        <div class="adm-field">
+                            <label>Profissão</label>
+                            <input class="adm-inp" type="text" @bind="UserEdit.Profissao" placeholder="Profissão" />
+                        </div>
+                        <div class="adm-field">
+                            <label>Faixa de Renda Mensal</label>
+                            <select class="adm-inp" @bind="UserEdit.FaixaRendaMensal">
+                                <option value="">— Seleccionar —</option>
+                                <option>Até 100.000 AOA</option>
+                                <option>100.000 – 300.000 AOA</option>
+                                <option>300.000 – 700.000 AOA</option>
+                                <option>700.000 – 1.500.000 AOA</option>
+                                <option>Mais de 1.500.000 AOA</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="adm-field">
+                        <label>Interesses Principais</label>
+                        <input class="adm-inp" type="text" @bind="UserEdit.InteressesPrincipais" placeholder="SUV, Pick-up, Sedan..." />
+                    </div>
+
+                    @if (UserEdit.Id == 0)
+                    {
+                        <h3 class="adm-wiz-title" style="margin-top:22px">ENDEREÇO</h3>
+                        <p class="adm-wiz-sub">Localização do novo utilizador (opcional)</p>
+
+                        <div class="adm-row2">
+                            <div class="adm-field">
+                                <label>Província</label>
+                                <input class="adm-inp" type="text" @bind="UserEdit.Provincia" placeholder="Luanda" />
+                            </div>
+                            <div class="adm-field">
+                                <label>Município</label>
+                                <input class="adm-inp" type="text" @bind="UserEdit.Municipio" placeholder="Talatona" />
+                            </div>
+                        </div>
+                        <div class="adm-field">
+                            <label>Bairro / Rua</label>
+                            <input class="adm-inp" type="text" @bind="UserEdit.Bairro" placeholder="Bairro, rua, referência..." />
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrEmpty(ModalUserErro))
+                    {
+                        <div class="adm-erro">@ModalUserErro</div>
+                    }
+                </div>
+                <div class="adm-modal-foot">
+                    <button class="adm-btn-ghost" @onclick="FecharModalUser">Cancelar</button>
+                    <button class="adm-btn-primary" disabled="@SalvandoUser" @onclick="async () => await SalvarUser()">
+                        @(SalvandoUser ? "A guardar..." : (UserEdit.Id == 0 ? "Adicionar" : "Guardar"))
+                    </button>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+<!-- ══ CONFIRMAÇÃO DE ELIMINAÇÃO ══ -->
+@if (ConfirmacaoVisivel)
+{
+    <div class="adm-modal-bg" @onclick="CancelarConfirmacao">
+        <div class="adm-modal adm-modal-confirm" @onclick:stopPropagation>
+            <div class="adm-modal-body">
+                <h3 class="adm-wiz-title">@ConfirmacaoTitulo</h3>
+                <p class="adm-wiz-sub" style="margin-bottom:0">@ConfirmacaoMsg</p>
+            </div>
+            <div class="adm-modal-foot">
+                <button class="adm-btn-ghost" @onclick="CancelarConfirmacao">Cancelar</button>
+                <button class="adm-btn-primary adm-btn-danger-solid" @onclick="ConfirmarAccao">Eliminar</button>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     private string ActiveTab = "overview";
     private bool SideOpen = false;
+
+    /* ── Toast ───────────────────────────── */
+    private string? ToastMsg;
+    private string ToastType = "error";
+    private CancellationTokenSource? ToastCts;
+
+    /* ── Confirmação de eliminação ────────── */
+    private bool ConfirmacaoVisivel = false;
+    private string ConfirmacaoTitulo = "";
+    private string ConfirmacaoMsg = "";
+    private Func<Task>? ConfirmacaoAccao;
 
     /* ── Filtros ─────────────────────────── */
     private string FiltroCarros = "";
@@ -606,6 +794,12 @@
     private bool UploadEmProgresso = false;
     private string UploadErro = "";
     private const long TamanhoMaxImagemBytes = 5 * 1024 * 1024;
+
+    /* ── Modal Utilizador ─────────────────── */
+    private bool ModalUserAberto = false;
+    private UserEditModel? UserEdit;
+    private string ModalUserErro = "";
+    private bool SalvandoUser = false;
 
 
     /* ══ NAV ══ */
@@ -664,7 +858,7 @@
         .Where(r => string.IsNullOrEmpty(FiltroEstadoReserva) || r.Estado == FiltroEstadoReserva)
         .OrderByDescending(r => r.Id);
 
-    /* ══ ACÇÕES ══ */
+    /* ══ ACÇÕES — CARROS ══ */
     private void AbrirModalCarro()
     {
         CarroEdit = new Carro
@@ -724,74 +918,108 @@
     private async Task SalvarCarro()
     {
         if (CarroEdit == null) return;
+
         if (string.IsNullOrWhiteSpace(CarroEdit.Marca) || string.IsNullOrWhiteSpace(CarroEdit.Modelo))
-        { ModalErro = "Marca e Modelo são obrigatórios."; return; }
-        if (CarroEdit.Preco <= 0)
-        { ModalErro = "Insira um preço válido."; return; }
-
-        var request = new CreateVeiculoRequest
         {
-            Marca         = CarroEdit.Marca,
-            Modelo        = CarroEdit.Modelo,
-            Ano           = CarroEdit.Ano,
-            Preco         = CarroEdit.Preco,
-            Combustivel   = CarroEdit.Combustivel,
-            Transmissao   = CarroEdit.Transmissao,
-            Cor           = CarroEdit.Cor,
-            Estilo        = CarroEdit.Estilo,
-            Motor         = CarroEdit.Motor,
-            Potencia      = CarroEdit.Potencia,
-            Descricao     = CarroEdit.Descricao,
-            ImagemUrl     = CarroEdit.ImagemUrl,
-            Localizacao   = CarroEdit.Localizacao,
-            Quilometragem = CarroEdit.Quilometragem,
-            Disponivel    = CarroEdit.Estado == "Disponível"
-        };
-
-        if (CarroEdit.Id == 0)
-        {
-            var result = await Api.CreateVeiculoAsync(request);
-            if (result.Success)
-            {
-                Carros.Add(new Carro
-                {
-                    Id            = result.Data!.Id,
-                    Marca         = result.Data.Marca,
-                    Modelo        = result.Data.Modelo,
-                    Ano           = result.Data.Ano,
-                    Preco         = (long)Math.Round(result.Data.Preco),
-                    Combustivel   = result.Data.Combustivel   ?? "",
-                    Transmissao   = result.Data.Transmissao   ?? "",
-                    Estado        = result.Data.Disponivel    ? "Disponível" : "Vendido",
-                    Cor           = result.Data.Cor,
-                    Estilo        = result.Data.Estilo,
-                    Motor         = result.Data.Motor,
-                    Potencia      = result.Data.Potencia,
-                    Descricao     = result.Data.Descricao,
-                    ImagemUrl     = result.Data.ImagemUrl,
-                    Localizacao   = result.Data.Localizacao,
-                    Quilometragem = result.Data.Quilometragem
-                });
-                FecharModalCarro();
-            }
-            else
-            {
-                ModalErro = result.Error ?? "Erro ao criar veículo.";
-            }
+            ModalErro = "Marca e Modelo são obrigatórios.";
+            return;
         }
-        else
+
+        if (CarroEdit.Preco <= 0)
         {
-            var result = await Api.UpdateVeiculoAsync(CarroEdit.Id, request);
-            if (result.Success)
+            ModalErro = "Insira um preço válido.";
+            return;
+        }
+
+        try
+        {
+            // SE houver um novo arquivo selecionado via InputFile, salvamos no wwwroot
+            if (arquivoSelecionado != null)
             {
-                var idx = Carros.FindIndex(c => c.Id == CarroEdit.Id);
-                if (idx >= 0) Carros[idx] = CarroEdit;
-                FecharModalCarro();
+                // Gera um nome único e limpo para o arquivo semelhante ao seu exemplo (ex: bmw-m8-2021-938432.png)
+                var extensao = Path.GetExtension(arquivoSelecionado.Name);
+                var sufixoUnico = Guid.NewGuid().ToString().Substring(0, 6);
+                var marcaSlug = CarroEdit.Marca.ToLower().Replace(" ", "-");
+                var modeloSlug = CarroEdit.Modelo.ToLower().Replace(" ", "-");
+                
+                var nomeArquivo = $"{marcaSlug}-{modeloSlug}-{CarroEdit.Ano}-{sufixoUnico}{extensao}";
+                
+                // Caminho físico absoluto no servidor
+                var pastaUploads = Path.Combine(Env.WebRootPath, "Uploads", "Veiculos");
+                
+                // Garante que a árvore de diretórios existe no wwwroot
+                if (!Directory.Exists(pastaUploads))
+                {
+                    Directory.CreateDirectory(pastaUploads);
+                }
+
+                var caminhoCompleto = Path.Combine(pastaUploads, nomeArquivo);
+
+                // Salva o stream do arquivo diretamente no disco do servidor
+                using var streamOrigem = arquivoSelecionado.OpenReadStream(TamanhoMaxImagemBytes);
+                using var streamDestino = new FileStream(caminhoCompleto, FileMode.Create);
+                await streamOrigem.CopyToAsync(streamDestino);
+
+                // Define o caminho relativo limpo que irá para a API / SQL Server
+                CarroEdit.ImagemUrl = $"/Uploads/Veiculos/{nomeArquivo}";
+            }
+
+            // Constrói o request contendo a URL limpa da imagem em vez do Base64 massivo
+            var request = new CreateVeiculoRequest
+            {
+                Marca = CarroEdit.Marca,
+                Modelo = CarroEdit.Modelo,
+                Ano = CarroEdit.Ano,
+                Preco = CarroEdit.Preco,
+                Combustivel = CarroEdit.Combustivel,
+                Transmissao = CarroEdit.Transmissao,
+                Cor = CarroEdit.Cor,
+                Estilo = CarroEdit.Estilo,
+                Motor = CarroEdit.Motor,
+                Potencia = CarroEdit.Potencia,
+                Descricao = CarroEdit.Descricao,
+                ImagemUrl = CarroEdit.ImagemUrl, // Enviando a string da URL (/Uploads/Veiculos/...)
+                Localizacao = CarroEdit.Localizacao,
+                Quilometragem = CarroEdit.Quilometragem,
+                Disponivel = CarroEdit.Estado == "Disponível"
+            };
+
+            if (CarroEdit.Id == 0)
+            {
+                var result = await Api.CreateVeiculoAsync(request);
+                if (result.Success)
+                {
+                    await LoadAdminDataAsync(); // Recarrega a grid com as novas informações
+                    FecharModalCarro();
+                    ShowToast("Veículo adicionado com sucesso.", "success");
+                }
+                else
+                {
+                    ModalErro = result.Error ?? "Erro desconhecido ao criar veículo.";
+                }
             }
             else
             {
-                ModalErro = result.Error ?? "Erro ao actualizar veículo.";
+                // Lógica para o Update/Edição do Veículo usando a mesma API caso possua
+                var result = await Api.UpdateVeiculoAsync(CarroEdit.Id, request);
+                if (result.Success)
+                {
+                    await LoadAdminDataAsync();
+                    FecharModalCarro();
+                    ShowToast("Veículo actualizado com sucesso.", "success");
+                }
+                else
+                {
+                    ModalErro = result.Error ?? "Erro desconhecido ao actualizar veículo.";
+                }
             }
+            
+            // Limpa o estado do arquivo temporário após o sucesso
+            arquivoSelecionado = null;
+        }
+        catch (Exception ex)
+        {
+            ModalErro = $"Erro ao processar o salvamento do veículo: {ex.Message}";
         }
     }
 
@@ -834,7 +1062,8 @@
         return true;
     }
 
-    /* ── Upload de imagem ─────────────────── */
+    /* ── Upload de imagem e Salvamento Físico no Servidor ─────────────────── */
+    private IBrowserFile? arquivoSelecionado;
     private async Task OnImagemSelecionada(InputFileChangeEventArgs e)
     {
         UploadErro = "";
@@ -852,14 +1081,20 @@
 
         try
         {
+            // Armazenamos o arquivo temporariamente na memória do componente para processar apenas ao "Salvar"
+            arquivoSelecionado = arquivo;
+
+            // Para manter a experiência visual (Pré-visualização do usuário em tempo real) antes de enviar à API:
             using var stream = arquivo.OpenReadStream(TamanhoMaxImagemBytes);
             using var memoria = new MemoryStream();
             await stream.CopyToAsync(memoria);
             var base64 = Convert.ToBase64String(memoria.ToArray());
-            var dataUrl = $"data:{arquivo.ContentType};base64,{base64}";
-
-            ImagemPreviewUrl = dataUrl;
-            if (CarroEdit != null) CarroEdit.ImagemUrl = dataUrl;
+            
+            ImagemPreviewUrl = $"data:{arquivo.ContentType};base64,{base64}";
+            
+            // Temporariamente guardamos a pré-visualização. Ela será substituída pela URL final ao SalvarCarro
+            if (CarroEdit != null) 
+                CarroEdit.ImagemUrl = ImagemPreviewUrl;
         }
         catch (Exception)
         {
@@ -875,27 +1110,214 @@
     private void RemoverImagem()
     {
         ImagemPreviewUrl = null;
+        arquivoSelecionado = null;
         if (CarroEdit != null) CarroEdit.ImagemUrl = null;
     }
 
-    private async Task EliminarCarro(int id)
+    private void EliminarCarro(int id)
     {
-        var result = await Api.DeleteVeiculoAsync(id);
-        if (result.Success)
+        var carro = Carros.FirstOrDefault(c => c.Id == id);
+        var nome  = carro != null ? $"{carro.Marca} {carro.Modelo}" : $"#{id}";
+        AbrirConfirmacao(
+            "ELIMINAR VEÍCULO",
+            $"Tem a certeza que deseja eliminar \"{nome}\"? Esta acção não pode ser desfeita.",
+            async () =>
+            {
+                var result = await Api.DeleteVeiculoAsync(id);
+                if (result.Success)
+                {
+                    Carros.RemoveAll(c => c.Id == id);
+                    AtualizarKpis();
+                    ShowToast("Veículo eliminado.", "success");
+                }
+                else
+                {
+                    ShowToast(MensagemAmigavel(result.Error) ?? "Não foi possível eliminar este veículo.", "error");
+                }
+            });
+    }
+
+    /* ══ ACÇÕES — UTILIZADORES ══ */
+    private void AbrirModalUser()
+    {
+        UserEdit = new UserEditModel
         {
-            Carros.RemoveAll(c => c.Id == id);
+            Id   = 0,
+            Nome = "",
+            Email = "",
+            Senha = "",
+            Telefone = null,
+            DataNascimento = null,
+            Genero = null,
+            EstadoCivil = null,
+            NumeroFilhos = null,
+            Profissao = null,
+            FaixaRendaMensal = null,
+            InteressesPrincipais = null,
+            Provincia = null,
+            Municipio = null,
+            Bairro = null,
+            Perfil = "Cliente"
+        };
+        ModalUserErro = "";
+        SalvandoUser = false;
+        ModalUserAberto = true;
+    }
+
+    private void AbrirModalUserEdicao(UsuarioDto u)
+    {
+        UserEdit = new UserEditModel
+        {
+            Id = u.Id,
+            Nome = u.Nome,
+            Email = u.Email,
+            Senha = "",
+            Telefone = u.Telefone,
+            DataNascimento = u.DataNascimento,
+            Genero = u.Genero,
+            EstadoCivil = u.EstadoCivil,
+            NumeroFilhos = u.NumeroFilhos,
+            Profissao = u.Profissao,
+            FaixaRendaMensal = u.FaixaRendaMensal,
+            InteressesPrincipais = u.InteressesPrincipais,
+            Provincia = u.Provincia,
+            Municipio = null,
+            Bairro = null,
+            Perfil = u.Perfil
+        };
+        ModalUserErro = "";
+        SalvandoUser = false;
+        ModalUserAberto = true;
+    }
+
+    private void FecharModalUser()
+    {
+        ModalUserAberto = false;
+        UserEdit = null;
+        ModalUserErro = "";
+        SalvandoUser = false;
+    }
+
+    private async Task SalvarUser()
+    {
+        if (UserEdit == null) return;
+
+        if (string.IsNullOrWhiteSpace(UserEdit.Nome))
+        { ModalUserErro = "O nome é obrigatório."; return; }
+
+        if (UserEdit.Id == 0)
+        {
+            if (string.IsNullOrWhiteSpace(UserEdit.Email))
+            { ModalUserErro = "O e-mail é obrigatório."; return; }
+            if (string.IsNullOrWhiteSpace(UserEdit.Senha) || UserEdit.Senha.Length < 6)
+            { ModalUserErro = "A senha deve ter pelo menos 6 caracteres."; return; }
+        }
+
+        SalvandoUser = true;
+        ModalUserErro = "";
+
+        if (UserEdit.Id == 0)
+        {
+            var request = new RegisterRequest
+            {
+                Nome = UserEdit.Nome,
+                Email = UserEdit.Email,
+                Senha = UserEdit.Senha,
+                Telefone = UserEdit.Telefone,
+                DataNascimento = UserEdit.DataNascimento,
+                Genero = UserEdit.Genero,
+                EstadoCivil = UserEdit.EstadoCivil,
+                NumeroFilhos = UserEdit.NumeroFilhos,
+                Profissao = UserEdit.Profissao,
+                FaixaRendaMensal = UserEdit.FaixaRendaMensal,
+                InteressesPrincipais = string.IsNullOrWhiteSpace(UserEdit.InteressesPrincipais)
+                    ? null
+                    : UserEdit.InteressesPrincipais.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).ToList(),
+                Provincia = UserEdit.Provincia,
+                Municipio = UserEdit.Municipio,
+                Bairro = UserEdit.Bairro
+            };
+
+            var result = await Api.RegisterAsync(request);
+            if (result.Success)
+            {
+                await ReloadUsuariosAsync();
+                FecharModalCarro_NoOp();
+                FecharModalUser();
+                ShowToast("Utilizador criado com sucesso.", "success");
+            }
+            else
+            {
+                ModalUserErro = MensagemAmigavel(result.Error) ?? "Erro ao criar utilizador.";
+                SalvandoUser = false;
+            }
+        }
+        else
+        {
+            var request = new UpdateUsuarioRequest
+            {
+                Nome = UserEdit.Nome,
+                Telefone = UserEdit.Telefone,
+                DataNascimento = UserEdit.DataNascimento,
+                Genero = UserEdit.Genero,
+                EstadoCivil = UserEdit.EstadoCivil,
+                NumeroFilhos = UserEdit.NumeroFilhos,
+                Profissao = UserEdit.Profissao,
+                FaixaRendaMensal = UserEdit.FaixaRendaMensal,
+                InteressesPrincipais = UserEdit.InteressesPrincipais,
+                TipoDeUsoPretendido = UserEdit.TipoDeUsoPretendido
+            };
+
+            var result = await Api.UpdateUsuarioAsync(UserEdit.Id, request);
+            if (result.Success)
+            {
+                await ReloadUsuariosAsync();
+                FecharModalUser();
+                ShowToast("Utilizador actualizado com sucesso.", "success");
+            }
+            else
+            {
+                ModalUserErro = MensagemAmigavel(result.Error) ?? "Erro ao actualizar utilizador.";
+                SalvandoUser = false;
+            }
         }
     }
 
-    private async Task EliminarUser(int id)
+    // pequeno no-op para manter simetria de nomes sem afectar o modal de carro
+    private void FecharModalCarro_NoOp() { }
+
+    private async Task ReloadUsuariosAsync()
     {
-        var result = await Api.DeleteUsuarioAsync(id);
-        if (result.Success)
+        var usersResult = await Api.GetUsuariosAsync();
+        if (usersResult.Success)
         {
-            Utilizadores.RemoveAll(u => u.Id == id);
+            Utilizadores = usersResult.Data;
+            AtualizarKpis();
         }
     }
 
+    private void EliminarUser(UsuarioDto user)
+    {
+        AbrirConfirmacao(
+            "ELIMINAR UTILIZADOR",
+            $"Tem a certeza que deseja eliminar \"{user.Nome}\"? Se este utilizador tiver reservas ou compras associadas, a eliminação pode ser bloqueada pelo sistema.",
+            async () =>
+            {
+                var result = await Api.DeleteUsuarioAsync(user.Id);
+                if (result.Success)
+                {
+                    Utilizadores.RemoveAll(u => u.Id == user.Id);
+                    AtualizarKpis();
+                    ShowToast("Utilizador eliminado.", "success");
+                }
+                else
+                {
+                    ShowToast(MensagemAmigavel(result.Error) ?? "Não foi possível eliminar este utilizador. Pode ter reservas ou compras associadas.", "error");
+                }
+            });
+    }
+
+    /* ══ ACÇÕES — RESERVAS ══ */
     private async Task MudarEstadoReserva(int id, string novoEstado)
     {
         var result = await Api.UpdateReservaEstadoAsync(id, novoEstado);
@@ -903,6 +1325,12 @@
         {
             var r = Reservas.FirstOrDefault(x => x.Id == id);
             if (r != null) r.Estado = novoEstado;
+            AtualizarKpis();
+            ShowToast($"Reserva #{id} actualizada para \"{novoEstado}\".", "success");
+        }
+        else
+        {
+            ShowToast(MensagemAmigavel(result.Error) ?? "Não foi possível actualizar o estado da reserva.", "error");
         }
     }
 
@@ -912,6 +1340,67 @@
         "Confirmada" => new[] { "Concluída",  "Cancelada" },
         _            => Array.Empty<string>()
     };
+
+    /* ══ Confirmação genérica ══ */
+    private void AbrirConfirmacao(string titulo, string msg, Func<Task> accao)
+    {
+        ConfirmacaoTitulo = titulo;
+        ConfirmacaoMsg = msg;
+        ConfirmacaoAccao = accao;
+        ConfirmacaoVisivel = true;
+    }
+
+    private void CancelarConfirmacao()
+    {
+        ConfirmacaoVisivel = false;
+        ConfirmacaoAccao = null;
+    }
+
+    private async Task ConfirmarAccao()
+    {
+        var accao = ConfirmacaoAccao;
+        ConfirmacaoVisivel = false;
+        ConfirmacaoAccao = null;
+        if (accao != null) await accao();
+    }
+
+    /* ══ Toast ══ */
+    private void ShowToast(string msg, string type = "error")
+    {
+        ToastMsg = msg;
+        ToastType = type;
+        ToastCts?.Cancel();
+        ToastCts = new CancellationTokenSource();
+        var token = ToastCts.Token;
+        _ = HideToastAfterDelay(token);
+    }
+
+    private async Task HideToastAfterDelay(CancellationToken token)
+    {
+        try
+        {
+            await Task.Delay(4500, token);
+            if (!token.IsCancellationRequested)
+            {
+                ToastMsg = null;
+                StateHasChanged();
+            }
+        }
+        catch (TaskCanceledException) { }
+    }
+
+    /// <summary>
+    /// Tenta extrair uma mensagem legível de uma resposta de erro da API.
+    /// Se a API tiver devolvido HTML (ex: páginas de erro 500 não tratadas) ou
+    /// texto muito longo, mostra uma mensagem genérica em vez do corpo bruto.
+    /// </summary>
+    private string? MensagemAmigavel(string? erro)
+    {
+        if (string.IsNullOrWhiteSpace(erro)) return null;
+        var trimmed = erro.Trim();
+        if (trimmed.StartsWith("<")) return null; // página HTML de erro — não mostrar ao utilizador
+        return trimmed.Length > 200 ? trimmed[..200] + "…" : trimmed;
+    }
 
     /* ══ KPIs calculados ══ */
     private void AtualizarKpis()
@@ -1092,6 +1581,27 @@
         public string? ImagemUrl     { get; set; }
         public string? Localizacao   { get; set; }
         public int?    Quilometragem { get; set; }
+    }
+
+    private class UserEditModel
+    {
+        public int       Id                   { get; set; }
+        public string    Nome                 { get; set; } = string.Empty;
+        public string    Email                { get; set; } = string.Empty;
+        public string    Senha                { get; set; } = string.Empty;
+        public string?    Telefone             { get; set; }
+        public DateTime? DataNascimento       { get; set; }
+        public string?   Genero               { get; set; }
+        public string?   EstadoCivil          { get; set; }
+        public int?      NumeroFilhos         { get; set; }
+        public string?   Profissao            { get; set; }
+        public string?   FaixaRendaMensal     { get; set; }
+        public string?   InteressesPrincipais { get; set; }
+        public string?   TipoDeUsoPretendido  { get; set; }
+        public string?   Provincia            { get; set; }
+        public string?   Municipio            { get; set; }
+        public string?   Bairro               { get; set; }
+        public string?   Perfil               { get; set; }
     }
 
     /* ══ SVG Icons ══ */
@@ -1497,6 +2007,9 @@ a { text-decoration: none; color: inherit; }
     transition: all .2s;
 }
 .adm-btn-primary:hover { background: #1af6ff; box-shadow: 0 0 16px rgba(0,242,255,.3); }
+.adm-btn-primary:disabled { opacity: .55; cursor: not-allowed; box-shadow: none; }
+.adm-btn-danger-solid { background: var(--red); color: #fff; }
+.adm-btn-danger-solid:hover { background: #ff5c78; box-shadow: 0 0 16px rgba(255,60,92,.35); }
 .adm-btn-ghost {
     background: transparent;
     border: 1px solid var(--brd);
@@ -1694,6 +2207,7 @@ a { text-decoration: none; color: inherit; }
     overflow-y: auto;
     box-shadow: 0 0 40px rgba(0,242,255,.15);
 }
+.adm-modal-confirm { max-width: 440px; }
 .adm-modal-hdr {
     display: flex;
     justify-content: space-between;
@@ -1755,6 +2269,7 @@ a { text-decoration: none; color: inherit; }
     transition: border-color .2s;
 }
 .adm-inp:focus { border-color: var(--c-brd); box-shadow: 0 0 0 3px rgba(0,242,255,.06); }
+.adm-inp:disabled { opacity: .55; cursor: not-allowed; }
 select.adm-inp { appearance: none; cursor: pointer; }
 .adm-textarea {
     height: 80px !important;
@@ -1770,6 +2285,47 @@ select.adm-inp { appearance: none; cursor: pointer; }
     color: var(--red);
     font-size: .8rem;
     margin-top: 4px;
+}
+
+/* ════════ TOAST ════════ */
+.adm-toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 999;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    max-width: 380px;
+    padding: 14px 16px;
+    border-radius: var(--r);
+    font-size: .82rem;
+    box-shadow: 0 8px 30px rgba(0,0,0,.4);
+    animation: toast-in .25s var(--ease);
+    backdrop-filter: blur(6px);
+}
+.adm-toast-error {
+    background: rgba(20,6,10,.92);
+    border: 1px solid rgba(255,60,92,.35);
+    color: var(--red);
+}
+.adm-toast-success {
+    background: rgba(5,18,8,.92);
+    border: 1px solid rgba(57,255,20,.3);
+    color: var(--green);
+}
+.adm-toast-msg { flex: 1; line-height: 1.4; }
+.adm-toast-close {
+    background: transparent;
+    color: inherit;
+    opacity: .7;
+    font-size: .85rem;
+    flex-shrink: 0;
+}
+.adm-toast-close:hover { opacity: 1; }
+@@keyframes toast-in {
+    from { opacity: 0; transform: translateY(-10px); }
+    to   { opacity: 1; transform: translateY(0); }
 }
 
 /* ════════ MISC ════════ */
