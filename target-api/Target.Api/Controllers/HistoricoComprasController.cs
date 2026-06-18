@@ -18,7 +18,6 @@ public class HistoricoComprasController : ControllerBase
     }
 
     // GET: api/HistoricoCompras/usuario/{usuarioId}
-    // Requer autenticação
     [HttpGet("usuario/{usuarioId:int}")]
     public IActionResult GetPorUsuario(int usuarioId)
     {
@@ -36,7 +35,13 @@ public class HistoricoComprasController : ControllerBase
     [AllowAnonymous]
     public IActionResult GetMaisComprados([FromQuery] int top = 6)
     {
-        // Agrupa por veículo, conta compras, junta com a tabela de veículos
+        // Veículos já vendidos (reserva Concluida) — excluídos de qualquer listagem
+        var veiculosVendidos = _context.Reservas
+            .Where(r => r.Estado == "Concluido")
+            .Select(r => r.VeiculoId)
+            .ToHashSet();
+
+        // Agrupa compras por veículo e junta com os dados do veículo numa única query
         var resultado = _context.HistoricoCompras
             .GroupBy(h => h.VeiculoId)
             .Select(g => new { VeiculoId = g.Key, TotalCompras = g.Count() })
@@ -59,14 +64,16 @@ public class HistoricoComprasController : ControllerBase
                     v.Disponivel,
                     hc.TotalCompras
                 })
+            .AsEnumerable()                                          // materializa aqui
+            .Where(x => !veiculosVendidos.Contains(x.Id))           // filtra vendidos
             .ToList();
 
-        // Fallback: se não houver histórico, retorna os últimos veículos adicionados
+        // Fallback: sem histórico → últimos veículos disponíveis e não vendidos
         if (!resultado.Any())
         {
             var fallback = _context.Veiculos
                 .AsNoTracking()
-                .Where(v => v.Disponivel)
+                .Where(v => v.Disponivel && !veiculosVendidos.Contains(v.Id))
                 .OrderByDescending(v => v.Id)
                 .Take(top)
                 .Select(v => new

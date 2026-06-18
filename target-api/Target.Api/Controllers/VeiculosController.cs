@@ -27,12 +27,19 @@ public class VeiculosController : ControllerBase
     [SwaggerOperation(Summary = "Lista todos os veículos")]
     public IActionResult GetAll()
     {
-        // O .Include(v => v.Galeria) garante que as fotos adicionais sejam carregadas junto
+        // Veículos com reserva "Concluido" foram vendidos — não devem aparecer na UI
+        var veiculosVendidos = _context.Reservas
+            .Where(r => r.Estado == "Concluido")
+            .Select(r => r.VeiculoId)
+            .ToHashSet();
+
         var list = _context.Veiculos
                         .Include(v => v.Galeria)
                         .AsNoTracking()
+                        .Where(v => !veiculosVendidos.Contains(v.Id))
                         .OrderBy(v => v.Id)
                         .ToList();
+
         return Ok(list);
     }
 
@@ -43,12 +50,21 @@ public class VeiculosController : ControllerBase
     [SwaggerOperation(Summary = "Obtém um veículo por id")]
     public IActionResult GetById(int id)
     {
+        // Se já foi vendido (reserva Concluida), trata como não existente
+        var foiVendido = _context.Reservas
+            .Any(r => r.VeiculoId == id && r.Estado == "Concluido");
+
+        if (foiVendido)
+            return NotFound("Veículo não disponível.");
+
         var v = _context.Veiculos
                         .Include(v => v.Galeria)
                         .AsNoTracking()
                         .FirstOrDefault(x => x.Id == id);
+
         if (v == null)
             return NotFound();
+
         return Ok(v);
     }
 
