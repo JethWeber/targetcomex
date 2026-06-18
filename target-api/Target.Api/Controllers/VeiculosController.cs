@@ -27,7 +27,12 @@ public class VeiculosController : ControllerBase
     [SwaggerOperation(Summary = "Lista todos os veículos")]
     public IActionResult GetAll()
     {
-        var list = _context.Veiculos.AsNoTracking().OrderBy(v => v.Id).ToList();
+        // O .Include(v => v.Galeria) garante que as fotos adicionais sejam carregadas junto
+        var list = _context.Veiculos
+                        .Include(v => v.Galeria)
+                        .AsNoTracking()
+                        .OrderBy(v => v.Id)
+                        .ToList();
         return Ok(list);
     }
 
@@ -38,7 +43,10 @@ public class VeiculosController : ControllerBase
     [SwaggerOperation(Summary = "Obtém um veículo por id")]
     public IActionResult GetById(int id)
     {
-        var v = _context.Veiculos.AsNoTracking().FirstOrDefault(x => x.Id == id);
+        var v = _context.Veiculos
+                        .Include(v => v.Galeria)
+                        .AsNoTracking()
+                        .FirstOrDefault(x => x.Id == id);
         if (v == null)
             return NotFound();
         return Ok(v);
@@ -49,9 +57,24 @@ public class VeiculosController : ControllerBase
     [SwaggerOperation(Summary = "Cria um veículo")]
     public IActionResult Create([FromBody] Veiculo body)
     {
-        body.Id = 0;
+        if (body == null) return BadRequest();
+
+        // 1. Salvamos o veículo principal primeiro
         _context.Veiculos.Add(body);
-        _context.SaveChanges();
+        _context.SaveChanges(); // Aqui o SQL Server gera o body.Id automaticamente
+
+        // 2. Se o objeto enviado já contiver itens mapeados na lista Galeria,
+        // associamos o Id gerado e salvamos na tabela VeiculoImagens
+        if (body.Galeria != null && body.Galeria.Any())
+        {
+            foreach (var img in body.Galeria)
+            {
+                img.VeiculoId = body.Id; // Vincula a Chave Estrangeira (FK)
+                _context.VeiculoImagens.Add(img);
+            }
+            _context.SaveChanges();
+        }
+
         return CreatedAtAction(nameof(GetById), new { id = body.Id }, body);
     }
 

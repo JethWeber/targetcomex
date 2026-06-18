@@ -37,5 +37,6 @@ namespace Target.Api.Models
         public decimal Preco { get; set; }
 
         public bool Disponivel { get; set; }
+        public virtual ICollection<VeiculoImagem> Galeria { get; set; } = new List<VeiculoImagem>();
     }
 }

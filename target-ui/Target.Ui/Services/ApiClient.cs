@@ -104,6 +104,13 @@ public class VeiculoDto
     public bool Disponivel { get; set; }
 }
 
+public class VeiculoImagemDto
+{
+    public int Id { get; set; }
+    public int VeiculoId { get; set; }
+    public string ImagemUrl { get; set; } = string.Empty;
+}
+
 public class AvaliacaoDto
 {
     public int Id { get; set; }
@@ -149,6 +156,28 @@ public class CreateVeiculoRequest
     public int?    Quilometragem { get; set; }
     public decimal Preco         { get; set; }
     public bool    Disponivel    { get; set; } = true;
+    // Galeria de imagens (opcional)
+    public List<VeiculoImagemDto>? Galeria { get; set; } = new();
+}
+
+public class UpdateVeiculoRequest
+{
+    public string  Marca         { get; set; } = string.Empty;
+    public string  Modelo        { get; set; } = string.Empty;
+    public int     Ano           { get; set; }
+    public string? Descricao     { get; set; }
+    public string? ImagemUrl     { get; set; }
+    public string? Cor           { get; set; }
+    public string? Estilo        { get; set; }
+    public string? Combustivel   { get; set; }
+    public string? Motor         { get; set; }
+    public int?    Potencia      { get; set; }
+    public string? Transmissao   { get; set; }
+    public string? Localizacao   { get; set; }
+    public int?    Quilometragem { get; set; }
+    public decimal Preco         { get; set; }
+    public bool    Disponivel    { get; set; } = true;
+    public List<VeiculoImagemDto>? Galeria { get; set; } = new();
 }
 
 public class RecomendacaoDto
@@ -413,7 +442,7 @@ public class ApiClient
     }
 
     /// <summary>Actualiza um veículo (requer admin/vendedor).</summary>
-    public async Task<ApiResult<string>> UpdateVeiculoAsync(int id, CreateVeiculoRequest request)
+    public async Task<ApiResult<string>> UpdateVeiculoAsync(int id, UpdateVeiculoRequest request)
     {
         try
         {

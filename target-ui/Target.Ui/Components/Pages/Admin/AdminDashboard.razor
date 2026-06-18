@@ -177,7 +177,7 @@
                         <h1 class="adm-page-title">GESTÃO DE CARROS</h1>
                         <p class="adm-page-sub">@Carros.Count veículos no sistema</p>
                     </div>
-                    <button class="adm-btn-primary" @onclick="AbrirModalCarro">
+                    <button class="adm-btn-primary" @onclick="AbrirModalCarroNovo">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                         Novo Veículo
                     </button>
@@ -391,7 +391,6 @@
             {
                 <div class="adm-modal-body">
 
-                    <!-- Progresso do wizard -->
                     <div class="adm-wiz-progtext">Passo @CarroStep de @CarroTotalSteps</div>
                     <div class="adm-wiz-progbar">
                         <div class="adm-wiz-progfill" style="width: @(CarroStep * 100 / CarroTotalSteps)%"></div>
@@ -410,7 +409,6 @@
                         }
                     </div>
 
-                    <!-- PASSO 1: IDENTIFICAÇÃO -->
                     @if (CarroStep == 1)
                     {
                         <h3 class="adm-wiz-title">IDENTIFICAÇÃO</h3>
@@ -446,7 +444,6 @@
                         </div>
                     }
 
-                    <!-- PASSO 2: ESPECIFICAÇÕES -->
                     @if (CarroStep == 2)
                     {
                         <h3 class="adm-wiz-title">ESPECIFICAÇÕES TÉCNICAS</h3>
@@ -492,7 +489,6 @@
                         </div>
                     }
 
-                    <!-- PASSO 3: LOCALIZAÇÃO & DESCRIÇÃO -->
                     @if (CarroStep == 3)
                     {
                         <h3 class="adm-wiz-title">LOCALIZAÇÃO &amp; DESCRIÇÃO</h3>
@@ -508,7 +504,7 @@
                         </div>
                         <div class="adm-field">
                             <label>Estado</label>
-                            <select class="adm-inp" @bind="CarroEdit.Estado">
+                            <select class="adm-inp" @bind="EstadoSelecionado">
                                 <option>Disponível</option>
                                 <option>Reservado</option>
                                 <option>Vendido</option>
@@ -516,19 +512,25 @@
                         </div>
                     }
 
-                    <!-- PASSO 4: IMAGEM & PREÇO -->
                     @if (CarroStep == 4)
                     {
-                        <h3 class="adm-wiz-title">IMAGEM &amp; PREÇO</h3>
-                        <p class="adm-wiz-sub">Última etapa antes de publicar</p>
+                        <h3 class="adm-wiz-title">FOTO DE CAPA &amp; PREÇO</h3>
+                        <p class="adm-wiz-sub">Defina o valor monetário e a foto principal de destaque</p>
 
                         <div class="adm-field">
-                            <label>Fotografia do Veículo</label>
-                            <div class="adm-upload-zone @(string.IsNullOrEmpty(ImagemPreviewUrl) ? "" : "has-image")">
-                                @if (!string.IsNullOrEmpty(ImagemPreviewUrl))
+                            <label>Fotografia de Capa (Principal)</label>
+                            <div class="adm-upload-zone @(string.IsNullOrEmpty(CapaPreviewUrl) && string.IsNullOrEmpty(CarroEdit.ImagemUrl) ? "" : "has-image")">
+                                @if (!string.IsNullOrEmpty(CapaPreviewUrl))
                                 {
-                                    <img src="@ImagemPreviewUrl" alt="Pré-visualização" class="adm-upload-preview" />
-                                    <button type="button" class="adm-upload-remove" @onclick="RemoverImagem" @onclick:stopPropagation>
+                                    <img src="@CapaPreviewUrl" alt="Pré-visualização da Capa" class="adm-upload-preview" />
+                                    <button type="button" class="adm-upload-remove" @onclick="() => { CapaPreviewUrl = null; capaUpload = null; }" @onclick:stopPropagation>
+                                        ✕ Remover
+                                    </button>
+                                }
+                                else if (!string.IsNullOrEmpty(CarroEdit.ImagemUrl))
+                                {
+                                    <img src="@CarroEdit.ImagemUrl" alt="Capa Atual" class="adm-upload-preview" />
+                                    <button type="button" class="adm-upload-remove" @onclick="() => { CarroEdit.ImagemUrl = null; }" @onclick:stopPropagation>
                                         ✕ Remover
                                     </button>
                                 }
@@ -540,25 +542,65 @@
                                             <polyline points="7 9 12 4 17 9" />
                                             <line x1="12" y1="4" x2="12" y2="16" />
                                         </svg>
-                                        <span class="adm-upload-title">Clique ou arraste uma imagem</span>
+                                        <span class="adm-upload-title">Clique ou arraste a imagem de CAPA</span>
                                         <span class="adm-upload-hint">PNG ou JPG · até 5MB</span>
                                     </div>
                                 }
-                                <InputFile class="adm-upload-input" OnChange="OnImagemSelecionada" accept="image/*" />
+                                <InputFile class="adm-upload-input" OnChange="OnCapaSelecionada" accept="image/*" />
                             </div>
-                            @if (UploadEmProgresso)
-                            {
-                                <div class="adm-upload-status">A carregar imagem...</div>
-                            }
-                            @if (!string.IsNullOrEmpty(UploadErro))
-                            {
-                                <div class="adm-erro">@UploadErro</div>
-                            }
                         </div>
 
                         <div class="adm-field">
                             <label>Preço (AOA) <span class="req">*</span></label>
                             <input class="adm-inp" type="number" @bind="CarroEdit.Preco" />
+                        </div>
+                    }
+
+                    @if (CarroStep == 5)
+                    {
+                        <h3 class="adm-wiz-title">GALERIA DE FOTOS DETALHADAS</h3>
+                        <p class="adm-wiz-sub">Adicione até 4 fotos extras do veículo para a página de detalhes</p>
+
+                        <div class="adm-field">
+                            <label>Fotos da Galeria</label>
+                            <div class="adm-upload-zone" style="min-height: 140px; height: auto; padding: 20px;">
+                                <div class="adm-upload-placeholder" style="pointer-events: none; margin-bottom: 10px;">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" width="30" height="30">
+                                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                                        <circle cx="8.5" cy="8.5" r="1.5" />
+                                        <polyline points="21 15 16 10 5 21" />
+                                    </svg>
+                                    <span class="adm-upload-title">Clique aqui para anexar múltiplas fotos</span>
+                                    <span class="adm-upload-hint">Selecione até 4 imagens de uma vez (PNG ou JPG)</span>
+                                </div>
+                                <InputFile class="adm-upload-input" OnChange="OnGaleriaSelecionada" Multiple accept="image/*" />
+                            </div>
+
+                            @if (GaleriaPreviewUrls.Any())
+                            {
+                                <div class="galeria-preview-grid" style="display: flex; gap: 12px; margin-top: 15px; flex-wrap: wrap;">
+                                    @foreach (var url in GaleriaPreviewUrls.ToList())
+                                    {
+                                        var currentUrl = url;
+                                        <div class="galeria-item" style="position: relative; width: 90px; height: 90px; border: 1px solid var(--c); border-radius: 4px; overflow: hidden; background: #000; box-shadow: 0 0 8px rgba(0,242,254,0.2);">
+                                            <img src="@currentUrl" style="width: 100%; height: 100%; object-fit: cover;" />
+                                            <button type="button" style="position: absolute; top: 4px; right: 4px; background: rgba(255,60,92,0.9); color: #fff; border: none; border-radius: 50%; width: 22px; height: 22px; font-size: 11px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10;" 
+                                                    @onclick="() => { int idx = GaleriaPreviewUrls.IndexOf(currentUrl); GaleriaPreviewUrls.Remove(currentUrl); if(idx >= 0 && idx < galeriaUploads.Count) galeriaUploads.RemoveAt(idx); }">
+                                                ✕
+                                            </button>
+                                        </div>
+                                    }
+                                </div>
+                            }
+
+                            @if (UploadEmProgresso)
+                            {
+                                <div class="adm-upload-status" style="margin-top: 8px;">A processar imagens...</div>
+                            }
+                            @if (!string.IsNullOrEmpty(UploadErro))
+                            {
+                                <div class="adm-erro" style="margin-top: 8px;">@UploadErro</div>
+                            }
                         </div>
                     }
 
@@ -784,16 +826,20 @@
     private bool ModalCarroAberto = false;
     private Carro? CarroEdit;
     private string ModalErro = "";
+    private string EstadoSelecionado = "Disponível";
+
+    /* ── Upload de ficheiros (Capa + Galeria) ── */
+    private FileUploadData? capaUpload;
+    private List<FileUploadData> galeriaUploads = new();
+    private string? CapaPreviewUrl;
+    private List<string> GaleriaPreviewUrls = new();
+    private const long TamanhoMaxImagemBytes = 5 * 1024 * 1024; // 5 MB
+    private string UploadErro = "";
+    private bool UploadEmProgresso = false;
 
     /* ── Wizard de passos do carro ────────── */
     private int CarroStep = 1;
-    private const int CarroTotalSteps = 4;
-
-    /* ── Upload de imagem ─────────────────── */
-    private string? ImagemPreviewUrl;
-    private bool UploadEmProgresso = false;
-    private string UploadErro = "";
-    private const long TamanhoMaxImagemBytes = 5 * 1024 * 1024;
+    private const int CarroTotalSteps = 5;
 
     /* ── Modal Utilizador ─────────────────── */
     private bool ModalUserAberto = false;
@@ -801,6 +847,9 @@
     private string ModalUserErro = "";
     private bool SalvandoUser = false;
 
+    /* ── Estado de carregamento ─────────────── */
+    private bool isLoading = true;
+    private string? apiError;
 
     /* ══ NAV ══ */
     private List<NavItem> NavItems = new()
@@ -814,25 +863,22 @@
     /* ══ KPIs ══ */
     private List<Kpi> Kpis = new()
     {
-        new("Total Veículos",  "—",  "+0", true, "kpi-cyan",   Svg.Car),
-        new("Utilizadores",    "—",  "+0", true, "kpi-purple", Svg.Users),
-        new("Reservas Activas","—",  "+0", true, "kpi-green",  Svg.Reservas),
-        new("Receita (AOA)",   "—",  "+0", true, "kpi-gold",   Svg.Money),
+        new("Total Veículos",   "—", "+0", true, "kpi-cyan",   Svg.Car),
+        new("Utilizadores",     "—", "+0", true, "kpi-purple", Svg.Users),
+        new("Reservas Activas", "—", "+0", true, "kpi-green",  Svg.Reservas),
+        new("Receita (AOA)",    "—", "+0", true, "kpi-gold",   Svg.Money),
     };
 
     /* ══ LOGS ══ */
     private List<LogEntry> Logs = new()
     {
-        new("Nova reserva #RES-041 criada", "há 2 min",  "info"),
-        new("Carro #C-022 marcado como Vendido", "há 8 min", "success"),
-        new("Utilizador João Malheiro registado", "há 14 min","info"),
-        new("Reserva #RES-038 cancelada pelo cliente", "há 31 min","warn"),
-        new("Carro #C-009 actualizado", "há 1h","info"),
-        new("Login de admin detectado (IP 197.x)", "há 2h","warn"),
+        new("Nova reserva #RES-041 criada",               "há 2 min",  "info"),
+        new("Carro #C-022 marcado como Vendido",          "há 8 min",  "success"),
+        new("Utilizador João Malheiro registado",         "há 14 min", "info"),
+        new("Reserva #RES-038 cancelada pelo cliente",    "há 31 min", "warn"),
+        new("Carro #C-009 actualizado",                   "há 1h",     "info"),
+        new("Login de admin detectado (IP 197.x)",        "há 2h",     "warn"),
     };
-
-    private bool isLoading = true;
-    private string? apiError;
 
     /* ══ CARROS ══ */
     private List<Carro> Carros = new();
@@ -859,168 +905,52 @@
         .OrderByDescending(r => r.Id);
 
     /* ══ ACÇÕES — CARROS ══ */
-    private void AbrirModalCarro()
+    private void AbrirModalCarro(Carro? carro = null)
     {
-        CarroEdit = new Carro
-        {
-            Id            = 0,
-            Marca         = "",
-            Modelo        = "",
-            Ano           = DateTime.Now.Year,
-            Preco         = 0,
-            Combustivel   = "Gasolina",
-            Transmissao   = "Automática",
-            Estado        = "Disponível",
-            Cor           = null,
-            Estilo        = null,
-            Motor         = null,
-            Potencia      = null,
-            Descricao     = null,
-            ImagemUrl     = null,
-            Localizacao   = null,
-            Quilometragem = null
-        };
         ModalErro = "";
         CarroStep = 1;
-        ImagemPreviewUrl = null;
-        UploadErro = "";
-        ModalCarroAberto = true;
-    }
+        LimparEstadoUploads();
 
-    private void EditarCarro(Carro c)
-    {
-        CarroEdit = new Carro
+        if (carro == null)
         {
-            Id            = c.Id,
-            Marca         = c.Marca,
-            Modelo        = c.Modelo,
-            Ano           = c.Ano,
-            Preco         = c.Preco,
-            Combustivel   = c.Combustivel,
-            Transmissao   = c.Transmissao,
-            Estado        = c.Estado,
-            Cor           = c.Cor,
-            Estilo        = c.Estilo,
-            Motor         = c.Motor,
-            Potencia      = c.Potencia,
-            Descricao     = c.Descricao,
-            ImagemUrl     = c.ImagemUrl,
-            Localizacao   = c.Localizacao,
-            Quilometragem = c.Quilometragem
-        };
-        ModalErro = "";
-        CarroStep = 1;
-        ImagemPreviewUrl = c.ImagemUrl;
-        UploadErro = "";
-        ModalCarroAberto = true;
-    }
-
-    private async Task SalvarCarro()
-    {
-        if (CarroEdit == null) return;
-
-        if (string.IsNullOrWhiteSpace(CarroEdit.Marca) || string.IsNullOrWhiteSpace(CarroEdit.Modelo))
-        {
-            ModalErro = "Marca e Modelo são obrigatórios.";
-            return;
-        }
-
-        if (CarroEdit.Preco <= 0)
-        {
-            ModalErro = "Insira um preço válido.";
-            return;
-        }
-
-        try
-        {
-            // SE houver um novo arquivo selecionado via InputFile, salvamos no wwwroot
-            if (arquivoSelecionado != null)
+            CarroEdit = new Carro
             {
-                // Gera um nome único e limpo para o arquivo semelhante ao seu exemplo (ex: bmw-m8-2021-938432.png)
-                var extensao = Path.GetExtension(arquivoSelecionado.Name);
-                var sufixoUnico = Guid.NewGuid().ToString().Substring(0, 6);
-                var marcaSlug = CarroEdit.Marca.ToLower().Replace(" ", "-");
-                var modeloSlug = CarroEdit.Modelo.ToLower().Replace(" ", "-");
-                
-                var nomeArquivo = $"{marcaSlug}-{modeloSlug}-{CarroEdit.Ano}-{sufixoUnico}{extensao}";
-                
-                // Caminho físico absoluto no servidor
-                var pastaUploads = Path.Combine(Env.WebRootPath, "Uploads", "Veiculos");
-                
-                // Garante que a árvore de diretórios existe no wwwroot
-                if (!Directory.Exists(pastaUploads))
-                {
-                    Directory.CreateDirectory(pastaUploads);
-                }
-
-                var caminhoCompleto = Path.Combine(pastaUploads, nomeArquivo);
-
-                // Salva o stream do arquivo diretamente no disco do servidor
-                using var streamOrigem = arquivoSelecionado.OpenReadStream(TamanhoMaxImagemBytes);
-                using var streamDestino = new FileStream(caminhoCompleto, FileMode.Create);
-                await streamOrigem.CopyToAsync(streamDestino);
-
-                // Define o caminho relativo limpo que irá para a API / SQL Server
-                CarroEdit.ImagemUrl = $"/Uploads/Veiculos/{nomeArquivo}";
-            }
-
-            // Constrói o request contendo a URL limpa da imagem em vez do Base64 massivo
-            var request = new CreateVeiculoRequest
+                Ano   = DateTime.Now.Year,
+                Estado = "Disponível"
+            };
+            EstadoSelecionado = "Disponível";
+        }
+        else
+        {
+            CarroEdit = new Carro
             {
-                Marca = CarroEdit.Marca,
-                Modelo = CarroEdit.Modelo,
-                Ano = CarroEdit.Ano,
-                Preco = CarroEdit.Preco,
-                Combustivel = CarroEdit.Combustivel,
-                Transmissao = CarroEdit.Transmissao,
-                Cor = CarroEdit.Cor,
-                Estilo = CarroEdit.Estilo,
-                Motor = CarroEdit.Motor,
-                Potencia = CarroEdit.Potencia,
-                Descricao = CarroEdit.Descricao,
-                ImagemUrl = CarroEdit.ImagemUrl, // Enviando a string da URL (/Uploads/Veiculos/...)
-                Localizacao = CarroEdit.Localizacao,
-                Quilometragem = CarroEdit.Quilometragem,
-                Disponivel = CarroEdit.Estado == "Disponível"
+                Id            = carro.Id,
+                Marca         = carro.Marca,
+                Modelo        = carro.Modelo,
+                Ano           = carro.Ano,
+                Descricao     = carro.Descricao,
+                ImagemUrl     = carro.ImagemUrl,
+                Cor           = carro.Cor,
+                Estilo        = carro.Estilo,
+                Combustivel   = carro.Combustivel,
+                Motor         = carro.Motor,
+                Potencia      = carro.Potencia,
+                Transmissao   = carro.Transmissao,
+                Localizacao   = carro.Localizacao,
+                Quilometragem = carro.Quilometragem,
+                Preco         = carro.Preco,
+                Estado        = carro.Estado,
+                GaleriaUrls   = new List<string>(carro.GaleriaUrls)
             };
 
-            if (CarroEdit.Id == 0)
-            {
-                var result = await Api.CreateVeiculoAsync(request);
-                if (result.Success)
-                {
-                    await LoadAdminDataAsync(); // Recarrega a grid com as novas informações
-                    FecharModalCarro();
-                    ShowToast("Veículo adicionado com sucesso.", "success");
-                }
-                else
-                {
-                    ModalErro = result.Error ?? "Erro desconhecido ao criar veículo.";
-                }
-            }
-            else
-            {
-                // Lógica para o Update/Edição do Veículo usando a mesma API caso possua
-                var result = await Api.UpdateVeiculoAsync(CarroEdit.Id, request);
-                if (result.Success)
-                {
-                    await LoadAdminDataAsync();
-                    FecharModalCarro();
-                    ShowToast("Veículo actualizado com sucesso.", "success");
-                }
-                else
-                {
-                    ModalErro = result.Error ?? "Erro desconhecido ao actualizar veículo.";
-                }
-            }
-            
-            // Limpa o estado do arquivo temporário após o sucesso
-            arquivoSelecionado = null;
+            EstadoSelecionado = CarroEdit.Estado == "Disponível" ? "Disponível" : CarroEdit.Estado;
+
+            // Pré-visualizações das imagens da galeria já existentes
+            foreach (var url in carro.GaleriaUrls.Where(u => !string.IsNullOrEmpty(u)))
+                GaleriaPreviewUrls.Add(url);
         }
-        catch (Exception ex)
-        {
-            ModalErro = $"Erro ao processar o salvamento do veículo: {ex.Message}";
-        }
+
+        ModalCarroAberto = true;
     }
 
     private void FecharModalCarro()
@@ -1029,13 +959,12 @@
         CarroEdit = null;
         ModalErro = "";
         CarroStep = 1;
-        ImagemPreviewUrl = null;
-        UploadErro = "";
+        LimparEstadoUploads();
     }
 
-    /* ── Navegação do wizard ──────────────── */
     private void AvancarCarroStep()
     {
+        if (CarroEdit == null) return;
         ModalErro = "";
         if (!ValidarCarroStep()) return;
         if (CarroStep < CarroTotalSteps) CarroStep++;
@@ -1055,65 +984,233 @@
         {
             if (string.IsNullOrWhiteSpace(CarroEdit.Marca) || string.IsNullOrWhiteSpace(CarroEdit.Modelo))
             { ModalErro = "Marca e Modelo são obrigatórios."; return false; }
-            if (CarroEdit.Ano < 2000 || CarroEdit.Ano > 2026)
-            { ModalErro = "Insira um ano válido."; return false; }
+            if (CarroEdit.Ano < 2000 || CarroEdit.Ano > 2030)
+            { ModalErro = "Insira um ano válido (2000 – 2030)."; return false; }
+        }
+        else if (CarroStep == 4)
+        {
+            if (CarroEdit.Preco <= 0)
+            { ModalErro = "Insira um preço válido maior que zero."; return false; }
         }
 
         return true;
     }
 
-    /* ── Upload de imagem e Salvamento Físico no Servidor ─────────────────── */
-    private IBrowserFile? arquivoSelecionado;
-    private async Task OnImagemSelecionada(InputFileChangeEventArgs e)
+    private void EditarCarro(Carro c) => AbrirModalCarro(c);
+
+    // Wrapper sem parâmetro para o botão "Novo Veículo" no markup
+    private void AbrirModalCarroNovo() => AbrirModalCarro(null);
+
+    /* ── Upload — Capa ───────────────────────────────────────────────── */
+    private async Task OnCapaSelecionada(InputFileChangeEventArgs e)
     {
         UploadErro = "";
         var arquivo = e.File;
         if (arquivo == null) return;
 
         if (arquivo.Size > TamanhoMaxImagemBytes)
+        { UploadErro = "A imagem de capa deve ter no máximo 5 MB."; return; }
+
+        using var stream  = arquivo.OpenReadStream(TamanhoMaxImagemBytes);
+        using var memoria = new MemoryStream();
+        await stream.CopyToAsync(memoria);
+        var bytes = memoria.ToArray();
+        
+        capaUpload = new FileUploadData
         {
-            UploadErro = "A imagem deve ter no máximo 5MB.";
-            return;
+            FileName = arquivo.Name,
+            ContentType = arquivo.ContentType,
+            Bytes = bytes
+        };
+        
+        CapaPreviewUrl = $"data:{arquivo.ContentType};base64,{Convert.ToBase64String(bytes)}";
+    }
+
+    /* ── Upload — Galeria ────────────────────────────────────────────── */
+    private async Task OnGaleriaSelecionada(InputFileChangeEventArgs e)
+    {
+        UploadErro = "";
+        var arquivos = e.GetMultipleFiles(4);
+
+        foreach (var arquivo in arquivos)
+        {
+            if (galeriaUploads.Count >= 4)
+            { UploadErro = "Atingiu o limite máximo de 4 imagens na galeria."; break; }
+
+            if (arquivo.Size > TamanhoMaxImagemBytes)
+            { UploadErro = $"O ficheiro '{arquivo.Name}' excede o limite de 5 MB."; continue; }
+
+            using var stream  = arquivo.OpenReadStream(TamanhoMaxImagemBytes);
+            using var memoria = new MemoryStream();
+            await stream.CopyToAsync(memoria);
+                var bytes = memoria.ToArray();
+                galeriaUploads.Add(new FileUploadData
+                {
+                    FileName = arquivo.Name,
+                    ContentType = arquivo.ContentType,
+                    Bytes = bytes
+                });
+                GaleriaPreviewUrls.Add($"data:{arquivo.ContentType};base64,{Convert.ToBase64String(bytes)}");
         }
+    }
+
+    private void LimparEstadoUploads()
+    {
+        capaUpload = null;
+        galeriaUploads.Clear();
+        CapaPreviewUrl = null;
+        GaleriaPreviewUrls.Clear();
+        UploadErro = "";
+        UploadEmProgresso = false;
+    }
+
+    /* ── Guardar Carro ───────────────────────────────────────────────── */
+    private async Task SalvarCarro()
+    {
+        if (CarroEdit == null) return;
 
         UploadEmProgresso = true;
-        StateHasChanged();
+        ModalErro = "";
 
         try
         {
-            // Armazenamos o arquivo temporariamente na memória do componente para processar apenas ao "Salvar"
-            arquivoSelecionado = arquivo;
+            // 1. Gerar o sufixo aleatório solicitado
+            string randomSufix = new Random().Next(10000, 99999).ToString();
 
-            // Para manter a experiência visual (Pré-visualização do usuário em tempo real) antes de enviar à API:
-            using var stream = arquivo.OpenReadStream(TamanhoMaxImagemBytes);
-            using var memoria = new MemoryStream();
-            await stream.CopyToAsync(memoria);
-            var base64 = Convert.ToBase64String(memoria.ToArray());
-            
-            ImagemPreviewUrl = $"data:{arquivo.ContentType};base64,{base64}";
-            
-            // Temporariamente guardamos a pré-visualização. Ela será substituída pela URL final ao SalvarCarro
-            if (CarroEdit != null) 
-                CarroEdit.ImagemUrl = ImagemPreviewUrl;
+            // 2. Limpar a marca e o modelo para um nome seguro de ficheiro
+            string marcaLimpa = System.Text.RegularExpressions.Regex.Replace(CarroEdit.Marca ?? "", @"[^a-zA-Z0-9]", "").ToLower();
+            string modeloLimpo = System.Text.RegularExpressions.Regex.Replace(CarroEdit.Modelo ?? "", @"[^a-zA-Z0-9]", "").ToLower();
+            string baseNome = $"{marcaLimpa}_{modeloLimpo}_{CarroEdit.Ano}_{randomSufix}";
+
+            // 3. Garantir a criação da pasta física local no wwwroot do Blazor
+            string uploadFolder = Path.Combine(Env.WebRootPath, "Uploads", "Veiculos");
+            if (!Directory.Exists(uploadFolder))
+            {
+                Directory.CreateDirectory(uploadFolder);
+            }
+
+            // 4. Processar e salvar o arquivo físico da imagem de CAPA (se houver novo)
+            if (capaUpload != null)
+            {
+                string ext = Path.GetExtension(capaUpload.FileName);
+                string nomeFinalCapa = $"{baseNome}-capa{ext}";
+                string caminhoFisicoCapa = Path.Combine(uploadFolder, nomeFinalCapa);
+
+                await System.IO.File.WriteAllBytesAsync(caminhoFisicoCapa, capaUpload.Bytes);
+
+                // Atualiza a URL que vai no JSON para a API
+                CarroEdit.ImagemUrl = $"/Uploads/Veiculos/{nomeFinalCapa}";
+            }
+            else if (string.IsNullOrEmpty(CarroEdit.ImagemUrl))
+            {
+                CarroEdit.ImagemUrl = "/img/cars/default.jpg";
+            }
+
+            // 5. Processar e salvar os arquivos físicos da GALERIA (se houverem)
+            if (galeriaUploads != null && galeriaUploads.Count > 0)
+            {
+                if (CarroEdit.ImagensAdicionais == null) 
+                    CarroEdit.ImagensAdicionais = new List<VeiculoImagemDto>();
+
+                int index = CarroEdit.ImagensAdicionais.Count + 1;
+                foreach (var uploadData in galeriaUploads)
+                {
+                    string ext = Path.GetExtension(uploadData.FileName);
+                    string nomeFinalGaleria = $"{baseNome}-galeria{index}{ext}";
+                    string caminhoFisicoGaleria = Path.Combine(uploadFolder, nomeFinalGaleria);
+
+                    await System.IO.File.WriteAllBytesAsync(caminhoFisicoGaleria, uploadData.Bytes);
+
+                    // Adiciona o DTO correto esperado pela sua classe local Carro
+                    CarroEdit.ImagensAdicionais.Add(new VeiculoImagemDto
+                    {
+                        Id = 0,
+                        VeiculoId = CarroEdit.Id,
+                        ImagemUrl = $"/Uploads/Veiculos/{nomeFinalGaleria}"
+                    });
+
+                    index++;
+                }
+            }
+
+            // 6. Preparar e enviar o mapeamento correto via JSON para o seu ApiClient
+            if (CarroEdit.Id == 0)
+            {
+                // Criar novo veículo
+                var req = new CreateVeiculoRequest
+                {
+                    Marca = CarroEdit.Marca,
+                    Modelo = CarroEdit.Modelo,
+                    Ano = CarroEdit.Ano,
+                    Descricao = CarroEdit.Descricao,
+                    ImagemUrl = CarroEdit.ImagemUrl,
+                    Cor = CarroEdit.Cor,
+                    Estilo = CarroEdit.Estilo,
+                    Combustivel = CarroEdit.Combustivel,
+                    Quilometragem = CarroEdit.Quilometragem,
+                    Preco = CarroEdit.Preco,
+                    Disponivel = (EstadoSelecionado == "Disponível"),
+                    Galeria = CarroEdit.ImagensAdicionais.Select(x => new VeiculoImagemDto { ImagemUrl = x.ImagemUrl }).ToList()
+                };
+
+                var res = await Api.CreateVeiculoAsync(req);
+                if (res.Success)
+                {
+                    ModalCarroAberto = false;
+                    capaUpload = null;
+                    galeriaUploads.Clear();
+                    ShowToast("Veículo cadastrado com sucesso!", "success");
+                    await LoadAdminDataAsync();
+                }
+                else
+                {
+                    ModalErro = res.Error ?? "Erro desconhecido ao criar veículo.";
+                }
+            }
+            else
+            {
+                // Atualizar veículo existente
+                var req = new UpdateVeiculoRequest
+                {
+                    Marca = CarroEdit.Marca,
+                    Modelo = CarroEdit.Modelo,
+                    Ano = CarroEdit.Ano,
+                    Descricao = CarroEdit.Descricao,
+                    ImagemUrl = CarroEdit.ImagemUrl,
+                    Cor = CarroEdit.Cor,
+                    Estilo = CarroEdit.Estilo,
+                    Combustivel = CarroEdit.Combustivel,
+                    Quilometragem = CarroEdit.Quilometragem,
+                    Preco = CarroEdit.Preco,
+                    Disponivel = (EstadoSelecionado == "Disponível"),
+                    Galeria = CarroEdit.ImagensAdicionais.Select(x => new VeiculoImagemDto { ImagemUrl = x.ImagemUrl }).ToList()
+                };
+
+                var res = await Api.UpdateVeiculoAsync(CarroEdit.Id, req);
+                if (res.Success)
+                {
+                    ModalCarroAberto = false;
+                    capaUpload = null;
+                    galeriaUploads.Clear();
+                    ShowToast("Veículo atualizado com sucesso!", "success");
+                    await LoadAdminDataAsync();
+                }
+                else
+                {
+                    ModalErro = res.Error ?? "Erro desconhecido ao atualizar veículo.";
+                }
+            }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            UploadErro = "Não foi possível carregar a imagem. Tente novamente.";
+            ModalErro = $"Erro no processamento local das imagens: {ex.Message}";
         }
         finally
         {
             UploadEmProgresso = false;
-            StateHasChanged();
         }
     }
-
-    private void RemoverImagem()
-    {
-        ImagemPreviewUrl = null;
-        arquivoSelecionado = null;
-        if (CarroEdit != null) CarroEdit.ImagemUrl = null;
-    }
-
+   
     private void EliminarCarro(int id)
     {
         var carro = Carros.FirstOrDefault(c => c.Id == id);
@@ -1142,25 +1239,14 @@
     {
         UserEdit = new UserEditModel
         {
-            Id   = 0,
-            Nome = "",
+            Id    = 0,
+            Nome  = "",
             Email = "",
             Senha = "",
-            Telefone = null,
-            DataNascimento = null,
-            Genero = null,
-            EstadoCivil = null,
-            NumeroFilhos = null,
-            Profissao = null,
-            FaixaRendaMensal = null,
-            InteressesPrincipais = null,
-            Provincia = null,
-            Municipio = null,
-            Bairro = null,
             Perfil = "Cliente"
         };
         ModalUserErro = "";
-        SalvandoUser = false;
+        SalvandoUser  = false;
         ModalUserAberto = true;
     }
 
@@ -1168,34 +1254,34 @@
     {
         UserEdit = new UserEditModel
         {
-            Id = u.Id,
-            Nome = u.Nome,
-            Email = u.Email,
-            Senha = "",
-            Telefone = u.Telefone,
-            DataNascimento = u.DataNascimento,
-            Genero = u.Genero,
-            EstadoCivil = u.EstadoCivil,
-            NumeroFilhos = u.NumeroFilhos,
-            Profissao = u.Profissao,
-            FaixaRendaMensal = u.FaixaRendaMensal,
+            Id                   = u.Id,
+            Nome                 = u.Nome,
+            Email                = u.Email,
+            Senha                = "",
+            Telefone             = u.Telefone,
+            DataNascimento       = u.DataNascimento,
+            Genero               = u.Genero,
+            EstadoCivil          = u.EstadoCivil,
+            NumeroFilhos         = u.NumeroFilhos,
+            Profissao            = u.Profissao,
+            FaixaRendaMensal     = u.FaixaRendaMensal,
             InteressesPrincipais = u.InteressesPrincipais,
-            Provincia = u.Provincia,
-            Municipio = null,
-            Bairro = null,
-            Perfil = u.Perfil
+            Provincia            = u.Provincia,
+            Municipio            = null,
+            Bairro               = null,
+            Perfil               = u.Perfil
         };
         ModalUserErro = "";
-        SalvandoUser = false;
+        SalvandoUser  = false;
         ModalUserAberto = true;
     }
 
     private void FecharModalUser()
     {
         ModalUserAberto = false;
-        UserEdit = null;
+        UserEdit      = null;
         ModalUserErro = "";
-        SalvandoUser = false;
+        SalvandoUser  = false;
     }
 
     private async Task SalvarUser()
@@ -1213,36 +1299,37 @@
             { ModalUserErro = "A senha deve ter pelo menos 6 caracteres."; return; }
         }
 
-        SalvandoUser = true;
+        SalvandoUser  = true;
         ModalUserErro = "";
 
         if (UserEdit.Id == 0)
         {
             var request = new RegisterRequest
             {
-                Nome = UserEdit.Nome,
-                Email = UserEdit.Email,
-                Senha = UserEdit.Senha,
-                Telefone = UserEdit.Telefone,
-                DataNascimento = UserEdit.DataNascimento,
-                Genero = UserEdit.Genero,
-                EstadoCivil = UserEdit.EstadoCivil,
-                NumeroFilhos = UserEdit.NumeroFilhos,
-                Profissao = UserEdit.Profissao,
-                FaixaRendaMensal = UserEdit.FaixaRendaMensal,
+                Nome                 = UserEdit.Nome,
+                Email                = UserEdit.Email,
+                Senha                = UserEdit.Senha,
+                Telefone             = UserEdit.Telefone,
+                DataNascimento       = UserEdit.DataNascimento,
+                Genero               = UserEdit.Genero,
+                EstadoCivil          = UserEdit.EstadoCivil,
+                NumeroFilhos         = UserEdit.NumeroFilhos,
+                Profissao            = UserEdit.Profissao,
+                FaixaRendaMensal     = UserEdit.FaixaRendaMensal,
                 InteressesPrincipais = string.IsNullOrWhiteSpace(UserEdit.InteressesPrincipais)
                     ? null
-                    : UserEdit.InteressesPrincipais.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).ToList(),
+                    : UserEdit.InteressesPrincipais
+                        .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+                        .ToList(),
                 Provincia = UserEdit.Provincia,
                 Municipio = UserEdit.Municipio,
-                Bairro = UserEdit.Bairro
+                Bairro    = UserEdit.Bairro
             };
 
             var result = await Api.RegisterAsync(request);
             if (result.Success)
             {
                 await ReloadUsuariosAsync();
-                FecharModalCarro_NoOp();
                 FecharModalUser();
                 ShowToast("Utilizador criado com sucesso.", "success");
             }
@@ -1256,16 +1343,16 @@
         {
             var request = new UpdateUsuarioRequest
             {
-                Nome = UserEdit.Nome,
-                Telefone = UserEdit.Telefone,
-                DataNascimento = UserEdit.DataNascimento,
-                Genero = UserEdit.Genero,
-                EstadoCivil = UserEdit.EstadoCivil,
-                NumeroFilhos = UserEdit.NumeroFilhos,
-                Profissao = UserEdit.Profissao,
-                FaixaRendaMensal = UserEdit.FaixaRendaMensal,
+                Nome                 = UserEdit.Nome,
+                Telefone             = UserEdit.Telefone,
+                DataNascimento       = UserEdit.DataNascimento,
+                Genero               = UserEdit.Genero,
+                EstadoCivil          = UserEdit.EstadoCivil,
+                NumeroFilhos         = UserEdit.NumeroFilhos,
+                Profissao            = UserEdit.Profissao,
+                FaixaRendaMensal     = UserEdit.FaixaRendaMensal,
                 InteressesPrincipais = UserEdit.InteressesPrincipais,
-                TipoDeUsoPretendido = UserEdit.TipoDeUsoPretendido
+                TipoDeUsoPretendido  = UserEdit.TipoDeUsoPretendido
             };
 
             var result = await Api.UpdateUsuarioAsync(UserEdit.Id, request);
@@ -1283,9 +1370,6 @@
         }
     }
 
-    // pequeno no-op para manter simetria de nomes sem afectar o modal de carro
-    private void FecharModalCarro_NoOp() { }
-
     private async Task ReloadUsuariosAsync()
     {
         var usersResult = await Api.GetUsuariosAsync();
@@ -1300,7 +1384,7 @@
     {
         AbrirConfirmacao(
             "ELIMINAR UTILIZADOR",
-            $"Tem a certeza que deseja eliminar \"{user.Nome}\"? Se este utilizador tiver reservas ou compras associadas, a eliminação pode ser bloqueada pelo sistema.",
+            $"Tem a certeza que deseja eliminar \"{user.Nome}\"? Se este utilizador tiver reservas ou compras associadas, a eliminação pode ser bloqueada.",
             async () =>
             {
                 var result = await Api.DeleteUsuarioAsync(user.Id);
@@ -1312,7 +1396,7 @@
                 }
                 else
                 {
-                    ShowToast(MensagemAmigavel(result.Error) ?? "Não foi possível eliminar este utilizador. Pode ter reservas ou compras associadas.", "error");
+                    ShowToast(MensagemAmigavel(result.Error) ?? "Não foi possível eliminar este utilizador.", "error");
                 }
             });
     }
@@ -1345,29 +1429,29 @@
     private void AbrirConfirmacao(string titulo, string msg, Func<Task> accao)
     {
         ConfirmacaoTitulo = titulo;
-        ConfirmacaoMsg = msg;
-        ConfirmacaoAccao = accao;
+        ConfirmacaoMsg    = msg;
+        ConfirmacaoAccao  = accao;
         ConfirmacaoVisivel = true;
     }
 
     private void CancelarConfirmacao()
     {
         ConfirmacaoVisivel = false;
-        ConfirmacaoAccao = null;
+        ConfirmacaoAccao   = null;
     }
 
     private async Task ConfirmarAccao()
     {
         var accao = ConfirmacaoAccao;
         ConfirmacaoVisivel = false;
-        ConfirmacaoAccao = null;
+        ConfirmacaoAccao   = null;
         if (accao != null) await accao();
     }
 
     /* ══ Toast ══ */
     private void ShowToast(string msg, string type = "error")
     {
-        ToastMsg = msg;
+        ToastMsg  = msg;
         ToastType = type;
         ToastCts?.Cancel();
         ToastCts = new CancellationTokenSource();
@@ -1389,16 +1473,11 @@
         catch (TaskCanceledException) { }
     }
 
-    /// <summary>
-    /// Tenta extrair uma mensagem legível de uma resposta de erro da API.
-    /// Se a API tiver devolvido HTML (ex: páginas de erro 500 não tratadas) ou
-    /// texto muito longo, mostra uma mensagem genérica em vez do corpo bruto.
-    /// </summary>
     private string? MensagemAmigavel(string? erro)
     {
         if (string.IsNullOrWhiteSpace(erro)) return null;
         var trimmed = erro.Trim();
-        if (trimmed.StartsWith("<")) return null; // página HTML de erro — não mostrar ao utilizador
+        if (trimmed.StartsWith("<")) return null;
         return trimmed.Length > 200 ? trimmed[..200] + "…" : trimmed;
     }
 
@@ -1454,12 +1533,12 @@
         _            => ""
     };
 
-    // ── ALTERAÇÃO PRINCIPAL: InitAsync antes de LoadAdminDataAsync ────────────
+    /* ══ Ciclo de vida ══ */
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
 
-        await AuthService.InitAsync();  // popula TokenStore via JS (contexto seguro)
+        await AuthService.InitAsync();
 
         var role = await AuthService.GetRoleAsync();
         if (role?.ToLower() != "admin")
@@ -1487,9 +1566,9 @@
                 Modelo        = v.Modelo,
                 Ano           = v.Ano,
                 Preco         = (long)Math.Round(v.Preco),
-                Combustivel   = v.Combustivel   ?? string.Empty,
-                Transmissao   = v.Transmissao   ?? string.Empty,
-                Estado        = v.Disponivel    ? "Disponível" : "Vendido",
+                Combustivel   = v.Combustivel  ?? string.Empty,
+                Transmissao   = v.Transmissao  ?? string.Empty,
+                Estado        = v.Disponivel   ? "Disponível" : "Vendido",
                 Cor           = v.Cor,
                 Estilo        = v.Estilo,
                 Motor         = v.Motor,
@@ -1497,7 +1576,8 @@
                 Descricao     = v.Descricao,
                 ImagemUrl     = v.ImagemUrl,
                 Localizacao   = v.Localizacao,
-                Quilometragem = v.Quilometragem
+                Quilometragem = v.Quilometragem,
+                GaleriaUrls   = new() // Galeria não vem no VeiculoDto; lista começa vazia
             }).ToList();
         }
         else
@@ -1507,13 +1587,9 @@
 
         var usersResult = await Api.GetUsuariosAsync();
         if (usersResult.Success)
-        {
             Utilizadores = usersResult.Data;
-        }
         else if (string.IsNullOrEmpty(apiError))
-        {
             apiError = usersResult.Error;
-        }
 
         var reservasResult = await Api.GetReservasAsync();
         if (reservasResult.Success)
@@ -1524,21 +1600,20 @@
             Reservas = reservasResult.Data.Select(r => new ReservaUi(
                 r.Id,
                 r.VeiculoId,
-                usuariosPorId.TryGetValue(r.UsuarioId,  out var user)   ? user.Nome              : $"Usuário #{r.UsuarioId}",
-                carrosPorId  .TryGetValue(r.VeiculoId,  out var carro)  ? $"{carro.Marca} {carro.Modelo}" : $"Veículo #{r.VeiculoId}",
+                usuariosPorId.TryGetValue(r.UsuarioId, out var usr) ? usr.Nome : $"Usuário #{r.UsuarioId}",
+                carrosPorId.TryGetValue(r.VeiculoId, out var car)   ? $"{car.Marca} {car.Modelo}" : $"Veículo #{r.VeiculoId}",
                 r.DataReserva.ToString("dd MMM yyyy"),
-                carrosPorId  .TryGetValue(r.VeiculoId,  out var carro2) ? carro2.Preco           : 0L,
+                carrosPorId.TryGetValue(r.VeiculoId, out var car2)  ? car2.Preco : 0L,
                 string.IsNullOrWhiteSpace(r.Estado) ? "Pendente" : r.Estado
             )).ToList();
 
-            // Marcar carros com reserva activa como "Reservado"
             var veiculosReservados = Reservas
                 .Where(r => r.Estado == "Pendente" || r.Estado == "Confirmada")
                 .Select(r => r.VeiculoId)
                 .ToHashSet();
 
-            foreach (var carro in Carros.Where(c => c.Estado == "Vendido" && veiculosReservados.Contains(c.Id)))
-                carro.Estado = "Reservado";
+            foreach (var c in Carros.Where(c => c.Estado == "Vendido" && veiculosReservados.Contains(c.Id)))
+                c.Estado = "Reservado";
         }
         else if (string.IsNullOrEmpty(apiError))
         {
@@ -1549,12 +1624,9 @@
         isLoading = false;
     }
 
-    private async Task Logout()
-    {
-        await AuthService.LogoutAsync();
-    }
+    private async Task Logout() => await AuthService.LogoutAsync();
 
-    /* ══ Records ══ */
+    /* ══ Records & classes internas ══ */
     private record NavItem(string Id, string Label, string Icon, int Badge);
     private record Kpi(string Label, string Value, string Delta, bool DeltaUp, string Color, string Icon);
     private record LogEntry(string Msg, string Time, string Type);
@@ -1581,6 +1653,8 @@
         public string? ImagemUrl     { get; set; }
         public string? Localizacao   { get; set; }
         public int?    Quilometragem { get; set; }
+        public List<string> GaleriaUrls { get; set; } = new();
+        public List<VeiculoImagemDto> ImagensAdicionais { get; set; } = new();
     }
 
     private class UserEditModel
@@ -1589,7 +1663,7 @@
         public string    Nome                 { get; set; } = string.Empty;
         public string    Email                { get; set; } = string.Empty;
         public string    Senha                { get; set; } = string.Empty;
-        public string?    Telefone             { get; set; }
+        public string?   Telefone             { get; set; }
         public DateTime? DataNascimento       { get; set; }
         public string?   Genero               { get; set; }
         public string?   EstadoCivil          { get; set; }
@@ -1602,6 +1676,14 @@
         public string?   Municipio            { get; set; }
         public string?   Bairro               { get; set; }
         public string?   Perfil               { get; set; }
+    }
+
+    /* ══ Upload helper ══ */
+    private class FileUploadData
+    {
+        public string FileName { get; set; } = string.Empty;
+        public string ContentType { get; set; } = string.Empty;
+        public byte[] Bytes { get; set; } = Array.Empty<byte>();
     }
 
     /* ══ SVG Icons ══ */

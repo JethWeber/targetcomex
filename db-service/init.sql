@@ -72,6 +72,14 @@ CREATE TABLE Veiculos (
 );
 GO
 
+CREATE TABLE VeiculoImagens (
+    Id        INT IDENTITY(1,1) PRIMARY KEY,
+    VeiculoId INT           NOT NULL,
+    ImagemUrl VARCHAR(255)  NOT NULL,
+    CONSTRAINT FK_VeiculoImagens_Veiculos FOREIGN KEY (VeiculoId) REFERENCES Veiculos(Id) ON DELETE CASCADE
+);
+GO
+
 -- ================== HISTÓRICO DE NAVEGAÇÃO ==================
 CREATE TABLE HistoricoNavegacao (
     Id               INT IDENTITY(1,1) PRIMARY KEY,

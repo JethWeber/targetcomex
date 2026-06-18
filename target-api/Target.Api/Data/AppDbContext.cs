@@ -13,6 +13,10 @@ namespace Target.Api.Data
         public DbSet<Usuario> Usuarios { get; set; }
         public DbSet<Endereco> Enderecos { get; set; }
         public DbSet<Veiculo> Veiculos { get; set; }
+        
+        // CORREÇÃO 1: O DbSet fica aqui em cima, junto com as outras propriedades da classe!
+        public DbSet<VeiculoImagem> VeiculoImagens { get; set; }
+        
         public DbSet<Avaliacao> Avaliacoes { get; set; }
         public DbSet<HistoricoNavegacao> HistoricoNavegacao { get; set; }
         public DbSet<HistoricoCompra> HistoricoCompras { get; set; }
@@ -26,6 +30,10 @@ namespace Target.Api.Data
             modelBuilder.Entity<Usuario>().ToTable("Usuarios");
             modelBuilder.Entity<Endereco>().ToTable("Enderecos");
             modelBuilder.Entity<Veiculo>().ToTable("Veiculos");
+            
+            // CORREÇÃO 2: Aqui dentro do método usamos o modelBuilder para mapear a tabela!
+            modelBuilder.Entity<VeiculoImagem>().ToTable("VeiculoImagens");
+            
             modelBuilder.Entity<Avaliacao>().ToTable("Avaliacoes");
             modelBuilder.Entity<HistoricoNavegacao>().ToTable("HistoricoNavegacao");
             modelBuilder.Entity<HistoricoCompra>().ToTable("HistoricoCompras");
