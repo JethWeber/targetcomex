@@ -1,4 +1,5 @@
 ﻿<!-- NavMenu.razor -->
+@inject Target.Ui.Services.AuthService AuthService
 <nav class="target-navbar">
     <div class="navbar-container">
         <!-- Logo -->
@@ -19,7 +20,14 @@
 
         <!-- Auth + Mobile Menu Button -->
         <div class="nav-actions">
-            <a href="login" class="btn-login">Entrar</a>
+            @if (!isAuthenticated)
+            {
+                <a href="login" class="btn-login">Entrar</a>
+            }
+            else
+            {
+                <button class="btn-login" @onclick="ToggleProfile">Perfil</button>
+            }
             <button class="hamburger" id="hamburger">
                 <span></span><span></span><span></span>
             </button>
@@ -33,10 +41,71 @@
             <NavLink href="produtos" class="mobile-link">Produtos</NavLink>
             <NavLink href="ia" class="mobile-link">IA Recomenda</NavLink>
             <NavLink href="sobre" class="mobile-link">Sobre</NavLink>
-            <a href="login" class="btn-login mobile-btn">Entrar</a>
+            @if (!isAuthenticated)
+            {
+                <a href="login" class="btn-login mobile-btn">Entrar</a>
+            }
+            else
+            {
+                <button class="btn-login mobile-btn" @onclick="ToggleProfile">Perfil</button>
+            }
         </div>
     </div>
 </nav>
+
+<!-- Perfil Modal -->
+@if (showProfileModal)
+{
+    <div class="modal-backdrop" @onclick="CloseProfile"></div>
+    <div class="profile-modal">
+        <div class="profile-content">
+            <h3>Perfil</h3>
+            <div class="profile-actions">
+                @if (roleNormalized == "cliente")
+                {
+                    <NavLink href="/area-cliente" class="btn-login" @onclick="CloseProfile">Área do Cliente</NavLink>
+                }
+                <button class="btn-login" @onclick="OnLogout">Sair</button>
+            </div>
+            <button class="modal-close" @onclick="CloseProfile">Fechar</button>
+        </div>
+    </div>
+}
+
+@code {
+    private bool isAuthenticated = false;
+    private string? userRole;
+    private string? roleNormalized;
+    private bool showProfileModal = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await AuthService.InitAsync();
+            isAuthenticated = await AuthService.IsAuthenticatedAsync();
+            userRole = await AuthService.GetRoleAsync();
+            roleNormalized = userRole?.Trim().ToLowerInvariant();
+            StateHasChanged();
+        }
+    }
+
+    private void ToggleProfile()
+    {
+        showProfileModal = !showProfileModal;
+    }
+
+    private void CloseProfile()
+    {
+        showProfileModal = false;
+    }
+
+    private async Task OnLogout()
+    {
+        showProfileModal = false;
+        await AuthService.LogoutAsync();
+    }
+}
 
 <style>
     .target-navbar {
@@ -164,6 +233,37 @@
         padding: 12px 0;
         border-bottom: 1px solid rgba(255,255,255,0.05);
     }
+
+    /* Perfil Modal */
+    .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.6);
+        z-index: 1100;
+    }
+
+    .profile-modal {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: #0f0f10;
+        border: 1px solid rgba(0,242,255,0.12);
+        padding: 18px;
+        border-radius: 8px;
+        z-index: 1110;
+        min-width: 260px;
+        box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+    }
+
+    .profile-content h3 {
+        margin: 0 0 12px 0;
+        color: #fff;
+    }
+
+    .profile-actions { display:flex; gap:10px; align-items:center; }
+
+    .modal-close { margin-top:12px; background:transparent; border:1px solid rgba(255,255,255,0.04); color:#bbb; padding:6px 10px; border-radius:6px; }
 
     /* Responsividade */
     @@media (max-width: 992px) {

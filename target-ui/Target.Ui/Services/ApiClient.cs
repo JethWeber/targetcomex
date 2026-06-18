@@ -221,6 +221,15 @@ public class ReservaDto
     public DateTime DataReserva { get; set; }
 }
 
+// Reservas
+public class ReservaRequest
+{
+    public int     UsuarioId  { get; set; }
+    public int     VeiculoId  { get; set; }
+    public string? TipoPedido { get; set; }
+    public string? Showroom   { get; set; }
+}
+
 // ─── Resultado genérico ───────────────────────────────────────────────────────
 
 public class ApiResult<T>
@@ -558,6 +567,27 @@ public class ApiClient
         catch (Exception ex)
         {
             return ApiResult<string>.Fail(ex.Message);
+        }
+    }
+
+    /// <summary>Cria uma nova reserva.</summary>
+    public async Task<ApiResult<ReservaDto>> CriarReservaAsync(ReservaRequest request)
+    {
+        try
+        {
+            AplicarToken();
+            var response = await _http.PostAsJsonAsync("api/Reservas", request, _json);
+            if (response.IsSuccessStatusCode)
+            {
+                var data = await response.Content.ReadFromJsonAsync<ReservaDto>(_json);
+                return ApiResult<ReservaDto>.Ok(data!);
+            }
+            var error = await response.Content.ReadAsStringAsync();
+            return ApiResult<ReservaDto>.Fail(error);
+        }
+        catch (Exception ex)
+        {
+            return ApiResult<ReservaDto>.Fail(ex.Message);
         }
     }
 

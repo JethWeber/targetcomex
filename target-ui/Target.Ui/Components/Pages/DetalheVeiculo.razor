@@ -75,30 +75,6 @@ else
     <!-- COLUNA PRINCIPAL -->
     <main class="dv-main">
 
-        <!-- GALERIA -->
-        <section class="dv-section dv-gallery-section">
-            <h2 class="dv-section-title">
-                <span class="dv-title-line"></span>
-                Galeria de Fotos
-            </h2>
-            <div class="dv-gallery">
-                @for (int i = 0; i < fotos.Count; i++)
-                {
-                    var idx = i;
-                    <div class="dv-thumb @(fotoPrincipal == fotos[idx] ? "active" : "")"
-                         @onclick="() => { fotoPrincipal = fotos[idx]; AbrirPopup(fotos[idx]); }">
-                        <img src="@fotos[idx]" alt="Foto @(idx+1)" />
-                        <div class="dv-thumb-overlay"></div>
-                        <div class="dv-thumb-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-                            </svg>
-                        </div>
-                    </div>
-                }
-            </div>
-        </section>
-
         <!-- ESPECIFICAÇÕES TÉCNICAS -->
         <section class="dv-section">
             <h2 class="dv-section-title">
@@ -313,8 +289,26 @@ else
         <div class="dv-side-card dv-price-card">
             <div class="dv-price-main">AOA @veiculo.Preco.ToString("N0").Replace(",",".")</div>
             <div class="dv-price-note">Preço de venda • IVA incluído</div>
-            <button class="dv-cta-btn dv-cta-primary">Reservar</button>
-            <button class="dv-cta-btn dv-cta-secondary">Agendar Test Drive</button>
+            <button class="dv-cta-btn @(jaReservado ? "dv-cta-reservado" : "dv-cta-primary")"
+                    @onclick="ReservarVeiculo"
+                    disabled="@(jaReservado || isReservando)">
+                @if (isReservando)
+                {
+                    <span class="dv-btn-spinner"></span>
+                    <span>A reservar…</span>
+                }
+                else if (jaReservado)
+                {
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    <span>Reservado</span>
+                }
+                else
+                {
+                    <span>Reservar</span>
+                }
+            </button>
             <div class="dv-cta-divider">ou</div>
             <button class="dv-cta-btn dv-cta-ghost">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="@(isFav ? "#00f2ff" : "none")" stroke="#00f2ff" stroke-width="2">
@@ -871,6 +865,22 @@ else
         flex-shrink: 0;
     }
 
+    // Botão reservado
+    .dv-cta-reservado {
+    background: rgba(0,242,255,0.12);
+    color: var(--cyan);
+    border: 1px solid rgba(0,242,255,0.4);
+    cursor: not-allowed;
+}
+    .dv-btn-spinner {
+        width: 14px; height: 14px;
+        border: 2px solid rgba(0,0,0,0.3);
+        border-top-color: #000;
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+        flex-shrink: 0;
+    }
+
     /* Score ring */
     .dv-score-card { text-align: center; }
     .dv-score-ring-wrap { display: flex; justify-content: center; margin: 8px 0 12px; }
@@ -1046,6 +1056,9 @@ else
 
 @code {
     [Parameter] public int VeiculoId { get; set; }
+    bool jaReservado  = false;
+    bool isReservando = false;
+    string? nomeUsuario = null;
 
     // ── Modelo ──────────────────────────────────────────
     record Veiculo(
@@ -1127,8 +1140,46 @@ else
             outrosVeiculos.ElementAtOrDefault(3)?.Imagem ?? veiculo.Imagem,
         };
         fotoPrincipal = fotos[0];
+
+        // Carregar nome do utilizador autenticado
+        var userId = await AuthService.GetUserIdAsync();
+        if (userId != null)
+        {
+            var userResult = await Api.GetUsuarioAsync(userId.Value);
+            if (userResult.Success && userResult.Data != null)
+                nomeUsuario = userResult.Data.Nome;
+
+            // Verificar se já tem reserva para este veículo
+            var reservasResult = await Api.GetReservasAsync();
+            if (reservasResult.Success)
+                jaReservado = reservasResult.Data!.Any(r => r.VeiculoId == veiculo!.Id && r.UsuarioId == userId.Value);
+        }
     }
 
+    // Método para reservar o veículo
+    async Task ReservarVeiculo()
+    {
+        if (veiculo == null || jaReservado || isReservando) return;
+
+        var userId = await AuthService.GetUserIdAsync();
+        if (userId == null) return;
+
+        isReservando = true;
+        StateHasChanged();
+
+        var request = new ReservaRequest
+        {
+            UsuarioId  = userId.Value,
+            VeiculoId  = veiculo.Id,
+            TipoPedido = "Online",
+            Showroom   = veiculo.Localizacao
+        };
+
+        var result = await Api.CriarReservaAsync(request);
+        jaReservado  = result.Success;
+        isReservando = false;
+        StateHasChanged();
+    }
     static Veiculo MapVeiculo(VeiculoDto v)
         => new(
             v.Id,
@@ -1239,7 +1290,34 @@ else
             var result = await Api.CriarAvaliacaoAsync(request);
             if (result.Success && result.Data != null)
             {
-                comentarios.Insert(0, MapComentario(result.Data));
+                async Task SubmeterComentario()
+                {
+                    if (!PodeSubmeter || veiculo == null) return;
+
+                    var userId = await AuthService.GetUserIdAsync();
+                    var request = new AvaliacaoCreateRequest
+                    {
+                        VeiculoId = veiculo.Id,
+                        UsuarioId = userId ?? 0,
+                        Nota      = novaAvaliacao,
+                        Comentario = novoTexto.Trim()
+                    };
+
+                    var novoComentario = new Comentario(novoAutor.Trim(), novoTexto.Trim(), novaAvaliacao, DateTime.Now, true);
+
+                    if (userId != null)
+                        await Api.CriarAvaliacaoAsync(request);   // persiste na API
+
+                    comentarios.Insert(0, novoComentario);        // aparece imediatamente no UI
+
+                    novoAutor    = "";
+                    novoTexto    = "";
+                    novaAvaliacao = 0;
+                    mostrarSucesso = true;
+
+                    await Task.Delay(3200);
+                    mostrarSucesso = false;
+                }
             }
             else
             {

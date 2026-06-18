@@ -3,6 +3,7 @@
 @using System.Linq
 @inject NavigationManager Nav
 @inject ApiClient Api
+@inject Target.Ui.Services.AuthService AuthService
 
 <!-- ══════════════════════════════════════════════════════
      HERO SECTION
@@ -25,7 +26,7 @@
         </h1>
 
         <p class="hero-subtitle anim-slide-up" style="--d:0.4s">
-            @veiculos.Count veículos verificados • Recomendações por IA com 98% de precisão
+            @(isRecommendations ? "A nossa IA te Recomenda" : "Conheça os mais populares!")
         </p>
 
         <div class="search-area anim-slide-up" style="--d:0.6s">
@@ -64,37 +65,73 @@
 
 <section class="products-highlight">
     <div class="products-highlight-header">
-        <div>
-            <h2>🔥 Os Mais Comprados</h2>
-            <p>Top veículos com maior procura no Target Comex, alimentado pelo histórico de compras.</p>
+        <div class="highlight-title-group">
+            <div class="highlight-badge-group">
+                <span class="highlight-type-badge">@(isRecommendations ? "🎯 RECOMENDADO PARA VOCÊ" : "🔥 TOP PROCURADO")</span>
+            </div>
+            <h2>@(isRecommendations ? "A nossa IA recomenda pra VC..." : "Conheça os mais populares!")</h2>
+            <p>@(isRecommendations ? "Veículos escolhidos pela IA com base no teu perfil — compatibilidade elevada" : "Os veículos com maior procura e compras na Target Comex — a confiança dos clientes")</p>
         </div>
-        <span class="products-highlight-count">@maisComprados.Count</span>
+        <div class="highlight-stats">
+            <div class="stat-box">
+                <span class="stat-value">@maisComprados.Count</span>
+                <span class="stat-label">Veículos</span>
+            </div>
+        </div>
     </div>
     <div class="products-highlight-grid">
         @if (maisComprados.Any())
         {
+            var idx = 0;
             @foreach (var item in maisComprados)
             {
-                <div class="highlight-card">
-                    <img src="@item.ImagemUrl" alt="@item.Marca @item.Modelo" loading="lazy" />
-                    <div class="highlight-body">
-                        <div class="highlight-meta">
-                            <span>@item.Marca</span>
-                            <span>@item.Ano</span>
-                        </div>
-                        <h3>@item.Modelo</h3>
-                        <div class="highlight-footer">
-                            <span>AOA @item.Preco.ToString("N0").Replace(",", ".")</span>
-                            <span>@item.TotalCompras compras</span>
+                <div class="highlight-card anim-card" style="--card-delay:@($"{idx*0.1}s")">n                    <div class="card-image-container">
+                        <img src="@item.ImagemUrl" alt="@item.Marca @item.Modelo" class="card-image" loading="lazy" />
+                        <div class="card-overlay"></div>
+                        <div class="card-badge-corner">
+                            @if (isRecommendations)
+                            {
+                                <span class="badge-ia">IA</span>
+                            }
+                            else
+                            {
+                                <span class="badge-top">#@(idx+1)</span>
+                            }
                         </div>
                     </div>
+                    <div class="highlight-body">
+                        <div class="highlight-meta">
+                            <h3 class="model-name">@item.Modelo</h3>
+                            <div class="brand-year">
+                                <span class="brand">@item.Marca</span>
+                                <span class="dot">•</span>
+                                <span class="year">@item.Ano</span>
+                            </div>
+                        </div>
+                        <div class="highlight-footer">
+                            <div class="price-section">
+                                <span class="price-label">A partir de</span>
+                                <span class="price">AOA @((item.Preco/1_000_000).ToString("0.0"))M</span>
+                            </div>
+                            @if (!isRecommendations && item.TotalCompras > 0)
+                            {
+                                <div class="popularity">
+                                    <span class="pop-icon">📊</span>
+                                    <span class="pop-text">@item.TotalCompras</span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                    <a href="@($"/detalhes-veiculo/{item.Id}")" class="card-link"></a>
                 </div>
+                idx++;
             }
         }
         else
         {
             <div class="highlight-empty">
-                Ainda a carregar os veículos mais procurados.
+                <div class="empty-icon">⏳</div>
+                <p>Ainda a carregar os veículos...</p>
             </div>
         }
     </div>
@@ -396,6 +433,306 @@
         transform: translateX(-50%);
         border: 3px solid transparent;
         border-bottom-color: var(--cyan);
+    }
+
+    /* ════════════════════════════════════
+       PRODUCTS HIGHLIGHT
+    ════════════════════════════════════ */
+    .products-highlight {
+        background: linear-gradient(135deg, rgba(0,0,0,0.95) 0%, rgba(8,8,8,0.92) 50%, rgba(0,8,16,0.95) 100%);
+        padding: 80px 40px;
+        border-bottom: 1px solid var(--border);
+        position: relative;
+        overflow: hidden;
+    }
+    .products-highlight::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at 20% 50%, rgba(0,242,255,0.03) 0%, transparent 50%);
+        pointer-events: none;
+    }
+    .products-highlight::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at 80% 50%, rgba(0,100,150,0.02) 0%, transparent 50%);
+        pointer-events: none;
+    }
+
+    .products-highlight-header {
+        max-width: 1480px;
+        margin: 0 auto 60px;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        gap: 40px;
+        position: relative;
+        z-index: 1;
+    }
+
+    .highlight-title-group {
+        flex: 1;
+    }
+    .highlight-badge-group {
+        display: inline-block;
+        margin-bottom: 16px;
+    }
+    .highlight-type-badge {
+        display: inline-block;
+        background: rgba(0,242,255,0.1);
+        border: 1px solid rgba(0,242,255,0.3);
+        color: var(--cyan-bright);
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        padding: 6px 16px;
+        border-radius: 100px;
+    }
+
+    .products-highlight-header h2 {
+        font-size: clamp(1.8rem, 4vw, 2.8rem);
+        font-weight: 800;
+        color: #fff;
+        margin-bottom: 12px;
+        line-height: 1.2;
+    }
+    .products-highlight-header p {
+        font-size: 0.95rem;
+        color: var(--text-dim);
+        max-width: 500px;
+        line-height: 1.6;
+    }
+
+    .highlight-stats {
+        display: flex;
+        gap: 24px;
+    }
+    .stat-box {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        background: rgba(0,242,255,0.05);
+        border: 1px solid rgba(0,242,255,0.15);
+        padding: 16px 28px;
+        border-radius: 12px;
+    }
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 800;
+        color: var(--cyan);
+    }
+    .stat-label {
+        font-size: 0.75rem;
+        color: var(--text-dim);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+    }
+
+    .products-highlight-grid {
+        max-width: 1480px;
+        margin: 0 auto;
+        padding: 0 40px;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 28px;
+        position: relative;
+        z-index: 1;
+    }
+
+    /* Card animations */
+    @@keyframes cardFloat {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-8px); }
+    }
+    @@keyframes cardIn {
+        from { opacity: 0; transform: translateY(24px) scale(0.95); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .anim-card {
+        animation: cardIn 0.6s cubic-bezier(0.22,1,0.36,1) forwards;
+        animation-delay: var(--card-delay, 0s);
+    }
+
+    .highlight-card {
+        position: relative;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        overflow: hidden;
+        transition: all 0.3s cubic-bezier(0.22,1,0.36,1);
+        display: flex;
+        flex-direction: column;
+        cursor: pointer;
+        group: 'card';
+    }
+    .highlight-card:hover {
+        border-color: var(--cyan);
+        box-shadow: 0 0 40px var(--cyan-glow), 0 20px 60px rgba(0,0,0,0.5);
+        transform: translateY(-8px);
+    }
+
+    .card-image-container {
+        position: relative;
+        width: 100%;
+        height: 200px;
+        overflow: hidden;
+        background: #0a0a0a;
+    }
+    .card-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.4s ease;
+    }
+    .highlight-card:hover .card-image {
+        transform: scale(1.1);
+    }
+    .card-overlay {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.4) 100%);
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+    .highlight-card:hover .card-overlay {
+        opacity: 1;
+    }
+
+    .card-badge-corner {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        z-index: 3;
+    }
+    .badge-ia, .badge-top {
+        display: inline-block;
+        background: rgba(0,242,255,0.2);
+        border: 1px solid rgba(0,242,255,0.5);
+        color: var(--cyan-bright);
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        padding: 5px 12px;
+        border-radius: 100px;
+        backdrop-filter: blur(10px);
+    }
+
+    .highlight-body {
+        padding: 22px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+    .highlight-meta {
+        flex: 1;
+    }
+    .model-name {
+        font-size: 1.1rem;
+        font-weight: 800;
+        color: #fff;
+        margin-bottom: 6px;
+        line-height: 1.3;
+    }
+    .brand-year {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.82rem;
+    }
+    .brand {
+        color: var(--cyan);
+        font-weight: 700;
+    }
+    .dot {
+        color: var(--text-dim);
+    }
+    .year {
+        color: var(--text-dim);
+    }
+
+    .highlight-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        gap: 12px;
+        padding-top: 12px;
+        border-top: 1px solid var(--border);
+    }
+    .price-section {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+    .price-label {
+        font-size: 0.7rem;
+        color: var(--text-dim);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    .price {
+        font-size: 1.3rem;
+        font-weight: 800;
+        color: var(--cyan);
+    }
+    .popularity {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        background: rgba(0,242,255,0.08);
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-size: 0.8rem;
+    }
+    .pop-icon {
+        font-size: 1rem;
+    }
+    .pop-text {
+        color: var(--cyan-bright);
+        font-weight: 700;
+    }
+
+    .card-link {
+        position: absolute;
+        inset: 0;
+        z-index: 2;
+    }
+
+    .highlight-empty {
+        grid-column: 1 / -1;
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--text-dim);
+    }
+    .empty-icon {
+        font-size: 3rem;
+        margin-bottom: 16px;
+    }
+    .highlight-empty p {
+        font-size: 1rem;
+    }
+
+    @@media (max-width: 768px) {
+        .products-highlight {
+            padding: 60px 20px;
+        }
+        .products-highlight-header {
+            flex-direction: column;
+            align-items: flex-start;
+            margin-bottom: 40px;
+        }
+        .highlight-stats {
+            width: 100%;
+        }
+        .products-highlight-grid {
+            padding: 0 20px;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+        }
     }
 
     /* ════════════════════════════════════
@@ -895,20 +1232,59 @@
 
 
     // ── Opções dos filtros ───────────────────────────────
-    List<string> opcoesCombus = new() { "Elétrico", "Híbrido", "Gasolina", "Diesel" };
-    List<string> opcoesMarca  = new() { "BMW", "Mercedes", "Toyota", "Audi", "Tesla", "Hyundai" };
+    List<string> opcoesCombus = new() { "Gasolina", "Gasóleo", "Elétrico", "Híbrido" };
+    List<string> opcoesMarca  = new() { "Baic", "Forthing", "Toyota", "BMW", "Mercedes", "Audi", "Hyundai", "Chery", "JAC", "GWM", "Renault", "Nissan", "Kia" };
     List<string> opcoesTransm = new() { "Automática", "Manual" };
 
     // ── Dados carregados da API ───────────────────────────
     List<Veiculo> veiculos = new();
     List<Veiculo> veiculosFiltrados = new();
     List<MaisComprado> maisComprados = new();
+    bool isRecommendations = false;
 
     protected override async Task OnInitializedAsync()
     {
         await LoadVeiculosAsync();
-        await LoadMaisCompradosAsync();
+        await LoadHighlightsAsync();
         AplicarFiltros();
+    }
+
+    async Task LoadHighlightsAsync()
+    {
+        await AuthService.InitAsync();
+        var isAuth = await AuthService.IsAuthenticatedAsync();
+
+        if (isAuth)
+        {
+            var uid = await AuthService.GetUserIdAsync();
+            if (uid.HasValue)
+            {
+                var rec = await Api.GetRecomendacoesAsync(uid.Value);
+                if (rec.Success && rec.Data?.Any() == true)
+                {
+                    isRecommendations = true;
+                    foreach (var r in rec.Data.Take(4))
+                    {
+                        var vres = await Api.GetVeiculoAsync(r.VeiculoId);
+                        if (vres.Success && vres.Data != null)
+                        {
+                            maisComprados.Add(new MaisComprado(
+                                vres.Data.Id,
+                                vres.Data.Marca,
+                                vres.Data.Modelo,
+                                vres.Data.Ano,
+                                vres.Data.ImagemUrl ?? "img/cars/default.jpg",
+                                vres.Data.Preco,
+                                0
+                            ));
+                        }
+                    }
+                }
+            }
+        }
+
+        if (!maisComprados.Any())
+            await LoadMaisCompradosAsync();
     }
 
     async Task LoadMaisCompradosAsync()
@@ -934,14 +1310,63 @@
 
     async Task LoadVeiculosAsync()
     {
-        var result = await Api.GetVeiculosAsync();
-        if (result.Success)
+        // Prefer recommendations for authenticated users
+        await AuthService.InitAsync();
+        isRecommendations = false;
+        veiculos = new();
+
+        var isAuth = await AuthService.IsAuthenticatedAsync();
+        if (isAuth)
         {
-            veiculos = result.Data.Select(MapVeiculo).ToList();
+            var uid = await AuthService.GetUserIdAsync();
+            if (uid.HasValue)
+            {
+                var rec = await Api.GetRecomendacoesAsync(uid.Value);
+                if (rec.Success && rec.Data?.Any() == true)
+                {
+                    isRecommendations = true;
+                    foreach (var r in rec.Data)
+                    {
+                        var vres = await Api.GetVeiculoAsync(r.VeiculoId);
+                        if (vres.Success && vres.Data != null)
+                        {
+                            veiculos.Add(MapVeiculo(vres.Data));
+                        }
+                    }
+                }
+            }
         }
-        else
+
+        // If no recommendations (or not authenticated), fall back to most-sold
+        if (!isRecommendations)
         {
-            veiculos = new();
+            var result = await Api.GetMaisCompradosAsync(50);
+            if (result.Success && result.Data != null && result.Data.Any())
+            {
+                veiculos = result.Data.Select(v => new Veiculo(
+                    v.Id,
+                    $"{v.Marca} {v.Modelo}",
+                    v.Marca ?? string.Empty,
+                    "N/A",
+                    "N/A",
+                    "N/A",
+                    0,
+                    v.Ano,
+                    (long)Math.Round(v.Preco),
+                    80,
+                    "Localização não disponível",
+                    v.ImagemUrl ?? "img/cars/default.jpg"
+                )).ToList();
+            }
+            else
+            {
+                // final fallback to full vehicle list
+                var all = await Api.GetVeiculosAsync();
+                if (all.Success && all.Data != null)
+                    veiculos = all.Data.Select(MapVeiculo).ToList();
+                else
+                    veiculos = new();
+            }
         }
     }
 

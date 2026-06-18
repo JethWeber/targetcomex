@@ -1,5 +1,7 @@
 ﻿@page "/"
 @rendermode InteractiveServer
+@inject Target.Ui.Services.ApiClient ApiClient
+@inject Target.Ui.Services.AuthService AuthService
 
 <!-- ═══════════════════════════════════════════════════════
      TARGET COMEX LDA — Home.razor
@@ -165,6 +167,63 @@
         <span>Deslizar</span>
     </div>
 </section>
+
+@code {
+    private List<Target.Ui.Services.VeiculoDto> cars = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        await AuthService.InitAsync();
+        var isAuth = await AuthService.IsAuthenticatedAsync();
+
+        if (isAuth)
+        {
+            var uid = await AuthService.GetUserIdAsync();
+            if (uid.HasValue)
+            {
+                var rec = await ApiClient.GetRecomendacoesAsync(uid.Value);
+                if (rec.Success && rec.Data?.Any() == true)
+                {
+                    foreach (var r in rec.Data.Take(4))
+                    {
+                        var vres = await ApiClient.GetVeiculoAsync(r.VeiculoId);
+                        if (vres.Success && vres.Data != null) cars.Add(vres.Data);
+                    }
+                }
+            }
+        }
+
+        if (!cars.Any())
+        {
+            var top = await ApiClient.GetMaisCompradosAsync(4);
+            if (top.Success && top.Data != null)
+            {
+                foreach (var m in top.Data.Take(4))
+                {
+                    // Prefer full vehicle payload when available
+                    var vres = await ApiClient.GetVeiculoAsync(m.Id);
+                    if (vres.Success && vres.Data != null) cars.Add(vres.Data);
+                    else
+                    {
+                        cars.Add(new Target.Ui.Services.VeiculoDto
+                        {
+                            Id = m.Id,
+                            Marca = m.Marca ?? string.Empty,
+                            Modelo = m.Modelo ?? string.Empty,
+                            Ano = m.Ano,
+                            ImagemUrl = m.ImagemUrl,
+                            Preco = m.Preco
+                        });
+                    }
+                }
+            }
+        }
+
+        StateHasChanged();
+    }
+}
 
 
 <!-- ════════════════════════════════════════════════════════
@@ -359,127 +418,45 @@
 
     <div class="h-cars-grid">
 
-        <!-- Card 1 -->
-        <div class="h-car-card h-anim-reveal" style="--d:0s">
-            <div class="h-cc-media">
-                <img src="img/banner_carro.jpeg" alt="Toyota Corolla Cross"
-                     class="h-cc-img" loading="lazy" />
-                <span class="h-cc-badge">Híbrido</span>
-                <button class="h-cc-fav" aria-label="Guardar">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-                         stroke="rgba(255,255,255,.75)" stroke-width="2">
-                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                    </svg>
-                </button>
-                <span class="h-cc-ia">🎯 98%</span>
-            </div>
-            <div class="h-cc-body">
-                <div class="h-cc-meta"><span>2024</span><span>Automática</span><span>Novo</span></div>
-                <h4 class="h-cc-name">Toyota Corolla Cross</h4>
-                <div class="h-cc-specs">
-                    <span>⚙ 2.0L Híbrido</span>
-                    <span>⚡ 196 cv</span>
-                    <span>📏 0 km</span>
-                </div>
-                <div class="h-cc-foot">
-                    <span class="h-cc-price">AOA 195.000.000</span>
-                    <a href="/produtos" class="h-cc-btn">Ver detalhes</a>
-                </div>
-            </div>
-        </div>
-
-        <!-- Card 2 — Destaque -->
-        <div class="h-car-card h-car-hl h-anim-reveal" style="--d:.12s">
-            <div class="h-cc-hl-border"></div>
-            <div class="h-cc-media">
-                <img src="img/banner2.jpeg" alt="Mazda CX-5 Turbo"
-                     class="h-cc-img" loading="lazy" />
-                <span class="h-cc-badge h-badge-gold">Melhor Valor</span>
-                <button class="h-cc-fav h-fav-on" aria-label="Guardar">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="#00f2ff"
-                         stroke="#00f2ff" stroke-width="2">
-                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                    </svg>
-                </button>
-                <span class="h-cc-ia">🎯 96%</span>
-            </div>
-            <div class="h-cc-body">
-                <div class="h-cc-meta"><span>2024</span><span>Automática</span><span>Novo</span></div>
-                <h4 class="h-cc-name">Mazda CX-5 Turbo</h4>
-                <div class="h-cc-specs">
-                    <span>⚙ 2.5L Turbo</span>
-                    <span>⚡ 256 cv</span>
-                    <span>📏 0 km</span>
-                </div>
-                <div class="h-cc-foot">
-                    <div>
-                        <span class="h-cc-price">AOA 290.000.000</span>
+        @if (cars is null || !cars.Any())
+        {
+            <p>Carregando destaques...</p>
+        }
+        else
+        {
+            var count = Math.Min(4, cars.Count);
+            for (var idx = 0; idx < count; idx++)
+            {
+                var car = cars[idx];
+                <div class="@($"h-car-card {(idx==1? "h-car-hl" : "")} h-anim-reveal")" style="@($"--d:{idx*0.12}s")">
+                    <div class="h-cc-media">
+                            <img src='@(car.ImagemUrl ?? "img/banner_carro.jpeg")' alt='@((car.Marca + " " + car.Modelo).Trim())'
+                             class="h-cc-img" loading="lazy" />
+                        <span class="h-cc-badge">@((car.Estilo ?? car.Combustivel) ?? "")</span>
+                        <button class="h-cc-fav" aria-label="Guardar">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                 stroke="rgba(255,255,255,.75)" stroke-width="2">
+                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                            </svg>
+                        </button>
+                        <span class="h-cc-ia">🎯</span>
                     </div>
-                    <a href="/produtos" class="h-cc-btn h-cc-btn-hl">Ver detalhes</a>
-                </div>
-            </div>
-        </div>
-
-        <!-- Card 3 -->
-        <div class="h-car-card h-anim-reveal" style="--d:.24s">
-            <div class="h-cc-media">
-                <img src="img/banner_carro.jpeg" alt="BMW Série 3"
-                     class="h-cc-img" loading="lazy" />
-                <span class="h-cc-badge">Premium</span>
-                <button class="h-cc-fav" aria-label="Guardar">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-                         stroke="rgba(255,255,255,.75)" stroke-width="2">
-                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                    </svg>
-                </button>
-                <span class="h-cc-ia">🎯 94%</span>
-            </div>
-            <div class="h-cc-body">
-                <div class="h-cc-meta"><span>2023</span><span>Automática</span><span>Semi-novo</span></div>
-                <h4 class="h-cc-name">BMW Série 3 320i</h4>
-                <div class="h-cc-specs">
-                    <span>⚙ 2.0L TwinPower</span>
-                    <span>⚡ 184 cv</span>
-                    <span>📏 18.400 km</span>
-                </div>
-                <div class="h-cc-foot">
-                    <div>
-                        <span class="h-cc-price">AOA 380.000.000</span>
-                        <span class="h-cc-old">AOA 420.000.000</span>
+                    <div class="h-cc-body">
+                        <div class="h-cc-meta"><span>@(car.Ano)</span><span>@(string.IsNullOrWhiteSpace(car.Transmissao)?"Automática":car.Transmissao)</span><span>@(car.Quilometragem.HasValue ? $"{car.Quilometragem} km" : "0 km")</span></div>
+                        <h4 class="h-cc-name">@((car.Marca + " " + car.Modelo).Trim())</h4>
+                        <div class="h-cc-specs">
+                            <span>⚙ @(car.Motor ?? "-")</span>
+                            <span>⚡ @(car.Potencia?.ToString() ?? "-") cv</span>
+                            <span>📏 @(car.Quilometragem?.ToString() ?? "0") km</span>
+                        </div>
+                        <div class="h-cc-foot">
+                            <span class="h-cc-price">AOA @(((decimal)car.Preco).ToString("N0"))</span>
+                            <a href="/produtos" class="h-cc-btn">Ver detalhes</a>
+                        </div>
                     </div>
-                    <a href="/produtos" class="h-cc-btn">Ver detalhes</a>
                 </div>
-            </div>
-        </div>
-
-        <!-- Card 4 -->
-        <div class="h-car-card h-anim-reveal" style="--d:.36s">
-            <div class="h-cc-media">
-                <img src="img/banner2.jpeg" alt="Mercedes-Benz C300"
-                     class="h-cc-img" loading="lazy" />
-                <span class="h-cc-badge">Luxo</span>
-                <button class="h-cc-fav" aria-label="Guardar">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-                         stroke="rgba(255,255,255,.75)" stroke-width="2">
-                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                    </svg>
-                </button>
-                <span class="h-cc-ia">🎯 91%</span>
-            </div>
-            <div class="h-cc-body">
-                <div class="h-cc-meta"><span>2024</span><span>Automática</span><span>Novo</span></div>
-                <h4 class="h-cc-name">Mercedes-Benz C300</h4>
-                <div class="h-cc-specs">
-                    <span>⚙ 2.0L Turbo</span>
-                    <span>⚡ 258 cv</span>
-                    <span>📏 0 km</span>
-                </div>
-                <div class="h-cc-foot">
-                    <span class="h-cc-price">AOA 509.000.000</span>
-                    <a href="/produtos" class="h-cc-btn">Ver detalhes</a>
-                </div>
-            </div>
-        </div>
+            }
+        }
 
     </div>
 
