@@ -1074,91 +1074,49 @@
 
         try
         {
-            // 1. Gerar o sufixo aleatório solicitado
-            string randomSufix = new Random().Next(10000, 99999).ToString();
-
-            // 2. Limpar a marca e o modelo para um nome seguro de ficheiro
-            string marcaLimpa = System.Text.RegularExpressions.Regex.Replace(CarroEdit.Marca ?? "", @"[^a-zA-Z0-9]", "").ToLower();
-            string modeloLimpo = System.Text.RegularExpressions.Regex.Replace(CarroEdit.Modelo ?? "", @"[^a-zA-Z0-9]", "").ToLower();
-            string baseNome = $"{marcaLimpa}_{modeloLimpo}_{CarroEdit.Ano}_{randomSufix}";
-
-            // 3. Garantir a criação da pasta física local no wwwroot do Blazor
-            string uploadFolder = Path.Combine(Env.WebRootPath, "Uploads", "Veiculos");
-            if (!Directory.Exists(uploadFolder))
-            {
-                Directory.CreateDirectory(uploadFolder);
-            }
-
-            // 4. Processar e salvar o arquivo físico da imagem de CAPA (se houver novo)
+            // 1. Processar imagem de capa
             if (capaUpload != null)
             {
-                string ext = Path.GetExtension(capaUpload.FileName);
-                string nomeFinalCapa = $"{baseNome}-capa{ext}";
-                string caminhoFisicoCapa = Path.Combine(uploadFolder, nomeFinalCapa);
+                string uploadFolder = Path.Combine(Env.WebRootPath, "Uploads", "Veiculos");
+                if (!Directory.Exists(uploadFolder))
+                    Directory.CreateDirectory(uploadFolder);
 
-                await System.IO.File.WriteAllBytesAsync(caminhoFisicoCapa, capaUpload.Bytes);
+                string ext       = Path.GetExtension(capaUpload.FileName);
+                string nomeFinal = $"{Guid.NewGuid()}{ext}";
+                string caminho   = Path.Combine(uploadFolder, nomeFinal);
 
-                // Atualiza a URL que vai no JSON para a API
-                CarroEdit.ImagemUrl = $"/Uploads/Veiculos/{nomeFinalCapa}";
+                await System.IO.File.WriteAllBytesAsync(caminho, capaUpload.Bytes);
+                CarroEdit.ImagemUrl = $"/Uploads/Veiculos/{nomeFinal}";
             }
             else if (string.IsNullOrEmpty(CarroEdit.ImagemUrl))
             {
                 CarroEdit.ImagemUrl = "/img/cars/default.jpg";
             }
 
-            // 5. Processar e salvar os arquivos físicos da GALERIA (se houverem)
-            if (galeriaUploads != null && galeriaUploads.Count > 0)
-            {
-                if (CarroEdit.ImagensAdicionais == null) 
-                    CarroEdit.ImagensAdicionais = new List<VeiculoImagemDto>();
-
-                int index = CarroEdit.ImagensAdicionais.Count + 1;
-                foreach (var uploadData in galeriaUploads)
-                {
-                    string ext = Path.GetExtension(uploadData.FileName);
-                    string nomeFinalGaleria = $"{baseNome}-galeria{index}{ext}";
-                    string caminhoFisicoGaleria = Path.Combine(uploadFolder, nomeFinalGaleria);
-
-                    await System.IO.File.WriteAllBytesAsync(caminhoFisicoGaleria, uploadData.Bytes);
-
-                    // Adiciona o DTO correto esperado pela sua classe local Carro
-                    CarroEdit.ImagensAdicionais.Add(new VeiculoImagemDto
-                    {
-                        Id = 0,
-                        VeiculoId = CarroEdit.Id,
-                        ImagemUrl = $"/Uploads/Veiculos/{nomeFinalGaleria}"
-                    });
-
-                    index++;
-                }
-            }
-
-            // 6. Preparar e enviar o mapeamento correto via JSON para o seu ApiClient
+            // 2. Enviar para a API
             if (CarroEdit.Id == 0)
             {
-                // Criar novo veículo
                 var req = new CreateVeiculoRequest
                 {
-                    Marca = CarroEdit.Marca,
-                    Modelo = CarroEdit.Modelo,
-                    Ano = CarroEdit.Ano,
-                    Descricao = CarroEdit.Descricao,
-                    ImagemUrl = CarroEdit.ImagemUrl,
-                    Cor = CarroEdit.Cor,
-                    Estilo = CarroEdit.Estilo,
-                    Combustivel = CarroEdit.Combustivel,
+                    Marca         = CarroEdit.Marca,
+                    Modelo        = CarroEdit.Modelo,
+                    Ano           = CarroEdit.Ano,
+                    Descricao     = CarroEdit.Descricao,
+                    ImagemUrl     = CarroEdit.ImagemUrl,
+                    Cor           = CarroEdit.Cor,
+                    Estilo        = CarroEdit.Estilo,
+                    Combustivel   = CarroEdit.Combustivel,
                     Quilometragem = CarroEdit.Quilometragem,
-                    Preco = CarroEdit.Preco,
-                    Disponivel = (EstadoSelecionado == "Disponível"),
-                    Galeria = CarroEdit.ImagensAdicionais.Select(x => new VeiculoImagemDto { ImagemUrl = x.ImagemUrl }).ToList()
+                    Preco         = CarroEdit.Preco,
+                    Disponivel    = (EstadoSelecionado == "Disponível"),
+                    Galeria       = CarroEdit.ImagensAdicionais
+                        .Select(x => new VeiculoImagemDto { ImagemUrl = x.ImagemUrl }).ToList()
                 };
 
                 var res = await Api.CreateVeiculoAsync(req);
                 if (res.Success)
                 {
-                    ModalCarroAberto = false;
-                    capaUpload = null;
-                    galeriaUploads.Clear();
+                    FecharModalCarro();
                     ShowToast("Veículo cadastrado com sucesso!", "success");
                     await LoadAdminDataAsync();
                 }
@@ -1169,29 +1127,27 @@
             }
             else
             {
-                // Atualizar veículo existente
                 var req = new UpdateVeiculoRequest
                 {
-                    Marca = CarroEdit.Marca,
-                    Modelo = CarroEdit.Modelo,
-                    Ano = CarroEdit.Ano,
-                    Descricao = CarroEdit.Descricao,
-                    ImagemUrl = CarroEdit.ImagemUrl,
-                    Cor = CarroEdit.Cor,
-                    Estilo = CarroEdit.Estilo,
-                    Combustivel = CarroEdit.Combustivel,
+                    Marca         = CarroEdit.Marca,
+                    Modelo        = CarroEdit.Modelo,
+                    Ano           = CarroEdit.Ano,
+                    Descricao     = CarroEdit.Descricao,
+                    ImagemUrl     = CarroEdit.ImagemUrl,
+                    Cor           = CarroEdit.Cor,
+                    Estilo        = CarroEdit.Estilo,
+                    Combustivel   = CarroEdit.Combustivel,
                     Quilometragem = CarroEdit.Quilometragem,
-                    Preco = CarroEdit.Preco,
-                    Disponivel = (EstadoSelecionado == "Disponível"),
-                    Galeria = CarroEdit.ImagensAdicionais.Select(x => new VeiculoImagemDto { ImagemUrl = x.ImagemUrl }).ToList()
+                    Preco         = CarroEdit.Preco,
+                    Disponivel    = (EstadoSelecionado == "Disponível"),
+                    Galeria       = CarroEdit.ImagensAdicionais
+                        .Select(x => new VeiculoImagemDto { ImagemUrl = x.ImagemUrl }).ToList()
                 };
 
                 var res = await Api.UpdateVeiculoAsync(CarroEdit.Id, req);
                 if (res.Success)
                 {
-                    ModalCarroAberto = false;
-                    capaUpload = null;
-                    galeriaUploads.Clear();
+                    FecharModalCarro();
                     ShowToast("Veículo atualizado com sucesso!", "success");
                     await LoadAdminDataAsync();
                 }
@@ -1203,14 +1159,13 @@
         }
         catch (Exception ex)
         {
-            ModalErro = $"Erro no processamento local das imagens: {ex.Message}";
+            ModalErro = $"Erro inesperado: {ex.Message}";
         }
         finally
         {
             UploadEmProgresso = false;
         }
     }
-   
     private void EliminarCarro(int id)
     {
         var carro = Carros.FirstOrDefault(c => c.Id == id);

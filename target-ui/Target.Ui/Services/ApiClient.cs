@@ -486,6 +486,23 @@ public class ApiClient
         }
     }
 
+    // ══════════════════════════════════════════════════════════════════════════
+    // UPLOAD DA imagem do carro
+    public async Task<ApiResult<string>> UploadCapaAsync(byte[] bytes, string fileName, string contentType)
+    {
+        using var content = new MultipartFormDataContent();
+        using var fileContent = new ByteArrayContent(bytes);
+        fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
+        content.Add(fileContent, "file", fileName);
+
+        var response = await _http.PostAsync("api/upload/capa", content);
+        if (!response.IsSuccessStatusCode)
+            return new ApiResult<string> { Success = false, Error = await response.Content.ReadAsStringAsync() };
+
+        var url = await response.Content.ReadAsStringAsync();
+        return new ApiResult<string> { Success = true, Data = url.Trim('"') };
+    }
+    
     /// <summary>Lista as avaliações de um veículo.</summary>
     public async Task<ApiResult<List<AvaliacaoDto>>> GetAvaliacoesPorVeiculoAsync(int veiculoId)
     {

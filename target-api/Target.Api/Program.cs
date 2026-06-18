@@ -126,6 +126,7 @@ app.UseCors("AllowAll");
 // Autenticação e autorização
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseStaticFiles();
 
 app.MapControllers();
 
