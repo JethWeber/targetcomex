@@ -110,6 +110,10 @@ public class VeiculosController : ControllerBase
         v.Cor           = updated.Cor;
         v.Estilo        = updated.Estilo;
         v.Combustivel   = updated.Combustivel;
+        v.Transmissao   = updated.Transmissao;
+        v.Motor         = updated.Motor;
+        v.Potencia      = updated.Potencia;
+        v.Localizacao   = updated.Localizacao;
         v.Quilometragem = updated.Quilometragem;
         v.Preco         = updated.Preco;
         v.Disponivel    = updated.Disponivel;

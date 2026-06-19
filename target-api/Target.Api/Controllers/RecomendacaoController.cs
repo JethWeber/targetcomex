@@ -21,6 +21,8 @@ public class RecomendacaoController : ControllerBase
         _context   = context;
     }
 
+    private record RecomendacaoResponse(int VeiculoId, double Score);
+
     [HttpGet("usuario/{id:int}")]
     public async Task<IActionResult> Get(int id)
     {
@@ -33,39 +35,97 @@ public class RecomendacaoController : ControllerBase
         {
             var raw = await _aiService.GetHybridRecommendations(id);
             if (raw == null)
-                return Ok(Array.Empty<object>());
+                return Ok(Array.Empty<RecomendacaoResponse>());
 
-            // Converte o object? para uma lista de JsonElement
             var json   = JsonSerializer.Serialize(raw);
             var result = JsonSerializer.Deserialize<List<JsonElement>>(json);
 
             if (result == null || !result.Any())
-                return Ok(Array.Empty<object>());
+                return Ok(Array.Empty<RecomendacaoResponse>());
 
-            // Exclui da resposta quaisquer veículos já vendidos (reserva Concluida)
             var veiculosVendidos = (await _context.Reservas
                 .Where(r => r.Estado.ToLower() == "concluido")
                 .Select(r => r.VeiculoId)
                 .ToListAsync())
                 .ToHashSet();
 
-            var filtrado = result
-                .Where(r =>
-                {
-                    // Suporta tanto "veiculoId" (camelCase) quanto "veiculo_id" (snake_case)
-                    if (r.TryGetProperty("veiculoId", out var prop) ||
-                        r.TryGetProperty("veiculo_id", out prop))
-                        return !veiculosVendidos.Contains(prop.GetInt32());
+            var recomendaciones = new List<RecomendacaoResponse>();
+            foreach (var element in result)
+            {
+                if (!TryParseVeiculoId(element, out var veiculoId))
+                    continue;
 
-                    return true; // se não encontrar o campo, mantém na lista
-                })
-                .ToList();
+                if (veiculosVendidos.Contains(veiculoId))
+                    continue;
 
-            return Ok(filtrado);
+                if (!TryParseScore(element, out var score))
+                    continue;
+
+                recomendaciones.Add(new RecomendacaoResponse(veiculoId, score));
+            }
+
+            return Ok(recomendaciones);
         }
         catch (Exception ex)
         {
             return StatusCode(500, $"Erro ao conectar com a IA: {ex.Message}");
         }
+    }
+
+    private static bool TryParseVeiculoId(JsonElement element, out int veiculoId)
+    {
+        veiculoId = 0;
+
+        if (element.TryGetProperty("veiculoId", out var prop) ||
+            element.TryGetProperty("veiculo_id", out prop) ||
+            element.TryGetProperty("vehicle_id", out prop))
+        {
+            if (prop.ValueKind == JsonValueKind.Number && prop.TryGetInt32(out veiculoId))
+                return true;
+
+            if (prop.ValueKind == JsonValueKind.String && int.TryParse(prop.GetString(), out veiculoId))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static bool TryParseScore(JsonElement element, out double score)
+    {
+        score = 0.0;
+
+        if (element.TryGetProperty("score", out var prop))
+        {
+            if (prop.ValueKind == JsonValueKind.Number && prop.TryGetDouble(out score))
+                return true;
+
+            if (prop.ValueKind == JsonValueKind.String && TryParseScoreString(prop.GetString(), out score))
+                return true;
+        }
+
+        if (element.TryGetProperty("match_score", out var matchScoreProp) ||
+            element.TryGetProperty("matchScore", out matchScoreProp))
+        {
+            if (matchScoreProp.ValueKind == JsonValueKind.Number && matchScoreProp.TryGetDouble(out score))
+                return true;
+
+            if (matchScoreProp.ValueKind == JsonValueKind.String && TryParseScoreString(matchScoreProp.GetString(), out score))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static bool TryParseScoreString(string? raw, out double score)
+    {
+        score = 0.0;
+        if (string.IsNullOrWhiteSpace(raw))
+            return false;
+
+        raw = raw.Trim();
+        if (raw.EndsWith("%"))
+            raw = raw.Substring(0, raw.Length - 1).Trim();
+
+        return double.TryParse(raw, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out score);
     }
 }

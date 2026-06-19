@@ -64,6 +64,10 @@ INTERESSES_TAGS = [
     "design", "tecnologia", "espaço", "robustez", "off-road"
 ]
 
+# ─── Pesos da fusão híbrida ───────────────────────────────────────────────────
+ALPHA_COLABORATIVO = 0.6   # peso do sinal colaborativo (KNN demográfico)
+BETA_CONTEUDO       = 0.4  # peso do sinal de conteúdo (embedding textual)
+
 
 # ─── Estado global da aplicação ───────────────────────────────────────────────
 class AppState:
@@ -385,6 +389,161 @@ def recommend_by_similar_profiles(cursor, user_id: int, max_candidates: int = 30
     }
 
 
+# ─── Helpers da recomendação híbrida (fusão real) ─────────────────────────────
+def _normalize_scores(d: dict) -> dict:
+    """Min-max normaliza um dict {id: score} para [0, 1]. Vazio/uniforme -> tudo 0."""
+    if not d:
+        return {}
+    vals = list(d.values())
+    lo, hi = min(vals), max(vals)
+    if hi - lo == 0:
+        return {k: 0.0 for k in d}
+    return {k: (v - lo) / (hi - lo) for k, v in d.items()}
+
+
+def _collaborative_scores(cursor, user_id: int, user_row, top_k: int = 5) -> dict:
+    """
+    Sinal colaborativo: KNN sobre o vetor demográfico (mesma lógica do /recommend),
+    NÃO depende de o usuário já ter histórico — funciona para usuários novos também.
+    Retorna {veiculo_id: score_bruto}.
+    """
+    user_vector = vectorize_user(user_row, cursor)
+
+    cursor.execute(
+        "SELECT Id, Nome, NumeroFilhos, DataNascimento, Genero, EstadoCivil, "
+        "InteressesPrincipais, FaixaRendaMensal FROM Usuarios WHERE Id != ?",
+        (user_id,)
+    )
+    others = cursor.fetchall()
+    if not others:
+        return {}
+
+    X = np.array([vectorize_user(row, cursor) for row in others])
+    scaler   = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+    u_scaled = scaler.transform(user_vector.reshape(1, -1))
+
+    k = min(top_k, len(others))
+    knn = NearestNeighbors(n_neighbors=k, metric="euclidean")
+    knn.fit(X_scaled)
+    distances, indices = knn.kneighbors(u_scaled)
+    similar_ids = [others[i][0] for i in indices[0]]
+
+    # Peso maior para vizinhos mais próximos (1 / (1 + distância))
+    weights = {sid: 1.0 / (1.0 + dist) for sid, dist in zip(similar_ids, distances[0])}
+
+    placeholders = ",".join("?" * len(similar_ids))
+    scores: dict = {}
+
+    cursor.execute(
+        f"""
+        SELECT hc.UsuarioId, v.Id
+        FROM HistoricoCompras hc
+        JOIN Veiculos v ON hc.VeiculoId = v.Id
+        WHERE hc.UsuarioId IN ({placeholders})
+        """,
+        similar_ids,
+    )
+    for uid, vid in cursor.fetchall():
+        scores[vid] = scores.get(vid, 0.0) + 2.0 * weights.get(uid, 1.0)
+
+    cursor.execute(
+        f"""
+        SELECT a.UsuarioId, v.Id
+        FROM Avaliacoes a
+        JOIN Veiculos v ON a.VeiculoId = v.Id
+        WHERE a.UsuarioId IN ({placeholders}) AND a.Nota >= 4
+        """,
+        similar_ids,
+    )
+    for uid, vid in cursor.fetchall():
+        scores[vid] = scores.get(vid, 0.0) + 1.5 * weights.get(uid, 1.0)
+
+    cursor.execute(
+        f"""
+        SELECT hn.UsuarioId, v.Id
+        FROM HistoricoNavegacao hn
+        JOIN Veiculos v ON hn.VeiculoId = v.Id
+        WHERE hn.UsuarioId IN ({placeholders})
+        """,
+        similar_ids,
+    )
+    for uid, vid in cursor.fetchall():
+        scores[vid] = scores.get(vid, 0.0) + 0.5 * weights.get(uid, 1.0)
+
+    return scores
+
+
+def _content_scores(user_text: str) -> dict:
+    """
+    Sinal de conteúdo: similaridade coseno entre o embedding TEXTUAL do perfil
+    do usuário e o embedding TEXTUAL de cada veículo (DistilBERT em ambos os
+    lados → mesmo espaço vetorial, comparação válida).
+
+    IMPORTANTE: emb_visual (ResNet18) NÃO entra aqui. ResNet18 e DistilBERT
+    foram treinados de forma independente — não existe alinhamento entre os
+    dois espaços (diferente de um modelo tipo CLIP, treinado para isso).
+    Somar/concatenar os dois vetores não é "multimodal", é ruído: além de
+    terem dimensões diferentes (768 vs 512), não há relação geométrica
+    significativa entre "texto de interesse do usuário" e "pixels da imagem
+    do veículo" nesses espaços. emb_visual fica reservado para um caso de uso
+    diferente: similaridade visual veículo-a-veículo, não perfil-usuário → veículo.
+    """
+    if not state.embeddings:
+        return {}
+
+    user_vec = embed_text(user_text)
+    user_norm = np.linalg.norm(user_vec)
+    if user_norm == 0:
+        return {}
+
+    scores: dict = {}
+    for v_id, vdata in state.embeddings.items():
+        emb_textual = vdata.get("emb_textual")
+        if emb_textual is None:
+            continue
+
+        veh_emb = np.asarray(emb_textual)
+        denom = user_norm * np.linalg.norm(veh_emb)
+        if denom == 0:
+            continue
+        scores[v_id] = float(np.dot(user_vec, veh_emb) / denom)
+
+    return scores
+
+
+def _visual_similarity_scores(reference_vehicle_id: int, top_k: int = 5) -> dict:
+    """
+    Caso de uso correto para emb_visual: dado um veículo de referência (ex.: o
+    último que o usuário visualizou/comprou), encontra veículos visualmente
+    parecidos via cosseno entre ResNet18-embeddings (mesmo espaço, comparação
+    válida). NÃO usar para comparar com texto de usuário.
+    """
+    ref = state.embeddings.get(reference_vehicle_id)
+    if not ref or ref.get("emb_visual") is None:
+        return {}
+
+    ref_vec = np.asarray(ref["emb_visual"])
+    ref_norm = np.linalg.norm(ref_vec)
+    if ref_norm == 0:
+        return {}
+
+    scores: dict = {}
+    for v_id, vdata in state.embeddings.items():
+        if v_id == reference_vehicle_id:
+            continue
+        emb_visual = vdata.get("emb_visual")
+        if emb_visual is None:
+            continue
+        veh_vec = np.asarray(emb_visual)
+        denom = ref_norm * np.linalg.norm(veh_vec)
+        if denom == 0:
+            continue
+        scores[v_id] = float(np.dot(ref_vec, veh_vec) / denom)
+
+    return dict(sorted(scores.items(), key=lambda x: x[1], reverse=True)[:top_k])
+
+
 # ─── Endpoints ────────────────────────────────────────────────────────────────
 
 @app.get("/health")
@@ -477,73 +636,104 @@ async def recommend(user_id: int):
 
 @app.get("/recommend-hybrid/{user_id}")
 async def recommend_hybrid(user_id: int):
-    """Recomendação híbrida — combina perfil KNN com similaridade de embeddings."""
+    """
+    Recomendação híbrida real: fusão ponderada entre
+      - sinal colaborativo (KNN sobre perfil demográfico + histórico dos vizinhos)
+      - sinal de conteúdo (embedding textual do perfil vs. veículos)
+    Pesos se auto-ajustam quando uma das fontes não está disponível.
+    Funciona tanto para usuário com histórico quanto para usuário novo,
+    já que o sinal colaborativo usa KNN demográfico (não exige histórico).
+    """
     conn = None
     try:
         conn   = get_conn()
         cursor = conn.cursor()
 
-        # Se o usuário ainda não tiver comportamento (compras/avaliações/navegação),
-        # recomendamos via perfis similares (fallback por similaridade de perfil).
-        if not user_has_behavior(cursor, user_id):
-            return recommend_by_similar_profiles(cursor, user_id)
-
-        if not state.embeddings:
-            # Sem embeddings, ainda assim conseguimos recomendar com base em perfis similares.
-            return recommend_by_similar_profiles(cursor, user_id)
-
         cursor.execute(
-            "SELECT Nome, InteressesPrincipais FROM Usuarios WHERE Id = ?",
+            "SELECT Id, Nome, NumeroFilhos, DataNascimento, Genero, EstadoCivil, "
+            "InteressesPrincipais, FaixaRendaMensal FROM Usuarios WHERE Id = ?",
             (user_id,)
         )
-        user_data = cursor.fetchone()
-        if not user_data:
+        user_row = cursor.fetchone()
+        if not user_row:
             raise HTTPException(status_code=404, detail="Utilizador não encontrado")
 
-        interesses = user_data[1] or ""
-
-        # Embedding do perfil via BERT
-        inputs = state.tokenizer(
-            interesses, return_tensors="pt",
-            truncation=True, padding=True, max_length=128
+        # Texto de perfil mais rico para o sinal de conteúdo
+        cursor.execute(
+            "SELECT Nome, Genero, DataNascimento, EstadoCivil, Profissao, "
+            "FaixaRendaMensal, InteressesPrincipais, TipoDeUsoPretendido "
+            "FROM Usuarios WHERE Id = ?",
+            (user_id,)
         )
-        with torch.no_grad():
-            user_vector = state.bert_model(**inputs).last_hidden_state.mean(dim=1).squeeze().numpy()
+        full_profile_row = cursor.fetchone()
+        nome = full_profile_row[0]
+        interesses = full_profile_row[6] or ""
+        # profile_text_from_row espera as 8 colunas (Nome incluso, mesmo que
+        # não o use no texto final) — não cortar a tupla aqui.
+        user_text = profile_text_from_row(full_profile_row)
 
-        # Busca preços dos veículos para retornar
-        cursor.execute("SELECT Id, Preco FROM Veiculos")
-        precos = {row[0]: float(row[1]) for row in cursor.fetchall()}
+        collab_raw   = _collaborative_scores(cursor, user_id, user_row)
+        content_raw  = _content_scores(user_text)
 
-        # Calcula similaridade coseno com cada veículo
-        results = []
-        for v_id, vdata in state.embeddings.items():
-            emb = vdata["emb_textual"]
-            norm = np.linalg.norm(user_vector) * np.linalg.norm(emb)
-            if norm == 0:
+        alpha, beta = ALPHA_COLABORATIVO, BETA_CONTEUDO
+        if not collab_raw:
+            alpha, beta = 0.0, 1.0
+        elif not content_raw:
+            alpha, beta = 1.0, 0.0
+
+        collab_norm  = _normalize_scores(collab_raw)
+        content_norm = _normalize_scores(content_raw)
+
+        all_vehicle_ids = set(collab_norm) | set(content_norm)
+        if not all_vehicle_ids:
+            return {"cliente": nome, "foco_da_ia": interesses, "top_sugestoes": []}
+
+        final_scores = {
+            vid: alpha * collab_norm.get(vid, 0.0) + beta * content_norm.get(vid, 0.0)
+            for vid in all_vehicle_ids
+        }
+
+        top_ids = sorted(final_scores, key=final_scores.get, reverse=True)[:5]
+
+        placeholders = ",".join("?" * len(top_ids))
+        cursor.execute(
+            f"SELECT Id, Marca, Modelo, Preco FROM Veiculos WHERE Id IN ({placeholders})",
+            top_ids,
+        )
+        info = {row[0]: row for row in cursor.fetchall()}
+
+        sugestoes = []
+        for vid in top_ids:
+            row = info.get(vid)
+            if not row:
                 continue
-            score = float(np.dot(user_vector, emb) / norm)
-            results.append({
-                "veiculo_id":   v_id,
-                "nome":         vdata["nome"],
-                "preco":        precos.get(v_id, 0),
-                "match_score":  f"{round(score * 100, 1)}%",
-                "justificativa": f"Combina com o seu interesse em '{interesses}'"
+            sugestoes.append({
+                "veiculo_id": vid,
+                "nome": f"{row[1]} {row[2]}".strip(),
+                "preco": float(row[3]),
+                "match_score": f"{round(final_scores[vid] * 100, 1)}%",
+                "detalhe": {
+                    "colaborativo": round(collab_norm.get(vid, 0.0) * 100, 1),
+                    "conteudo":     round(content_norm.get(vid, 0.0) * 100, 1),
+                    "peso_colaborativo": alpha,
+                    "peso_conteudo":     beta,
+                },
+                "justificativa": (
+                    f"Combina histórico de utilizadores com perfil semelhante "
+                    f"e similaridade com o seu interesse em '{interesses}'."
+                ),
             })
 
-        results.sort(key=lambda x: float(x["match_score"].replace("%", "")), reverse=True)
+        return {"cliente": nome, "foco_da_ia": interesses, "top_sugestoes": sugestoes}
 
-        return {
-            "cliente":      user_data[0],
-            "foco_da_ia":   interesses,
-            "top_sugestoes": results[:5]
-        }
     except HTTPException:
         raise
     except Exception as e:
         log.error(f"Erro em /recommend-hybrid/{user_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
     finally:
-        if conn: conn.close()
+        if conn:
+            conn.close()
 
 
 @app.get("/search")

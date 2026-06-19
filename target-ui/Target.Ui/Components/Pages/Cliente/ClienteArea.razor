@@ -202,8 +202,9 @@
                             <label class="tc-input-label">Correio Eletrónico (E-mail)</label>
                             <div class="tc-input-wrapper">
                                 <span class="tc-input-icon">✉️</span>
-                                <input class="tc-input-field" type="email" @bind="clienteForm.Email" />
+                                <input class="tc-input-field" type="email" value="@clienteForm.Email" disabled />
                             </div>
+                            <small class="tc-input-note">O e-mail não pode ser alterado aqui.</small>
                         </div>
 
                         <div class="tc-input-group">
@@ -562,8 +563,8 @@
         {
             Nome = clienteForm.Nome,
             Telefone = clienteForm.Telefone,
-            // Email can be updated. Localização é mantida local nesta página.
-            // O backend atualmente não expõe atualização de endereço no UsersController.
+            // O e-mail não pode ser alterado através do perfil do cliente.
+            // A localização continua sendo mantida somente na UI por enquanto.
         };
 
         var result = await Api.UpdateUsuarioAsync(userId.Value, request);

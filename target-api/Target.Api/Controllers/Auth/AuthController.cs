@@ -31,6 +31,10 @@ namespace Target.Api.Controllers.Auth
             if (_context.Usuarios.Any(u => u.Email == request.Email))
                 return BadRequest("Email já existe");
 
+            var generoNormalizado = NormalizeGenero(request.Genero);
+            if (generoNormalizado == null && !string.IsNullOrWhiteSpace(request.Genero))
+                return BadRequest("Gênero inválido. Utilize 'M' ou 'F'.");
+
             var user = new Usuario
             {
                 Nome = request.Nome?.Trim() ?? string.Empty,
@@ -40,7 +44,7 @@ namespace Target.Api.Controllers.Auth
                 Role = "Cliente",
                 DataCadastro = DateTime.UtcNow,
                 DataNascimento = request.DataNascimento,
-                Genero = request.Genero,
+                Genero = generoNormalizado,
                 EstadoCivil = request.EstadoCivil,
                 NumeroFilhos = request.NumeroFilhos,
                 Profissao = request.Profissao,
@@ -115,6 +119,20 @@ namespace Target.Api.Controllers.Auth
             var token = tokenHandler.CreateToken(tokenDescriptor);
 
             return tokenHandler.WriteToken(token);
+        }
+
+        private static string? NormalizeGenero(string? genero)
+        {
+            if (string.IsNullOrWhiteSpace(genero))
+                return null;
+
+            genero = genero.Trim();
+            return genero.ToUpperInvariant() switch
+            {
+                "M" or "MASCULINO" => "M",
+                "F" or "FEMININO"  => "F",
+                _ => null
+            };
         }
     }
 }

@@ -654,11 +654,11 @@
                     <div class="adm-row2">
                         <div class="adm-field">
                             <label>Nome <span class="req">*</span></label>
-                            <input class="adm-inp" type="text" @bind="UserEdit.Nome" placeholder="Nome completo" />
+                            <input class="adm-inp" type="text" @bind="UserEdit.Nome" placeholder="Nome completo" disabled="@IsEditingOtherUser" />
                         </div>
                         <div class="adm-field">
                             <label>Telefone</label>
-                            <input class="adm-inp" type="text" @bind="UserEdit.Telefone" placeholder="9XX XXX XXX" />
+                            <input class="adm-inp" type="text" @bind="UserEdit.Telefone" placeholder="9XX XXX XXX" disabled="@IsEditingOtherUser" />
                         </div>
                     </div>
 
@@ -684,9 +684,26 @@
                             </div>
                             <div class="adm-field">
                                 <label>Perfil</label>
-                                <input class="adm-inp" type="text" value="@UserEdit.Perfil" disabled />
+                                @if (IsEditingOtherUser)
+                                {
+                                    <select class="adm-inp" @bind="UserEdit.Perfil">
+                                        <option value="Cliente">Cliente</option>
+                                        <option value="Admin">Admin</option>
+                                    </select>
+                                }
+                                else
+                                {
+                                    <input class="adm-inp" type="text" value="@UserEdit.Perfil" disabled />
+                                }
                             </div>
                         </div>
+
+                        @if (IsEditingOtherUser)
+                        {
+                            <div class="adm-info-box">
+                                <p>Como administrador, só pode alterar o tipo de perfil deste utilizador.</p>
+                            </div>
+                        }
                     }
 
                     <h3 class="adm-wiz-title" style="margin-top:22px">PERFIL</h3>
@@ -695,22 +712,21 @@
                     <div class="adm-row2">
                         <div class="adm-field">
                             <label>Data de Nascimento</label>
-                            <input class="adm-inp" type="date" @bind="UserEdit.DataNascimento" />
+                            <input class="adm-inp" type="date" @bind="UserEdit.DataNascimento" disabled="@IsEditingOtherUser" />
                         </div>
                         <div class="adm-field">
                             <label>Género</label>
-                            <select class="adm-inp" @bind="UserEdit.Genero">
+                            <select class="adm-inp" @bind="UserEdit.Genero" disabled="@IsEditingOtherUser">
                                 <option value="">— Seleccionar —</option>
-                                <option>Masculino</option>
-                                <option>Feminino</option>
-                                <option>Outro</option>
+                                <option value="M">Masculino</option>
+                                <option value="F">Feminino</option>
                             </select>
                         </div>
                     </div>
                     <div class="adm-row2">
                         <div class="adm-field">
                             <label>Estado Civil</label>
-                            <select class="adm-inp" @bind="UserEdit.EstadoCivil">
+                            <select class="adm-inp" @bind="UserEdit.EstadoCivil" disabled="@IsEditingOtherUser">
                                 <option value="">— Seleccionar —</option>
                                 <option>Solteiro(a)</option>
                                 <option>Casado(a)</option>
@@ -721,17 +737,17 @@
                         </div>
                         <div class="adm-field">
                             <label>Número de Filhos</label>
-                            <input class="adm-inp" type="number" min="0" @bind="UserEdit.NumeroFilhos" />
+                            <input class="adm-inp" type="number" min="0" @bind="UserEdit.NumeroFilhos" disabled="@IsEditingOtherUser" />
                         </div>
                     </div>
                     <div class="adm-row2">
                         <div class="adm-field">
                             <label>Profissão</label>
-                            <input class="adm-inp" type="text" @bind="UserEdit.Profissao" placeholder="Profissão" />
+                            <input class="adm-inp" type="text" @bind="UserEdit.Profissao" placeholder="Profissão" disabled="@IsEditingOtherUser" />
                         </div>
                         <div class="adm-field">
                             <label>Faixa de Renda Mensal</label>
-                            <select class="adm-inp" @bind="UserEdit.FaixaRendaMensal">
+                            <select class="adm-inp" @bind="UserEdit.FaixaRendaMensal" disabled="@IsEditingOtherUser">
                                 <option value="">— Seleccionar —</option>
                                 <option>Até 100.000 AOA</option>
                                 <option>100.000 – 300.000 AOA</option>
@@ -743,7 +759,7 @@
                     </div>
                     <div class="adm-field">
                         <label>Interesses Principais</label>
-                        <input class="adm-inp" type="text" @bind="UserEdit.InteressesPrincipais" placeholder="SUV, Pick-up, Sedan..." />
+                        <input class="adm-inp" type="text" @bind="UserEdit.InteressesPrincipais" placeholder="SUV, Pick-up, Sedan..." disabled="@IsEditingOtherUser" />
                     </div>
 
                     @if (UserEdit.Id == 0)
@@ -846,6 +862,9 @@
     private UserEditModel? UserEdit;
     private string ModalUserErro = "";
     private bool SalvandoUser = false;
+    private int? currentAdminId;
+
+    private bool IsEditingOtherUser => UserEdit != null && UserEdit.Id != 0 && currentAdminId.HasValue && UserEdit.Id != currentAdminId.Value;
 
     /* ── Estado de carregamento ─────────────── */
     private bool isLoading = true;
@@ -1106,6 +1125,10 @@
                     Cor           = CarroEdit.Cor,
                     Estilo        = CarroEdit.Estilo,
                     Combustivel   = CarroEdit.Combustivel,
+                    Transmissao   = CarroEdit.Transmissao,
+                    Motor         = CarroEdit.Motor,
+                    Potencia      = CarroEdit.Potencia,
+                    Localizacao   = CarroEdit.Localizacao,
                     Quilometragem = CarroEdit.Quilometragem,
                     Preco         = CarroEdit.Preco,
                     Disponivel    = (EstadoSelecionado == "Disponível"),
@@ -1137,6 +1160,10 @@
                     Cor           = CarroEdit.Cor,
                     Estilo        = CarroEdit.Estilo,
                     Combustivel   = CarroEdit.Combustivel,
+                    Transmissao   = CarroEdit.Transmissao,
+                    Motor         = CarroEdit.Motor,
+                    Potencia      = CarroEdit.Potencia,
+                    Localizacao   = CarroEdit.Localizacao,
                     Quilometragem = CarroEdit.Quilometragem,
                     Preco         = CarroEdit.Preco,
                     Disponivel    = (EstadoSelecionado == "Disponível"),
@@ -1307,7 +1334,8 @@
                 Profissao            = UserEdit.Profissao,
                 FaixaRendaMensal     = UserEdit.FaixaRendaMensal,
                 InteressesPrincipais = UserEdit.InteressesPrincipais,
-                TipoDeUsoPretendido  = UserEdit.TipoDeUsoPretendido
+                TipoDeUsoPretendido  = UserEdit.TipoDeUsoPretendido,
+                Role                 = UserEdit.Perfil
             };
 
             var result = await Api.UpdateUsuarioAsync(UserEdit.Id, request);
@@ -1502,6 +1530,7 @@
             return;
         }
 
+        currentAdminId = await AuthService.GetUserIdAsync();
         await LoadAdminDataAsync();
         StateHasChanged();
     }

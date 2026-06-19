@@ -82,6 +82,7 @@ public class UpdateUsuarioRequest
     public string? FaixaRendaMensal { get; set; }
     public string? InteressesPrincipais { get; set; }
     public string? TipoDeUsoPretendido { get; set; }
+    public string? Role { get; set; }
 }
 
 public class VeiculoDto

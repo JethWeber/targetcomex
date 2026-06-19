@@ -30,28 +30,26 @@ public class HistoricoComprasController : ControllerBase
     }
 
     // GET: api/HistoricoCompras/mais-comprados?top=6
-    // Público — utilizado na página /produtos antes do login
+    // Público — utilizado na página /produtos antes do login.
+    //
+    // Regra: conta RESERVAS com Estado == "Concluido", agrupadas por
+    // Marca+Modelo (não por VeiculoId individual), já que duas unidades
+    // diferentes do mesmo Marca/Modelo devem somar no mesmo grupo.
+    // O veículo "representante" do grupo (imagem/preço/id do link) é o de
+    // maior Id (unidade mais recentemente cadastrada) dentro do grupo.
     [HttpGet("mais-comprados")]
     [AllowAnonymous]
     public IActionResult GetMaisComprados([FromQuery] int top = 6)
     {
-        // Veículos já vendidos (reserva Concluida) — excluídos de qualquer listagem
-        var veiculosVendidos = _context.Reservas
+        // Reservas concluídas, já trazendo os dados do veículo (join).
+        var reservasConcluidas = _context.Reservas
+            .AsNoTracking()
             .Where(r => r.Estado == "Concluido")
-            .Select(r => r.VeiculoId)
-            .ToHashSet();
-
-        // Agrupa compras por veículo e junta com os dados do veículo numa única query
-        var resultado = _context.HistoricoCompras
-            .GroupBy(h => h.VeiculoId)
-            .Select(g => new { VeiculoId = g.Key, TotalCompras = g.Count() })
-            .OrderByDescending(x => x.TotalCompras)
-            .Take(top)
             .Join(
                 _context.Veiculos.AsNoTracking(),
-                hc => hc.VeiculoId,
-                v  => v.Id,
-                (hc, v) => new
+                r => r.VeiculoId,
+                v => v.Id,
+                (r, v) => new
                 {
                     v.Id,
                     v.Marca,
@@ -61,19 +59,42 @@ public class HistoricoComprasController : ControllerBase
                     v.Preco,
                     v.Cor,
                     v.Combustivel,
-                    v.Disponivel,
-                    hc.TotalCompras
+                    v.Disponivel
                 })
-            .AsEnumerable()                                          // materializa aqui
-            .Where(x => !veiculosVendidos.Contains(x.Id))           // filtra vendidos
+            .ToList(); // materializa: o agrupamento por (Marca, Modelo) com
+                       // seleção do maior Id é mais simples/segura em LINQ-to-Objects
+
+        var resultado = reservasConcluidas
+            .GroupBy(x => new { x.Marca, x.Modelo })
+            .Select(g =>
+            {
+                // Representante do grupo = unidade de maior Id (mais recente)
+                var representante = g.OrderByDescending(x => x.Id).First();
+                return new
+                {
+                    representante.Id,
+                    representante.Marca,
+                    representante.Modelo,
+                    representante.Ano,
+                    representante.ImagemUrl,
+                    representante.Preco,
+                    representante.Cor,
+                    representante.Combustivel,
+                    representante.Disponivel,
+                    TotalCompras = g.Count()
+                };
+            })
+            .OrderByDescending(x => x.TotalCompras)
+            .ThenByDescending(x => x.Id) // desempate estável e determinístico
+            .Take(top)
             .ToList();
 
-        // Fallback: sem histórico → últimos veículos disponíveis e não vendidos
+        // Fallback: sem nenhuma reserva concluída → últimos veículos disponíveis
         if (!resultado.Any())
         {
             var fallback = _context.Veiculos
                 .AsNoTracking()
-                .Where(v => v.Disponivel && !veiculosVendidos.Contains(v.Id))
+                .Where(v => v.Disponivel)
                 .OrderByDescending(v => v.Id)
                 .Take(top)
                 .Select(v => new

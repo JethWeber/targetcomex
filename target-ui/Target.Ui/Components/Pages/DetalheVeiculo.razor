@@ -40,7 +40,16 @@ else
 
         <div class="dv-hero-meta">
             <span class="dv-badge-fuel">@veiculo.Combustivel</span>
-            <span class="dv-badge-score">⚡ @veiculo.ScoreIA% IA Match</span>
+            <span class="dv-badge-score">
+                @if (matchScore.HasValue)
+                {
+                    @($"⚡ {matchScore.Value:0.#}% IA Match")
+                }
+                else
+                {
+                    <text>⚡ IA Insights</text>
+                }
+            </span>
         </div>
 
         <h1 class="dv-hero-title">@veiculo.Nome</h1>
@@ -162,17 +171,32 @@ else
                     </div>
                     <div>
                         <div class="dv-ai-label">Análise por Inteligência Artificial</div>
-                        <h3 class="dv-ai-title">Por que este carro combina com você</h3>
+                        <h3 class="dv-ai-title">
+                            @(isRecommended ? "Por que este carro combina com você" : "Pontos fortes deste veículo")
+                        </h3>
                     </div>
-                    <div class="dv-ai-score-badge">@veiculo.ScoreIA%</div>
+                    <div class="dv-ai-score-badge">
+                        @if (matchScore.HasValue)
+                        {
+                            @($"{matchScore.Value:0.#}%")
+                        }
+                        else
+                        {
+                            <text>Insights</text>
+                        }
+                    </div>
                 </div>
                 <p class="dv-ai-text">
-                    A análise com IA identificou que o <strong>@veiculo.Nome</strong> tem uma compatibilidade de
-                    <span class="dv-cyan">@veiculo.ScoreIA%</span> com o seu perfil. Com o motor <strong>@veiculo.Motor</strong>
-                    e @veiculo.Potencia cv de potência, este veículo encaixa perfeitamente nas preferências registadas:
-                    performance elevada, transmissão @veiculo.Transmissao e tecnologia de propulsão @veiculo.Combustivel.
-                    A relação custo-benefício está acima da média do mercado angolano, com histórico de manutenção verificado
-                    e garantia de procedência documentada.
+                    @if (isRecommended)
+                    {
+                        <text>A análise com IA identificou que o <strong>@veiculo.Nome</strong> tem uma compatibilidade de </text>
+                                        <span class="dv-cyan">@matchScore?.ToString("0.#")%</span>
+                        <text> com o seu perfil. Com o motor <strong>@veiculo.Motor</strong> e @veiculo.Potencia cv de potência, este veículo encaixa-se bem nas preferências registadas: performance elevada, transmissão @veiculo.Transmissao e tecnologia de propulsão @veiculo.Combustivel.</text>
+                    }
+                    else
+                    {
+                        <text>Este veículo apresenta um conjunto equilibrado de especificações: motor <strong>@veiculo.Motor</strong>, @veiculo.Potencia cv de potência, transmissão @veiculo.Transmissao e tecnologia de propulsão @veiculo.Combustivel. É uma escolha sólida para quem procura desempenho, conforto e consumo ajustado ao mercado.</text>
+                    }
                 </p>
                 <div class="dv-ai-bars">
                     <div class="dv-ai-bar-row">
@@ -187,8 +211,8 @@ else
                     </div>
                     <div class="dv-ai-bar-row">
                         <span>Custo-Benefício</span>
-                        <div class="dv-ai-bar-track"><div class="dv-ai-bar-fill" style="width:@veiculo.ScoreIA%"></div></div>
-                        <span class="dv-cyan">@veiculo.ScoreIA%</span>
+                        <div class="dv-ai-bar-track"><div class="dv-ai-bar-fill" style="width:@((matchScore ?? veiculo.ScoreIA).ToString("0.#"))%"></div></div>
+                        <span class="dv-cyan">@((matchScore ?? veiculo.ScoreIA).ToString("0.#"))%</span>
                     </div>
                 </div>
             </div>
@@ -291,7 +315,8 @@ else
             <div class="dv-price-note">Preço de venda • IVA incluído</div>
             <button class="dv-cta-btn @(jaReservado ? "dv-cta-reservado" : "dv-cta-primary")"
                     @onclick="ReservarVeiculo"
-                    disabled="@(jaReservado || isReservando)">
+                    disabled="@(jaReservado || isReservando || !isAuthenticated)"
+                    title="@(!isAuthenticated ? "Faça login para reservar" : string.Empty)">
                 @if (isReservando)
                 {
                     <span class="dv-btn-spinner"></span>
@@ -1056,9 +1081,12 @@ else
 
 @code {
     [Parameter] public int VeiculoId { get; set; }
-    bool jaReservado  = false;
-    bool isReservando = false;
-    string? nomeUsuario = null;
+    bool jaReservado      = false;
+    bool isReservando     = false;
+    bool isAuthenticated  = false;
+    string? nomeUsuario   = null;
+    double? matchScore    = null;
+    bool isRecommended    = false;
 
     // ── Modelo ──────────────────────────────────────────
     record Veiculo(
@@ -1126,9 +1154,14 @@ else
         }
 
         veiculo = MapVeiculo(result.Data);
+        matchScore = null;
+        isRecommended = false;
+
+        await AuthService.InitAsync();
+        isAuthenticated = await AuthService.IsAuthenticatedAsync();
 
         var allResult = await Api.GetVeiculosAsync();
-        todos = allResult.Success ? allResult.Data.Select(MapVeiculo).ToList() : new List<Veiculo>();
+        todos = allResult.Success && allResult.Data != null ? allResult.Data.Select(MapVeiculo).ToList() : new List<Veiculo>();
         outrosVeiculos = todos.Where(v => v.Id != veiculo.Id).OrderByDescending(v => v.ScoreIA).ToList();
 
         fotos = new List<string>
@@ -1148,6 +1181,17 @@ else
             var userResult = await Api.GetUsuarioAsync(userId.Value);
             if (userResult.Success && userResult.Data != null)
                 nomeUsuario = userResult.Data.Nome;
+
+            var recResult = await Api.GetRecomendacoesAsync(userId.Value);
+            if (recResult.Success && recResult.Data != null)
+            {
+                var match = recResult.Data.FirstOrDefault(r => r.VeiculoId == VeiculoId);
+                if (match != null)
+                {
+                    matchScore = match.Score;
+                    isRecommended = true;
+                }
+            }
 
             // Verificar se já tem reserva para este veículo
             var reservasResult = await Api.GetReservasAsync();
@@ -1205,7 +1249,7 @@ else
         }
 
         var result = await Api.GetAvaliacoesPorVeiculoAsync(veiculo.Id);
-        comentarios = result.Success
+        comentarios = result.Success && result.Data != null
             ? result.Data.Select(MapComentario).ToList()
             : new List<Comentario>();
     }
@@ -1255,23 +1299,6 @@ else
         }
     }
 
-    void FotoAnterior()
-    {
-        if (indiceAtual > 0)
-        {
-            indiceAtual--;
-            imagemPopup = fotos[indiceAtual];
-            fotoPrincipal = fotos[indiceAtual];
-        }
-    }
-
-    void SelecionarFoto(int indice)
-    {
-        indiceAtual = indice;
-        imagemPopup = fotos[indice];
-        fotoPrincipal = fotos[indice];
-    }
-
     async Task SubmeterComentario()
     {
         if (!PodeSubmeter || veiculo == null) return;
@@ -1290,34 +1317,7 @@ else
             var result = await Api.CriarAvaliacaoAsync(request);
             if (result.Success && result.Data != null)
             {
-                async Task SubmeterComentario()
-                {
-                    if (!PodeSubmeter || veiculo == null) return;
-
-                    var userId = await AuthService.GetUserIdAsync();
-                    var request = new AvaliacaoCreateRequest
-                    {
-                        VeiculoId = veiculo.Id,
-                        UsuarioId = userId ?? 0,
-                        Nota      = novaAvaliacao,
-                        Comentario = novoTexto.Trim()
-                    };
-
-                    var novoComentario = new Comentario(novoAutor.Trim(), novoTexto.Trim(), novaAvaliacao, DateTime.Now, true);
-
-                    if (userId != null)
-                        await Api.CriarAvaliacaoAsync(request);   // persiste na API
-
-                    comentarios.Insert(0, novoComentario);        // aparece imediatamente no UI
-
-                    novoAutor    = "";
-                    novoTexto    = "";
-                    novaAvaliacao = 0;
-                    mostrarSucesso = true;
-
-                    await Task.Delay(3200);
-                    mostrarSucesso = false;
-                }
+                comentarios.Insert(0, new Comentario(novoAutor.Trim(), novoTexto.Trim(), novaAvaliacao, DateTime.Now, true));
             }
             else
             {
@@ -1336,5 +1336,22 @@ else
 
         await Task.Delay(3200);
         mostrarSucesso = false;
+    }
+
+    void FotoAnterior()
+    {
+        if (indiceAtual > 0)
+        {
+            indiceAtual--;
+            imagemPopup = fotos[indiceAtual];
+            fotoPrincipal = fotos[indiceAtual];
+        }
+    }
+
+    void SelecionarFoto(int indice)
+    {
+        indiceAtual = indice;
+        imagemPopup = fotos[indice];
+        fotoPrincipal = fotos[indice];
     }
 }

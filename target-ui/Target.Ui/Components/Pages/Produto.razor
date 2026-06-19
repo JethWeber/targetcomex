@@ -26,7 +26,7 @@
         </h1>
 
         <p class="hero-subtitle anim-slide-up" style="--d:0.4s">
-            @(isRecommendations ? "A nossa IA te Recomenda" : "Conheça os mais populares!")
+            @(isRecommendations ? "A nossa IA te Recomenda" : "Verifica os Mais vendidos")
         </p>
 
         <div class="search-area anim-slide-up" style="--d:0.6s">
@@ -69,8 +69,8 @@
             <div class="highlight-badge-group">
                 <span class="highlight-type-badge">@(isRecommendations ? "🎯 RECOMENDADO PARA VOCÊ" : "🔥 TOP PROCURADO")</span>
             </div>
-            <h2>@(isRecommendations ? "A nossa IA recomenda pra VC..." : "Conheça os mais populares!")</h2>
-            <p>@(isRecommendations ? "Veículos escolhidos pela IA com base no teu perfil — compatibilidade elevada" : "Os veículos com maior procura e compras na Target Comex — a confiança dos clientes")</p>
+            <h2>@(isRecommendations ? "A nossa IA recomenda pra VC..." : "Verifica os Mais vendidos")</h2>
+            <p>@(isRecommendations ? "Veículos escolhidos pela IA com base no teu perfil — compatibilidade elevada" : "Os veículos com maior procura e compras na Target Comex — verifique os mais vendidos.")</p>
         </div>
         <div class="highlight-stats">
             <div class="stat-box">
@@ -85,11 +85,16 @@
             var idx = 0;
             @foreach (var item in maisComprados)
             {
-                <div class="highlight-card anim-card" style="--card-delay:@($"{idx*0.1}s")">n                    <div class="card-image-container">
+                <div class="highlight-card anim-card" style="--card-delay:@($"{idx*0.1}s")">
+                    <div class="card-image-container">
                         <img src="@item.ImagemUrl" alt="@item.Marca @item.Modelo" class="card-image" loading="lazy" />
                         <div class="card-overlay"></div>
                         <div class="card-badge-corner">
-                            @if (isRecommendations)
+                            @if (isRecommendations && item.MatchScore.HasValue)
+                            {
+                                <span class="badge-ia">@(item.MatchScore.Value.ToString("0.#"))% match</span>
+                            }
+                            else if (isRecommendations)
                             {
                                 <span class="badge-ia">IA</span>
                             }
@@ -283,7 +288,14 @@
                                     </svg>
                                 </button>
                                 <div class="car-score">
-                                    <span>⚡</span> @v.ScoreIA% IA
+                                    @if (isRecommendations && v.MatchScore.HasValue)
+                                    {
+                                        <span>⚡</span> @($"{v.MatchScore.Value:0.#}% match")
+                                    }
+                                    else
+                                    {
+                                        <span>⚡</span> @($"{v.ScoreIA}% IA")
+                                    }
                                 </div>
                             </div>
                             <div class="car-body">
@@ -619,6 +631,7 @@
         padding: 5px 12px;
         border-radius: 100px;
         backdrop-filter: blur(10px);
+        white-space: nowrap;
     }
 
     .highlight-body {
@@ -1116,6 +1129,7 @@
         padding: 4px 10px;
         border-radius: 100px;
         border: 1px solid rgba(0,242,255,0.3);
+        white-space: nowrap;
     }
 
     .car-body { padding: 20px; }
@@ -1213,7 +1227,8 @@
         long   Preco,
         int    ScoreIA,
         string Localizacao,
-        string Imagem
+        string Imagem,
+        double? MatchScore = null   // % exato (0-100) vindo da API de recomendação; null = não é recomendação
     );
 
     // ── Estado dos filtros ───────────────────────────────
@@ -1230,7 +1245,6 @@
 
     void Navegar(int id) => Nav.NavigateTo($"/detalhes-veiculo/{id}");
 
-
     // ── Opções dos filtros ───────────────────────────────
     List<string> opcoesCombus = new() { "Gasolina", "Gasóleo", "Elétrico", "Híbrido" };
     List<string> opcoesMarca  = new() { "Baic", "Forthing", "Toyota", "BMW", "Mercedes", "Audi", "Hyundai", "Chery", "JAC", "GWM", "Renault", "Nissan", "Kia" };
@@ -1244,16 +1258,30 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadVeiculosAsync();
-        await LoadHighlightsAsync();
+        await LoadDadosAsync();
         AplicarFiltros();
     }
 
-    async Task LoadHighlightsAsync()
+    /// <summary>
+    /// Única fonte de verdade para a página: chama a API de recomendação
+    /// (ou cai para "mais comprados", se anônimo/sem recomendação) UMA ÚNICA
+    /// VEZ, e usa o MESMO resultado — mesma ordem, mesmo match_score — para
+    /// alimentar tanto a lista principal (veiculos) quanto o carrossel de
+    /// destaque (maisComprados).
+    ///
+    /// Antes havia duas chamadas independentes (LoadVeiculosAsync e
+    /// LoadHighlightsAsync), cada uma indo à API separadamente — o que
+    /// podia (e às vezes vinha) trazer resultados diferentes para o mesmo
+    /// usuário entre o carrossel e a lista. Agora é uma única chamada.
+    /// </summary>
+    async Task LoadDadosAsync()
     {
         await AuthService.InitAsync();
-        var isAuth = await AuthService.IsAuthenticatedAsync();
+        isRecommendations = false;
+        veiculos = new();
+        maisComprados = new();
 
+        var isAuth = await AuthService.IsAuthenticatedAsync();
         if (isAuth)
         {
             var uid = await AuthService.GetUserIdAsync();
@@ -1262,35 +1290,77 @@
                 var rec = await Api.GetRecomendacoesAsync(uid.Value);
                 if (rec.Success && rec.Data?.Any() == true)
                 {
-                    isRecommendations = true;
-                    foreach (var r in rec.Data.Take(4))
+                    // A ordem de rec.Data já vem ranqueada pela API
+                    // (match_score desc). Preservamos essa ordem exatamente
+                    // — nada de reordenar aqui. Buscamos os detalhes de cada
+                    // veículo só para completar campos extras que a API de
+                    // recomendação não devolve, sem recalcular o Score original.
+                    foreach (var r in rec.Data)
                     {
                         var vres = await Api.GetVeiculoAsync(r.VeiculoId);
                         if (vres.Success && vres.Data != null)
                         {
-                            maisComprados.Add(new MaisComprado(
-                                vres.Data.Id,
-                                vres.Data.Marca,
-                                vres.Data.Modelo,
-                                vres.Data.Ano,
-                                vres.Data.ImagemUrl ?? "img/cars/default.jpg",
-                                vres.Data.Preco,
-                                0
-                            ));
+                            veiculos.Add(MapVeiculo(vres.Data, r.Score));
                         }
+                    }
+
+                    isRecommendations = veiculos.Any();
+
+                    if (isRecommendations)
+                    {
+                        // Carrossel de destaque = os 4 primeiros da MESMA lista,
+                        // na MESMA ordem, com o MESMO score. Não é mais uma
+                        // segunda chamada à API.
+                        maisComprados = veiculos.Take(4).Select(v => new MaisComprado(
+                            v.Id,
+                            v.Marca,
+                            v.Nome.Replace(v.Marca, "").Trim(),
+                            v.Ano,
+                            v.Imagem,
+                            v.Preco,
+                            0,
+                            v.MatchScore
+                        )).ToList();
                     }
                 }
             }
         }
 
-        if (!maisComprados.Any())
+        // Sem usuário autenticado OU sem recomendação disponível → "mais comprados"
+        if (!isRecommendations)
+        {
             await LoadMaisCompradosAsync();
+
+            veiculos = maisComprados.Select(v => new Veiculo(
+                v.Id,
+                $"{v.Marca} {v.Modelo}",
+                v.Marca,
+                "N/A",
+                "N/A",
+                "N/A",
+                0,
+                v.Ano,
+                (long)Math.Round(v.Preco),
+                80,
+                "Localização não disponível",
+                v.ImagemUrl
+            )).ToList();
+
+            // Se "mais comprados" não devolveu nada (loja nova, sem reservas
+            // concluídas ainda), cai para a listagem completa de veículos.
+            if (!veiculos.Any())
+            {
+                var all = await Api.GetVeiculosAsync();
+                if (all.Success && all.Data != null)
+                    veiculos = all.Data.Select(v => MapVeiculo(v)).ToList();
+            }
+        }
     }
 
     async Task LoadMaisCompradosAsync()
     {
         var result = await Api.GetMaisCompradosAsync(6);
-        if (result.Success)
+        if (result.Success && result.Data != null)
         {
             maisComprados = result.Data.Select(v => new MaisComprado(
                 v.Id,
@@ -1308,69 +1378,7 @@
         }
     }
 
-    async Task LoadVeiculosAsync()
-    {
-        // Prefer recommendations for authenticated users
-        await AuthService.InitAsync();
-        isRecommendations = false;
-        veiculos = new();
-
-        var isAuth = await AuthService.IsAuthenticatedAsync();
-        if (isAuth)
-        {
-            var uid = await AuthService.GetUserIdAsync();
-            if (uid.HasValue)
-            {
-                var rec = await Api.GetRecomendacoesAsync(uid.Value);
-                if (rec.Success && rec.Data?.Any() == true)
-                {
-                    isRecommendations = true;
-                    foreach (var r in rec.Data)
-                    {
-                        var vres = await Api.GetVeiculoAsync(r.VeiculoId);
-                        if (vres.Success && vres.Data != null)
-                        {
-                            veiculos.Add(MapVeiculo(vres.Data));
-                        }
-                    }
-                }
-            }
-        }
-
-        // If no recommendations (or not authenticated), fall back to most-sold
-        if (!isRecommendations)
-        {
-            var result = await Api.GetMaisCompradosAsync(50);
-            if (result.Success && result.Data != null && result.Data.Any())
-            {
-                veiculos = result.Data.Select(v => new Veiculo(
-                    v.Id,
-                    $"{v.Marca} {v.Modelo}",
-                    v.Marca ?? string.Empty,
-                    "N/A",
-                    "N/A",
-                    "N/A",
-                    0,
-                    v.Ano,
-                    (long)Math.Round(v.Preco),
-                    80,
-                    "Localização não disponível",
-                    v.ImagemUrl ?? "img/cars/default.jpg"
-                )).ToList();
-            }
-            else
-            {
-                // final fallback to full vehicle list
-                var all = await Api.GetVeiculosAsync();
-                if (all.Success && all.Data != null)
-                    veiculos = all.Data.Select(MapVeiculo).ToList();
-                else
-                    veiculos = new();
-            }
-        }
-    }
-
-    static Veiculo MapVeiculo(VeiculoDto v)
+    static Veiculo MapVeiculo(VeiculoDto v, double? matchScore = null)
         => new(
             v.Id,
             $"{v.Marca} {v.Modelo}",
@@ -1381,9 +1389,10 @@
             v.Potencia ?? 0,
             v.Ano,
             (long)Math.Round(v.Preco),
-            v.Disponivel ? 92 : 74,
+            matchScore.HasValue ? (int)Math.Round(matchScore.Value) : (v.Disponivel ? 92 : 74),
             v.Localizacao ?? "Localização não disponível",
-            v.ImagemUrl ?? "img/cars/default.jpg"
+            v.ImagemUrl ?? "img/cars/default.jpg",
+            matchScore // já vem 0-100 da API de recomendação; não multiplicar
         );
 
     void AplicarFiltros()
@@ -1417,15 +1426,28 @@
         // Preço
         q = q.Where(v => v.Preco <= filtroPrecoMax);
 
-        // Ordenação
-        q = ordenacao switch
+        // Ordenação.
+        // IMPORTANTE: quando "relevancia" + isRecommendations, NÃO
+        // reordenamos — 'veiculos' já está na ordem exata devolvida pela
+        // API de recomendação (fonte de verdade do ranking, com seu próprio
+        // critério de desempate). Reordenar aqui por ScoreIA poderia mudar
+        // a posição de itens com score igual/arredondado — exatamente o
+        // problema de inconsistência que estamos eliminando.
+        if (ordenacao == "relevancia" && isRecommendations)
         {
-            "preco-asc"  => q.OrderBy(v => v.Preco),
-            "preco-desc" => q.OrderByDescending(v => v.Preco),
-            "ano-desc"   => q.OrderByDescending(v => v.Ano),
-            "nome-asc"   => q.OrderBy(v => v.Nome),
-            _            => q.OrderByDescending(v => v.ScoreIA)
-        };
+            // mantém a ordem de 'veiculos' como veio da API
+        }
+        else
+        {
+            q = ordenacao switch
+            {
+                "preco-asc"  => q.OrderBy(v => v.Preco),
+                "preco-desc" => q.OrderByDescending(v => v.Preco),
+                "ano-desc"   => q.OrderByDescending(v => v.Ano),
+                "nome-asc"   => q.OrderBy(v => v.Nome),
+                _            => q.OrderByDescending(v => v.ScoreIA)
+            };
+        }
 
         veiculosFiltrados = q.ToList();
     }
@@ -1461,7 +1483,8 @@
         int Ano,
         string ImagemUrl,
         decimal Preco,
-        int TotalCompras
+        int TotalCompras,
+        double? MatchScore = null   // % exato (0-100) vindo da recomendação; null = "mais comprado" puro
     );
 
     // Scroll reveal via JS interop (inicializado uma vez)

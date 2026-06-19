@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Target.Api.Data;
@@ -39,16 +40,43 @@ namespace Target.Api.Controllers
 
         // PUT: api/users/{id}
         [HttpPut("{id}")]
-        public IActionResult Update(int id, Usuario updated)
+        public IActionResult Update(int id, UpdateUsuarioRequest updated)
         {
             var user = _context.Usuarios.Find(id);
 
             if (user == null)
                 return NotFound();
 
-            user.Nome = updated.Nome;
-            user.Email = updated.Email;
-            user.Role = updated.Role;
+            var currentUserIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? User.FindFirstValue("nameid")
+                ?? User.FindFirstValue("sub");
+
+            if (!int.TryParse(currentUserIdClaim, out var currentUserId))
+                return Forbid();
+
+            var currentUserRole = User.FindFirstValue(ClaimTypes.Role)
+                ?? User.FindFirstValue("role");
+
+            var isAdmin = string.Equals(currentUserRole, "Admin", StringComparison.OrdinalIgnoreCase);
+            var isSelf = currentUserId == id;
+
+            if (!isSelf && !isAdmin)
+                return Forbid();
+
+            if (!isSelf && isAdmin)
+            {
+                if (string.IsNullOrWhiteSpace(updated.Role))
+                    return BadRequest("O tipo de perfil é obrigatório para actualizar outro utilizador.");
+
+                user.Role = updated.Role.Trim();
+                _context.SaveChanges();
+                return Ok(user);
+            }
+
+            if (!string.IsNullOrWhiteSpace(updated.Nome))
+                user.Nome = updated.Nome.Trim();
+
+            user.Telefone = updated.Telefone;
             user.DataNascimento = updated.DataNascimento;
             user.Genero = updated.Genero;
             user.EstadoCivil = updated.EstadoCivil;
@@ -58,8 +86,10 @@ namespace Target.Api.Controllers
             user.InteressesPrincipais = updated.InteressesPrincipais;
             user.TipoDeUsoPretendido = updated.TipoDeUsoPretendido;
 
-            _context.SaveChanges();
+            if (isAdmin && !string.IsNullOrWhiteSpace(updated.Role))
+                user.Role = updated.Role.Trim();
 
+            _context.SaveChanges();
             return Ok(user);
         }
 
